@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init -d --force)",
+      "Bash(npx shadcn@latest add card badge avatar separator sheet tabs -y)",
+      "Bash(npx shadcn@latest add skeleton switch -y)",
+      "Bash(npx next:*)",
+      "Bash(gzip -d -c \"C:\\\\Users\\\\ADMIN\\\\.claude\\\\projects\\\\E--My-SaaS-Business-Booking-Application-web\\\\f7f37337-02a5-4187-ac89-2d8cdd5ebbd4\\\\tool-results\\\\webfetch-1777144091024-98b7t9.bin\")",
+      "Read(//tmp/**)",
+      "Bash(tar tf:*)",
+      "Bash(tar xf:*)",
+      "Bash(rm:*)",
+      "Bash(wc:*)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
