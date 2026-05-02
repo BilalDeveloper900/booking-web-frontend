@@ -133,13 +133,13 @@ export function CalendarScreen() {
   }
 
   return (
-    <div className="flex-1 overflow-hidden flex flex-col p-6 lg:p-8">
-      <div className="flex items-start mb-5 gap-4 flex-wrap">
+    <div className="flex-1 overflow-hidden flex flex-col p-4 md:p-6 lg:p-8">
+      <div className="flex items-start mb-4 md:mb-5 gap-4 flex-wrap">
         <div>
-          <h2 className="text-[24px] font-semibold tracking-tight leading-tight">
+          <h2 className="text-[20px] md:text-[24px] font-semibold tracking-tight leading-tight">
             {dateRange}
           </h2>
-          <p className="text-[13px] text-muted-foreground mt-1 tabular-nums">
+          <p className="text-[12px] md:text-[13px] text-muted-foreground mt-1 tabular-nums">
             {totalEvents} bookings · {Math.round((totalEvents / 28) * 100)}% utilization ·{" "}
             {stylistFilter.size} of {TRAINERS.length} stylists
           </p>
@@ -147,7 +147,7 @@ export function CalendarScreen() {
         <div className="flex-1" />
 
         <div className="flex items-center gap-2 flex-wrap">
-          <div role="tablist" className="flex items-center gap-0.5 p-0.5 bg-muted rounded-lg">
+          <div role="tablist" className="hidden lg:flex items-center gap-0.5 p-0.5 bg-muted rounded-lg">
             {VIEWS.map((v) => {
               const active = view === v;
               return (
@@ -192,14 +192,27 @@ export function CalendarScreen() {
           </div>
 
           <Button size="sm" className="gap-2" onClick={() => openSlot(selectedDayIdx, 1)}>
-            <Plus className="w-3.5 h-3.5" /> Booking
+            <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Booking</span>
           </Button>
         </div>
       </div>
 
-      <StylistLegend selected={stylistFilter} onToggle={toggleStylist} />
+      <div className="hidden lg:block">
+        <StylistLegend selected={stylistFilter} onToggle={toggleStylist} />
+      </div>
 
-      <div className="bg-card border border-border rounded-xl shadow-card flex-1 overflow-hidden flex flex-col mt-3">
+      {/* Mobile + tablet: agenda list pattern (date strip + stacked events). */}
+      <div className="lg:hidden flex-1 overflow-hidden flex flex-col">
+        <MobileAgenda
+          dayIdx={selectedDayIdx}
+          onDayChange={setSelectedDayIdx}
+          events={eventsByDay.get(selectedDayIdx) ?? []}
+          onEventClick={setSelectedEvent}
+        />
+      </div>
+
+      {/* Laptop+: full calendar card with Week/Day/Month switcher. */}
+      <div className="hidden lg:flex bg-card border border-border rounded-xl shadow-card flex-1 overflow-hidden flex-col mt-3">
         {view === "Week" && (
           <WeekView
             eventsByDay={eventsByDay}
@@ -239,6 +252,110 @@ export function CalendarScreen() {
         slot={newSlot}
         onOpenChange={setOpenNewBooking}
       />
+    </div>
+  );
+}
+
+/* ---------------- mobile agenda (per design spec) ---------------- */
+
+function MobileAgenda({
+  dayIdx,
+  onDayChange,
+  events,
+  onEventClick,
+}: {
+  dayIdx: number;
+  onDayChange: (i: number) => void;
+  events: CalendarEvent[];
+  onEventClick: (e: CalendarEvent) => void;
+}) {
+  const sorted = [...events].sort((a, b) => a.start - b.start);
+
+  return (
+    <div className="flex-1 overflow-hidden flex flex-col mt-3 -mx-4 bg-card border-y border-border">
+      <div className="flex gap-2 overflow-x-auto px-4 py-3 border-b border-[--line-soft]">
+        {CALENDAR_DAYS.map((d, i) => {
+          const active = i === dayIdx;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onDayChange(i)}
+              aria-pressed={active}
+              className={cn(
+                "shrink-0 w-13 text-center py-2 px-2 rounded-xl motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                active
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-muted/50"
+              )}
+              style={{ minWidth: 52 }}
+            >
+              <div
+                className={cn(
+                  "text-[10px] tracking-[0.08em] uppercase font-medium",
+                  active ? "opacity-70" : "text-muted-foreground"
+                )}
+              >
+                {d.d}
+              </div>
+              <div className="text-lg font-semibold tabular-nums mt-0.5">{d.n}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex-1 overflow-auto px-4 py-3 space-y-2.5">
+        {sorted.length === 0 && (
+          <div className="text-sm text-muted-foreground text-center py-12">
+            No bookings this day. Tap + to add one.
+          </div>
+        )}
+        {sorted.map((e, i) => {
+          if (e.closed) {
+            return (
+              <div
+                key={i}
+                className="grid place-items-center rounded-xl text-[12px] text-muted-foreground py-4"
+                style={{
+                  background:
+                    "repeating-linear-gradient(45deg, transparent 0 6px, var(--ink-100) 6px 12px)",
+                }}
+              >
+                Closed
+              </div>
+            );
+          }
+          const trainer = trainerForEvent(e);
+          const bg = `oklch(0.96 0.03 ${e.hue})`;
+          const accent = `oklch(0.55 0.08 ${e.hue})`;
+          return (
+            <div key={i} className="flex gap-3">
+              <div className="w-12 shrink-0 pt-2.5 text-[12px] text-muted-foreground tabular-nums">
+                {formatHour(e.start)}
+              </div>
+              <button
+                type="button"
+                onClick={() => onEventClick(e)}
+                className="flex-1 text-left rounded-xl px-3.5 py-2.5 motion-safe:transition-transform motion-safe:duration-150 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                style={{ background: bg, borderLeft: `3px solid ${accent}` }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-semibold truncate flex-1">
+                    {e.service}
+                  </span>
+                  <span className="text-[11px] tabular-nums text-foreground/80 shrink-0">
+                    {Math.round(e.len * 60)}m
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  {e.client} · {trainer.name.split(" ")[0]}
+                </div>
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
     </div>
   );
 }

@@ -32,7 +32,8 @@ All colors live in [../app/globals.css](../app/globals.css) as CSS variables.
 ### Brand
 | Token | Use | Notes |
 |---|---|---|
-| `--teal-700` | Primary brand, primary CTA, active nav, hero KPIs, link accent | The brand color. Owner role accent. |
+| `--teal-700` (via `--primary`) | Primary CTA across every role | Brand teal. The default `<Button>` reads `--primary` — keep this consistent across owner / stylist / client so the same CTA looks identical everywhere. |
+| `--teal-700` | Brand mark, hero KPIs, owner role accent, link accent | Same value, used directly when you need the literal token. |
 | `--teal-500` | Secondary teal, chart series 2, hover-fill on teal surfaces | |
 | `--teal-100` | Tinted surfaces (in-session row, today cell, brand pills bg) | Never as text bg below 14px |
 | `--teal-900` | On-teal-100 text, deep accent | |
@@ -191,7 +192,7 @@ Use the `Button` component from `@/components/ui/button`. **Always use a variant
 | `ghost` | Tertiary actions, table row icons, dismiss buttons |
 | `destructive` | Delete, cancel-with-loss |
 
-**Primary CTA must use the brand color**, not raw ink. Override via the `--primary` token if needed for a role.
+**Primary CTA uses brand teal across every role** — `--primary` is set once at `:root` to `var(--teal-700)`. The role accent is reserved for *secondary* indicators (active bottom-tab icon, "View all →" arrows, progress fills, focus rings). Don't override `--primary` per role; the same button must look identical across owner / stylist / client, and recoloring it green or indigo per role breaks brand consistency.
 
 ### Stat blocks
 Use the `StatBlock` shared component. Keep it dense:
@@ -297,9 +298,8 @@ A short, hard list. If you catch yourself doing one of these, stop.
 - ❌ Hard-coded hex in components (`bg-[#fafaf9]`). Use the token (`bg-background`).
 - ❌ `↑` / `↓` text arrows for deltas. Use lucide `TrendingUp`/`TrendingDown`.
 - ❌ Page title at `text-[15px]`. That's the card-title tier. Pages get 22–28px.
-- ❌ `bg-foreground` for primary CTAs. Use the brand (`--teal-700` via the `Button` default variant + the primary token).
+- ❌ Recoloring `<Button>`'s primary CTA per role (owner=teal, stylist=indigo, client=green). Primary is ink across all roles — keep brand color for secondary accents only.
 - ❌ Stripping focus rings via `cn(...)` overrides. Always preserve `focus-visible:*` from base classes.
-- ❌ `Button` component's primary variant tied to ink — primary should be brand.
 - ❌ Identical `border border-border rounded-lg` on every surface. Use the elevation ladder.
 - ❌ Mock search bars rendered as `<div>` or `<span>` — make them a `<button>` so they're clickable + focusable.
 - ❌ Same icon set mixed with emoji.

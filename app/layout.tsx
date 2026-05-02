@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Poppins, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -18,6 +19,30 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Maison & Co. — Salon Management",
   description: "Manage your salon bookings, stylists, and clients",
+  manifest: "/manifest.webmanifest",
+  applicationName: "Maison & Co.",
+  appleWebApp: {
+    capable: true,
+    title: "Maison & Co.",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/maison-192.svg", sizes: "192x192", type: "image/svg+xml" },
+      { url: "/icons/maison-512.svg", sizes: "512x512", type: "image/svg+xml" },
+    ],
+    apple: { url: "/icons/maison-512.svg", sizes: "512x512", type: "image/svg+xml" },
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafaf9" },
+    { media: "(prefers-color-scheme: dark)", color: "#222222" },
+  ],
 };
 
 export default function RootLayout({
@@ -30,7 +55,12 @@ export default function RootLayout({
       lang="en"
       className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Script id="register-sw" strategy="afterInteractive">
+          {`if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); }`}
+        </Script>
+      </body>
     </html>
   );
 }

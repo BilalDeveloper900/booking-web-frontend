@@ -74,7 +74,11 @@
   --card-foreground: oklch(0.22 0.01 240);
   --popover: #ffffff;
   --popover-foreground: oklch(0.22 0.01 240);
-  --primary: oklch(0.22 0.01 240);
+  /* Primary CTA = brand teal across every role.
+   * Per-role primary overrides are forbidden (see [data-role="*"] block below
+   * and design-system/MASTER.md §7). Keeping the same primary token across
+   * owner/stylist/client guarantees the same button looks identical app-wide. */
+  --primary: var(--teal-700);
   --primary-foreground: #ffffff;
   --secondary: oklch(0.94 0.004 240);
   --secondary-foreground: oklch(0.22 0.01 240);
@@ -137,31 +141,27 @@
 }
 
 /* Role-specific accent theming.
- * Each role overrides --primary and --ring so that the shadcn Button's
- * default variant + every focus ring picks up the brand color automatically.
+ * Per the source design, primary CTAs use ink across every role — the role
+ * accent is reserved for *secondary* indicators (active bottom-tab icon,
+ * "View all →" links, progress bars, focus rings). Don't override --primary
+ * here unless you want every role's shadcn Button to recolor.
  * See design-system/MASTER.md §2 (Brand) and §7 (Buttons). */
 [data-role="owner"] {
   --role-accent: var(--teal-700);
   --role-accent-light: var(--teal-100);
   --role-accent-dark: var(--teal-900);
-  --primary: var(--teal-700);
-  --primary-foreground: #ffffff;
   --ring: var(--teal-700);
 }
 [data-role="stylist"] {
   --role-accent: oklch(0.55 0.10 260);
   --role-accent-light: oklch(0.94 0.03 260);
   --role-accent-dark: oklch(0.30 0.06 260);
-  --primary: oklch(0.55 0.10 260);
-  --primary-foreground: #ffffff;
   --ring: oklch(0.55 0.10 260);
 }
 [data-role="client"] {
   --role-accent: oklch(0.55 0.12 155);
   --role-accent-light: oklch(0.94 0.03 155);
   --role-accent-dark: oklch(0.30 0.06 155);
-  --primary: oklch(0.55 0.12 155);
-  --primary-foreground: #ffffff;
   --ring: oklch(0.55 0.12 155);
 }
 

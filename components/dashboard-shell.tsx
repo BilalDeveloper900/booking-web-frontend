@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar } from "@/components/app-topbar";
+import { AppBottomTabs } from "@/components/app-bottom-tabs";
 import {
   Sheet,
   SheetContent,
@@ -35,7 +36,7 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-60 p-0" showCloseButton={false}>
-          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <SheetTitle className="sr-only">Account &amp; settings</SheetTitle>
           <AppSidebar config={config} currentPath={pathname} className="flex w-full border-r-0" />
         </SheetContent>
       </Sheet>
@@ -45,8 +46,12 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
           title={deriveTitle(pathname, config)}
           onMenuClick={() => setMobileOpen(true)}
         />
-        <main className="flex-1 overflow-hidden flex flex-col min-h-0">{children}</main>
+        <main className="flex-1 overflow-hidden flex flex-col min-h-0 pb-[calc(env(safe-area-inset-bottom)+64px)] lg:pb-0">
+          {children}
+        </main>
       </div>
+
+      <AppBottomTabs config={config} currentPath={pathname} />
     </div>
   );
 }

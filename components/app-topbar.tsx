@@ -12,7 +12,7 @@ export function AppTopbar({ title, onMenuClick }: AppTopbarProps) {
         <button
           onClick={onMenuClick}
           aria-label="Open menu"
-          className="md:hidden w-9 h-9 grid place-items-center rounded-lg hover:bg-muted text-muted-foreground motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+          className="lg:hidden w-9 h-9 grid place-items-center rounded-lg hover:bg-muted text-muted-foreground motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
         >
           <Menu className="w-5 h-5" aria-hidden />
         </button>
@@ -20,7 +20,7 @@ export function AppTopbar({ title, onMenuClick }: AppTopbarProps) {
       <h1 className="text-[17px] font-semibold tracking-tight">{title}</h1>
       <button
         type="button"
-        className="ml-auto hidden md:flex items-center gap-2 bg-muted/70 hover:bg-muted px-3 py-1.5 rounded-lg w-72 text-left motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+        className="ml-auto hidden md:flex items-center gap-2 bg-muted/70 hover:bg-muted px-3 py-1.5 rounded-lg md:w-56 lg:w-72 text-left motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
         aria-label="Search clients, bookings, services"
       >
         <Search className="w-3.5 h-3.5 text-muted-foreground" aria-hidden />

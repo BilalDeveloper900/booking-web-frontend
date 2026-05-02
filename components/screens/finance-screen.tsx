@@ -35,7 +35,7 @@ export function FinanceScreen() {
         <StatBlock label="Pending payout" value="6,840" unit="€" foot="to 6 stylists · Apr 30" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5">
         <Card>
           <CardHeader
             title="Incoming vs. outgoing"

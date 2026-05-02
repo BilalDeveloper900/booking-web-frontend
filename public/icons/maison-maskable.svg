@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Maison & Co.">
+  <!-- Maskable: full bleed background, glyph stays inside the inner 80% safe zone (centered 410px). -->
+  <rect width="512" height="512" fill="#222222"/>
+  <text x="256" y="296" text-anchor="middle"
+        font-family="'Instrument Serif', 'Cormorant Garamond', Georgia, serif"
+        font-size="240" font-weight="400" fill="#fafaf9">M</text>
+</svg>

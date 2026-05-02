@@ -24,7 +24,7 @@ export function AppSidebar({ config, currentPath, className }: AppSidebarProps) 
   return (
     <aside
       className={cn(
-        "hidden md:flex w-60 shrink-0 h-full border-r border-border flex-col py-7 px-4 bg-card",
+        "hidden lg:flex w-60 shrink-0 h-full border-r border-border flex-col py-7 px-4 bg-card",
         className
       )}
     >

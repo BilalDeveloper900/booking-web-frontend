@@ -2,20 +2,49 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CLIENT_BOOKING_DATES, CLIENT_TIME_SLOTS, type TimeSlotStatus } from "@/lib/data";
+import {
+  CLIENT_BOOKING_DATES,
+  CLIENT_TIME_SLOTS,
+  TRAINERS,
+  type TimeSlotStatus,
+} from "@/lib/data";
 import { cn } from "@/lib/utils";
+import { HueAvatar } from "@/components/shared";
 
-const STEPS = ["Service", "Stylist", "Date & time"] as const;
+const SERVICES = [
+  { id: "cut",     label: "Cut + gloss",   duration: "60m",  credits: 2 },
+  { id: "balayage",label: "Balayage",      duration: "180m", credits: 3 },
+  { id: "color",   label: "Color refresh", duration: "90m",  credits: 2 },
+  { id: "manicure",label: "Manicure",      duration: "60m",  credits: 1 },
+] as const;
+
+type Service = (typeof SERVICES)[number];
+
+const STYLIST_OPTIONS = [
+  { id: "any", name: "Any stylist", short: "Any", initials: "—", hue: undefined as number | undefined },
+  ...TRAINERS.slice(0, 4).map((t) => ({
+    id: t.name,
+    name: t.name,
+    short: t.name.split(" ")[0],
+    initials: t.name.split(" ").map((n) => n[0]).slice(0, 2).join(""),
+    hue: t.hue,
+  })),
+];
 
 export function ClientBookSession() {
   const initialDate = Math.max(0, CLIENT_BOOKING_DATES.findIndex((d) => d.selected));
+  const [selectedService, setSelectedService] = useState<Service["id"]>("cut");
+  const [selectedStylist, setSelectedStylist] = useState<string>("Camille Roux");
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState(CLIENT_TIME_SLOTS);
 
   function selectDate(i: number) {
     setSelectedDate(i);
-    // Reset any selected slot when changing date
-    setSlots(CLIENT_TIME_SLOTS.map((s) => (s.status === "selected" ? { ...s, status: "available" as TimeSlotStatus } : s)));
+    setSlots(
+      CLIENT_TIME_SLOTS.map((s) =>
+        s.status === "selected" ? { ...s, status: "available" as TimeSlotStatus } : s
+      )
+    );
   }
 
   function selectTime(index: number) {
@@ -28,68 +57,112 @@ export function ClientBookSession() {
     );
   }
 
+  const service = SERVICES.find((s) => s.id === selectedService) ?? SERVICES[0];
+  const stylist = STYLIST_OPTIONS.find((s) => s.id === selectedStylist) ?? STYLIST_OPTIONS[1];
   const selectedSlot = slots.find((s) => s.status === "selected");
   const selectedDateInfo = CLIENT_BOOKING_DATES[selectedDate];
   const canConfirm = selectedSlot != null;
 
   return (
-    <div className="flex-1 overflow-auto p-6 lg:p-8">
-      <div
-        className="mb-6"
-        role="progressbar"
-        aria-valuenow={3}
-        aria-valuemin={1}
-        aria-valuemax={STEPS.length}
-        aria-label={`Booking step 3 of ${STEPS.length}`}
-      >
-        <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-2">
-          Step 3 of {STEPS.length}
-        </div>
-        <ol className="flex gap-1.5 w-48" aria-hidden>
-          {STEPS.map((s) => (
-            <li key={s} className="h-1.5 flex-1 rounded-full bg-foreground" title={s} />
-          ))}
-        </ol>
-      </div>
-
-      <h2 className="text-[24px] font-semibold tracking-tight leading-tight mb-1">
-        Choose a date &amp; time
+    <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+      <h2 className="text-[20px] md:text-[24px] font-semibold tracking-tight leading-tight mb-1">
+        Book a session
       </h2>
-      <p className="text-[13px] text-muted-foreground mb-6">
-        Select your preferred appointment slot
+      <p className="text-[13px] text-muted-foreground mb-5">
+        Choose a service, stylist, and time
       </p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-        <div>
-          <div className="mb-6">
-            <h3 className="text-[13px] font-medium text-muted-foreground mb-3">May 2026</h3>
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-              {CLIENT_BOOKING_DATES.map((d, i) => (
-                <button
-                  key={d.num}
-                  type="button"
-                  disabled={!d.available}
-                  onClick={() => selectDate(i)}
-                  aria-pressed={selectedDate === i}
-                  className={cn(
-                    "flex flex-col items-center justify-center w-14 h-16 rounded-lg border text-sm shrink-0 motion-safe:transition-all motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                    selectedDate === i
-                      ? "bg-foreground text-background border-foreground"
-                      : d.available
-                        ? "border-border hover:border-[--role-accent] hover:bg-[--role-accent-light]/30 cursor-pointer"
-                        : "border-border opacity-40 cursor-not-allowed"
-                  )}
-                >
-                  <span className="text-[11px] font-medium opacity-70">{d.day}</span>
-                  <span className="text-base font-semibold tabular-nums">{d.num}</span>
-                </button>
-              ))}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6">
+        <div className="space-y-6">
+          <Section label="1. Service">
+            <div className="grid grid-cols-2 gap-2">
+              {SERVICES.map((s) => {
+                const on = s.id === selectedService;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSelectedService(s.id)}
+                    aria-pressed={on}
+                    className={cn(
+                      "p-3 rounded-xl border text-left motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      on
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                        : "border-border hover:border-primary/50 bg-card"
+                    )}
+                  >
+                    <div className="text-[13px] font-semibold">{s.label}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
+                      {s.duration} · {s.credits} cr
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          </Section>
 
-          <div>
-            <h3 className="text-[13px] font-medium text-muted-foreground mb-3">Available times</h3>
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+          <Section label="2. Stylist">
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {STYLIST_OPTIONS.map((s) => {
+                const on = s.id === selectedStylist;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSelectedStylist(s.id)}
+                    aria-pressed={on}
+                    className={cn(
+                      "shrink-0 inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      on
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card hover:border-primary/50"
+                    )}
+                  >
+                    {s.hue != null ? (
+                      <HueAvatar name={s.name} hue={s.hue} size={26} />
+                    ) : (
+                      <span className="w-[26px] h-[26px] rounded-full bg-muted text-muted-foreground grid place-items-center text-[11px] font-semibold">
+                        {s.initials}
+                      </span>
+                    )}
+                    <span className="text-[13px] font-medium">{s.short}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          <Section label="3. Date & time">
+            <div className="text-[12px] font-medium text-muted-foreground mb-2.5">May 2026</div>
+            <div className="grid grid-cols-7 gap-1.5 mb-4">
+              {CLIENT_BOOKING_DATES.map((d, i) => {
+                const on = selectedDate === i;
+                return (
+                  <button
+                    key={d.num}
+                    type="button"
+                    disabled={!d.available}
+                    onClick={() => selectDate(i)}
+                    aria-pressed={on}
+                    className={cn(
+                      "flex flex-col items-center justify-center py-2 rounded-lg border text-sm motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      on
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : d.available
+                          ? "border-border hover:border-primary bg-card"
+                          : "border-border opacity-40 cursor-not-allowed"
+                    )}
+                  >
+                    <span className={cn("text-[10px] tracking-wider uppercase", on ? "opacity-70" : "text-muted-foreground")}>
+                      {d.day[0]}
+                    </span>
+                    <span className="text-[15px] font-semibold tabular-nums mt-0.5">{d.num}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {slots.map((s, i) => (
                 <button
                   key={s.time}
@@ -100,9 +173,9 @@ export function ClientBookSession() {
                   className={cn(
                     "h-10 rounded-lg text-[13px] font-medium tabular-nums motion-safe:transition-all motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     s.status === "available" &&
-                      "border border-border hover:border-[--role-accent] hover:bg-[--role-accent-light]/30 cursor-pointer",
+                      "border border-border hover:border-primary hover:bg-primary/10 cursor-pointer",
                     s.status === "selected" &&
-                      "bg-foreground text-background shadow-card",
+                      "bg-primary text-primary-foreground shadow-card",
                     s.status === "taken" &&
                       "bg-muted text-muted-foreground opacity-50 line-through cursor-not-allowed"
                   )}
@@ -111,35 +184,28 @@ export function ClientBookSession() {
                 </button>
               ))}
             </div>
-          </div>
+          </Section>
         </div>
 
-        <div className="lg:sticky lg:top-8 h-fit">
+        <div className="xl:sticky xl:top-8 h-fit">
           <div className="bg-card border border-border rounded-xl p-5 shadow-card">
             <h3 className="text-[13px] font-semibold mb-4">Booking summary</h3>
             <div className="space-y-3 text-[13px]">
-              <SummaryRow label="Service" value="Balayage touch-up" />
-              <SummaryRow label="Stylist" value="Camille Roux" />
-              <SummaryRow label="Duration" value="1h 30m" />
+              <SummaryRow label="Service" value={service.label} />
+              <SummaryRow label="Stylist" value={stylist.name} />
+              <SummaryRow label="Duration" value={service.duration} />
               <SummaryRow
                 label="Date"
-                value={
-                  selectedDateInfo
-                    ? `${selectedDateInfo.day}, ${selectedDateInfo.num} May`
-                    : "—"
-                }
+                value={selectedDateInfo ? `${selectedDateInfo.day}, ${selectedDateInfo.num} May` : "—"}
               />
               <SummaryRow label="Time" value={selectedSlot?.time ?? "—"} />
               <div className="h-px bg-border" />
-              <SummaryRow label="Cost" value="3 credits" bold />
-              <SummaryRow label="After booking" value="3 credits remaining" />
+              <SummaryRow label="Cost" value={`${service.credits} credits`} bold />
+              <SummaryRow label="After booking" value={`${Math.max(0, 6 - service.credits)} credits left`} />
             </div>
 
             <Button className="w-full mt-5" size="lg" disabled={!canConfirm}>
               Confirm booking
-            </Button>
-            <Button variant="ghost" className="w-full mt-2" size="lg">
-              Save as draft
             </Button>
             <p className="text-[11px] text-muted-foreground text-center mt-3">
               Free reschedule up to 24h before your appointment
@@ -148,6 +214,17 @@ export function ClientBookSession() {
         </div>
       </div>
     </div>
+  );
+}
+
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-2.5 px-1">
+        {label}
+      </div>
+      {children}
+    </section>
   );
 }
 

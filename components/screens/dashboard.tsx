@@ -35,7 +35,7 @@ export function DashboardScreen() {
         <StatBlock label="Credits sold" value="1,248" delta="2.1%" deltaKind="neg" foot="6 packs refunded" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5">
         <Card>
           <CardHeader
             title="Revenue"
@@ -61,7 +61,7 @@ export function DashboardScreen() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5 mt-5">
+      <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5 mt-5">
         <Card>
           <CardHeader
             title="Stylist performance"

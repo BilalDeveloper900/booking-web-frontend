@@ -30,7 +30,7 @@ export function StylistOverview() {
         <StatBlock label="Avg rating" value="4.92" unit="★" foot="48 reviews" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5">
         <Card>
           <CardHeader title="Today" right={<CardLink href="/stylist/calendar">View calendar</CardLink>} />
           <div className="overflow-x-auto">

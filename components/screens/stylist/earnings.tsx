@@ -17,7 +17,7 @@ export function StylistEarnings() {
         <StatBlock label="Next payout" value="5,473" unit="€" foot="Apr 30" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5 mb-5">
+      <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5 mb-5">
         <Card>
           <div className="flex items-baseline justify-between mb-4 gap-4">
             <div>
