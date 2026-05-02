@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { HueAvatar } from "@/components/shared";
-import { Star, Settings } from "lucide-react";
+import { Star, Settings, ChevronUp } from "lucide-react";
+import { ProfileMenu } from "@/components/profile-menu";
 import type { RoleConfig } from "@/lib/roles";
 
 interface AppSidebarProps {
@@ -14,6 +15,8 @@ interface AppSidebarProps {
 
 export function AppSidebar({ config, currentPath, className }: AppSidebarProps) {
   const { navItems, user } = config;
+  const settingsHref = `/${config.role}/settings`;
+  const isSettingsActive = currentPath.startsWith(settingsHref);
 
   function isActive(href: string) {
     const isRootNav = navItems[0]?.href === href;
@@ -87,22 +90,44 @@ export function AppSidebar({ config, currentPath, className }: AppSidebarProps) 
           <Star className="w-4 h-4" aria-hidden />
           <span>Subscription</span>
         </button>
-        <button className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card">
+        <Link
+          href={settingsHref}
+          aria-current={isSettingsActive ? "page" : undefined}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+            isSettingsActive
+              ? "bg-foreground text-background font-medium"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
           <Settings className="w-4 h-4" aria-hidden />
           <span>Settings</span>
-        </button>
+        </Link>
       </nav>
 
-      <button
-        className="mt-auto pt-3 border-t border-border flex items-center gap-2.5 px-3 -mx-1 rounded-lg hover:bg-muted/60 motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
-        aria-label={`Open profile for ${user.name}`}
-      >
-        <HueAvatar name={user.name} hue={user.hue} size={32} />
-        <div className="leading-tight text-left">
-          <div className="text-[13px] font-medium">{user.name}</div>
-          <div className="text-[11px] text-muted-foreground">{user.subtitle}</div>
-        </div>
-      </button>
+      <div className="mt-auto pt-3 border-t border-border">
+        <ProfileMenu
+          user={user}
+          role={config.role}
+          side="top"
+          align="start"
+          sideOffset={10}
+          trigger={
+            <button
+              type="button"
+              aria-label={`Open profile for ${user.name}`}
+              className="w-full flex items-center gap-2.5 px-3 py-1.5 -mx-1 rounded-lg hover:bg-muted/60 data-popup-open:bg-muted/60 motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+            >
+              <HueAvatar name={user.name} hue={user.hue} size={32} />
+              <div className="leading-tight text-left min-w-0 flex-1">
+                <div className="text-[13px] font-medium truncate">{user.name}</div>
+                <div className="text-[11px] text-muted-foreground truncate">{user.subtitle}</div>
+              </div>
+              <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
+            </button>
+          }
+        />
+      </div>
     </aside>
   );
 }

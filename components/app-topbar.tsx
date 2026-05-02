@@ -1,11 +1,19 @@
+"use client";
+
 import { Bell, Menu, MessageSquare, Search } from "lucide-react";
+import { ProfileMenu } from "@/components/profile-menu";
+import { HueAvatar } from "@/components/shared";
+import type { RoleConfig } from "@/lib/roles";
 
 interface AppTopbarProps {
   title: string;
+  config: RoleConfig;
   onMenuClick?: () => void;
 }
 
-export function AppTopbar({ title, onMenuClick }: AppTopbarProps) {
+export function AppTopbar({ title, config, onMenuClick }: AppTopbarProps) {
+  const { user, role } = config;
+
   return (
     <div className="h-16 shrink-0 border-b border-border flex items-center px-4 md:px-8 gap-5 bg-card/80 backdrop-blur supports-backdrop-filter:bg-card/70">
       {onMenuClick && (
@@ -24,9 +32,7 @@ export function AppTopbar({ title, onMenuClick }: AppTopbarProps) {
         aria-label="Search clients, bookings, services"
       >
         <Search className="w-3.5 h-3.5 text-muted-foreground" aria-hidden />
-        <span className="text-[13px] text-muted-foreground flex-1">
-          Search clients, bookings, services…
-        </span>
+        <span className="text-[13px] text-muted-foreground flex-1">Search </span>
         <kbd className="text-[11px] text-muted-foreground font-sans tabular-nums px-1.5 py-px rounded border border-border bg-card">
           ⌘K
         </kbd>
@@ -47,6 +53,22 @@ export function AppTopbar({ title, onMenuClick }: AppTopbarProps) {
       >
         <MessageSquare className="w-4 h-4" aria-hidden />
       </button>
+      <ProfileMenu
+        user={user}
+        role={role}
+        side="bottom"
+        align="end"
+        sideOffset={10}
+        trigger={
+          <button
+            type="button"
+            aria-label={`Open profile for ${user.name}`}
+            className="rounded-full motion-safe:transition-shadow motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card data-popup-open:ring-2 data-popup-open:ring-ring data-popup-open:ring-offset-2 data-popup-open:ring-offset-card"
+          >
+            <HueAvatar name={user.name} hue={user.hue} size={32} />
+          </button>
+        }
+      />
     </div>
   );
 }

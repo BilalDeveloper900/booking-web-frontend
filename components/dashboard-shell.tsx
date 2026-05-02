@@ -44,6 +44,7 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <AppTopbar
           title={deriveTitle(pathname, config)}
+          config={config}
           onMenuClick={() => setMobileOpen(true)}
         />
         <main className="flex-1 overflow-hidden flex flex-col min-h-0 pb-[calc(env(safe-area-inset-bottom)+64px)] lg:pb-0">
