@@ -6,70 +6,48 @@ export function StylistMyClients() {
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
       <div className="mb-6">
-        <h2 className="text-[15px] font-semibold tracking-tight">My Clients</h2>
-        <p className="text-[13px] text-muted-foreground">
-          7 active clients
-        </p>
+        <h2 className="text-[24px] font-semibold tracking-tight leading-tight">My clients</h2>
+        <p className="text-[13px] text-muted-foreground mt-1">7 active clients</p>
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
         <div className="flex items-center px-6 py-4 border-b border-border">
-          <div className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg max-w-[320px] flex-1">
-            <Search className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-[13px] text-muted-foreground">
-              Search clients…
-            </span>
-          </div>
+          <button
+            type="button"
+            aria-label="Search clients"
+            className="flex items-center gap-2 bg-muted/70 hover:bg-muted px-3 py-1.5 rounded-lg max-w-[320px] flex-1 motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card text-left"
+          >
+            <Search className="w-3.5 h-3.5 text-muted-foreground" aria-hidden />
+            <span className="text-[13px] text-muted-foreground">Search clients…</span>
+          </button>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3 pl-6">
-                  Client
-                </th>
-                <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">
-                  Visits
-                </th>
-                <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">
-                  Last visit
-                </th>
-                <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">
-                  Next visit
-                </th>
-                <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">
-                  Favourite service
-                </th>
-                <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">
-                  Credits
-                </th>
-                <th className="text-right text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3 pr-6">
-                  Lifetime
-                </th>
+                <Th first>Client</Th>
+                <Th>Visits</Th>
+                <Th>Last visit</Th>
+                <Th>Next visit</Th>
+                <Th>Favourite service</Th>
+                <Th>Credits</Th>
+                <Th align="right" last>Lifetime</Th>
               </tr>
             </thead>
             <tbody>
               {STYLIST_CLIENTS.map((c) => (
                 <tr
                   key={c.name}
-                  className="border-b border-[--line-soft] last:border-0"
+                  className="border-b border-[--line-soft] last:border-0 hover:bg-muted/40 motion-safe:transition-colors motion-safe:duration-150"
                 >
-                  <td className="py-3.5 pl-6">
-                    <PersonCell name={c.name} hue={c.hue} />
-                  </td>
+                  <td className="py-3.5 pl-6"><PersonCell name={c.name} hue={c.hue} /></td>
                   <td className="py-3.5 tabular-nums">{c.visits}</td>
-                  <td className="py-3.5 text-xs text-muted-foreground">
-                    {c.lastVisit}
-                  </td>
-                  <td className="py-3.5 text-xs text-muted-foreground">
-                    {c.nextVisit}
-                  </td>
+                  <td className="py-3.5 text-xs text-muted-foreground">{c.lastVisit}</td>
+                  <td className="py-3.5 text-xs text-muted-foreground">{c.nextVisit}</td>
                   <td className="py-3.5 text-xs">{c.favourite}</td>
                   <td className="py-3.5 tabular-nums">{c.credits}</td>
-                  <td className="py-3.5 text-right tabular-nums pr-6">
-                    €{c.ltv.toLocaleString()}
-                  </td>
+                  <td className="py-3.5 text-right tabular-nums pr-6">€{c.ltv.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -77,5 +55,27 @@ export function StylistMyClients() {
         </div>
       </div>
     </div>
+  );
+}
+
+function Th({
+  children,
+  first,
+  last,
+  align = "left",
+}: {
+  children: React.ReactNode;
+  first?: boolean;
+  last?: boolean;
+  align?: "left" | "right";
+}) {
+  return (
+    <th
+      className={`text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3 ${
+        align === "right" ? "text-right" : "text-left"
+      } ${first ? "pl-6" : ""} ${last ? "pr-6" : ""}`}
+    >
+      {children}
+    </th>
   );
 }
