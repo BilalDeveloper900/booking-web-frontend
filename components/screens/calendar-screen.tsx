@@ -30,6 +30,21 @@ import {
 } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { HueAvatar, Pill } from "@/components/shared";
+import { useTheme } from "@/components/theme-provider";
+
+/**
+ * Resolve the per-event background + accent (left rail / text)
+ * to the right pair of OKLCH values for the active theme. Light
+ * mode keeps the soft-tint card; dark mode goes deep-tinted card
+ * with a brighter accent for legibility on near-black surfaces.
+ */
+function eventColors(hue: number, isDark: boolean) {
+  return {
+    bg: isDark ? `oklch(0.27 0.04 ${hue})` : `oklch(0.96 0.03 ${hue})`,
+    accent: isDark ? `oklch(0.72 0.10 ${hue})` : `oklch(0.55 0.08 ${hue})`,
+    text: isDark ? `oklch(0.92 0.05 ${hue})` : `oklch(0.55 0.08 ${hue})`,
+  };
+}
 
 const ROW_H = 56;
 const HOURS_START = 8; // HOURS[0] === "8 AM"
@@ -269,6 +284,8 @@ function MobileAgenda({
   events: CalendarEvent[];
   onEventClick: (e: CalendarEvent) => void;
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const sorted = [...events].sort((a, b) => a.start - b.start);
 
   return (
@@ -318,7 +335,7 @@ function MobileAgenda({
                 className="grid place-items-center rounded-xl text-[12px] text-muted-foreground py-4"
                 style={{
                   background:
-                    "repeating-linear-gradient(45deg, transparent 0 6px, var(--ink-100) 6px 12px)",
+                    "repeating-linear-gradient(45deg, transparent 0 6px, var(--ink-200) 6px 12px)",
                 }}
               >
                 Closed
@@ -326,8 +343,7 @@ function MobileAgenda({
             );
           }
           const trainer = trainerForEvent(e);
-          const bg = `oklch(0.96 0.03 ${e.hue})`;
-          const accent = `oklch(0.55 0.08 ${e.hue})`;
+          const { bg, accent } = eventColors(e.hue, isDark);
           return (
             <div key={i} className="flex gap-3">
               <div className="w-12 shrink-0 pt-2.5 text-[12px] text-muted-foreground tabular-nums">
@@ -597,6 +613,8 @@ function MonthView({
   eventsByDay: Map<number, CalendarEvent[]>;
   onDayClick: (i: number) => void;
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   // Build a 5-row mock month: [-7..-1, 0..6 (current week), 7..13, 14..20, 21..27]
   const rows: { offset: number; weekIdx: number | null }[][] = [];
   for (let r = 0; r < 5; r++) {
@@ -653,18 +671,21 @@ function MonthView({
                 {dateNum ?? ""}
               </div>
               <div className="space-y-1">
-                {events.slice(0, 3).map((e, ei) => (
-                  <div
-                    key={ei}
-                    className="text-[10px] px-1.5 py-0.5 rounded truncate"
-                    style={{
-                      background: e.closed ? "var(--ink-100)" : `oklch(0.95 0.03 ${e.hue})`,
-                      color: e.closed ? "var(--ink-500)" : `oklch(0.4 0.08 ${e.hue})`,
-                    }}
-                  >
-                    {e.client}
-                  </div>
-                ))}
+                {events.slice(0, 3).map((e, ei) => {
+                  const colors = e.closed ? null : eventColors(e.hue, isDark);
+                  return (
+                    <div
+                      key={ei}
+                      className="text-[10px] px-1.5 py-0.5 rounded truncate"
+                      style={{
+                        background: e.closed ? "var(--ink-200)" : colors!.bg,
+                        color: e.closed ? "var(--ink-500)" : colors!.text,
+                      }}
+                    >
+                      {e.client}
+                    </div>
+                  );
+                })}
                 {events.length > 3 && (
                   <div className="text-[10px] text-muted-foreground px-1.5">
                     + {events.length - 3} more
@@ -690,6 +711,8 @@ function CalendarEventBlock({
   onClick: (e: CalendarEvent) => void;
   expanded?: boolean;
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const top = event.start * ROW_H + 1;
   const h = event.len * ROW_H - 4;
 
@@ -701,7 +724,7 @@ function CalendarEventBlock({
           top,
           height: h,
           background:
-            "repeating-linear-gradient(45deg, transparent 0 6px, var(--ink-100) 6px 12px)",
+            "repeating-linear-gradient(45deg, transparent 0 6px, var(--ink-200) 6px 12px)",
         }}
       >
         Closed
@@ -709,8 +732,7 @@ function CalendarEventBlock({
     );
   }
 
-  const bg = `oklch(0.95 0.03 ${event.hue})`;
-  const accent = `oklch(0.55 0.08 ${event.hue})`;
+  const { bg, accent, text } = eventColors(event.hue, isDark);
 
   return (
     <button
@@ -731,7 +753,7 @@ function CalendarEventBlock({
           "font-semibold tracking-tight truncate",
           expanded ? "text-[13px]" : "text-[11px]"
         )}
-        style={{ color: accent }}
+        style={{ color: text }}
       >
         {event.client}
       </div>
@@ -770,11 +792,14 @@ function EventSheet({
   event: CalendarEvent | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const open = event !== null;
   const trainer = event ? trainerForEvent(event) : null;
   const dayLabel = event ? CALENDAR_DAYS[event.day] : null;
-  const accent = event ? `oklch(0.55 0.08 ${event.hue})` : undefined;
-  const bg = event ? `oklch(0.95 0.03 ${event.hue})` : undefined;
+  const colors = event ? eventColors(event.hue, isDark) : null;
+  const accent = colors?.accent;
+  const bg = colors?.bg;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -782,7 +807,7 @@ function EventSheet({
         <SheetHeader className="p-6 pb-4">
           <div
             className="inline-flex items-center gap-2 self-start px-2 py-1 rounded-md text-[11px] font-medium mb-3"
-            style={{ background: bg, color: accent }}
+            style={{ background: bg, color: colors?.text }}
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
             {event?.service}

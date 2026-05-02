@@ -113,8 +113,9 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  /* Keep brand teal as the primary CTA color in dark mode (matches light mode). */
+  --primary: var(--teal-700);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -124,7 +125,36 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: var(--teal-700);
+
+  /* Brand teal — slightly brighter / less saturated for visibility on dark. */
+  --teal-100: oklch(0.30 0.06 195);
+  --teal-500: oklch(0.62 0.10 195);
+  --teal-700: oklch(0.58 0.08 195);
+  --teal-900: oklch(0.88 0.06 195);
+
+  /* Sage */
+  --sage-100: oklch(0.28 0.04 165);
+  --sage-500: oklch(0.65 0.07 165);
+
+  /* Ink scale — flipped so ink-100 ≈ near-bg and ink-900 ≈ near-fg
+     in BOTH themes. Components that use these as "structural greys"
+     (text, dividers, low-tint surfaces) now read correctly. */
+  --ink-100: oklch(0.22 0.01 240);
+  --ink-200: oklch(0.27 0.01 240);
+  --ink-300: oklch(0.40 0.01 240);
+  --ink-500: oklch(0.62 0.01 240);
+  --ink-700: oklch(0.80 0.01 240);
+  --ink-900: oklch(0.96 0.004 240);
+
+  /* Lines */
+  --line: oklch(1 0 0 / 12%);
+  --line-soft: oklch(1 0 0 / 6%);
+
+  /* Status — bumped lightness so they pop on the dark background. */
+  --pos: oklch(0.72 0.13 155);
+  --neg: oklch(0.72 0.16 25);
+  --warn: oklch(0.78 0.13 60);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

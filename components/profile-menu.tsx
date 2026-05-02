@@ -18,6 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useTheme } from "@/components/theme-provider";
 import type { RoleConfig } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +42,7 @@ export function ProfileMenu({
   sideOffset = 8,
 }: ProfileMenuProps) {
   const [notifications, setNotifications] = React.useState(true);
-  const [darkMode, setDarkMode] = React.useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
   const email = `${user.name.split(" ")[0].toLowerCase()}@maison.co`;
 
   const settingsHref = `/${role}/settings`;
@@ -93,8 +94,8 @@ export function ProfileMenu({
           <MenuToggleRow
             icon={Moon}
             label="Dark mode"
-            checked={darkMode}
-            onCheckedChange={setDarkMode}
+            checked={resolvedTheme === "dark"}
+            onCheckedChange={(next) => setTheme(next ? "dark" : "light")}
           />
         </MenuGroup>
 

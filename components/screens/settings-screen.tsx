@@ -15,10 +15,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { HueAvatar } from "@/components/shared";
+import { useTheme } from "@/components/theme-provider";
 import { ROLE_CONFIGS, type Role } from "@/lib/roles";
 import { cn } from "@/lib/utils";
-
-type Theme = "light" | "system" | "dark";
 
 const NOTIFICATION_GROUPS: Record<
   Role,
@@ -64,7 +63,7 @@ export function SettingsScreen({ role }: SettingsScreenProps) {
         : "Studio plan member since April 2025."
   );
 
-  const [theme, setTheme] = useState<Theme>("system");
+  const { theme, setTheme } = useTheme();
   const [twoFA, setTwoFA] = useState(false);
 
   const [notifications, setNotifications] = useState<Record<string, boolean>>(() => {
