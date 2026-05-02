@@ -189,6 +189,18 @@
   }
 }
 
+/* Recharts focus rings: suppress all click/focus outlines on chart elements.
+ * Recharts adds tabIndex to its wrapper and surface — combined with the base
+ * `outline-ring/50` rule, that makes browsers paint a focus ring on click.
+ * Charts aren't keyboard-navigable in any useful way here, so suppress fully. */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface,
+.recharts-surface *,
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -198,5 +210,15 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Tailwind v4 dropped `cursor: pointer` from buttons by default. Restore
+   * it for our interactive elements — disabled buttons keep the default
+   * cursor so they don't look clickable. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  a[href] {
+    cursor: pointer;
   }
 }
