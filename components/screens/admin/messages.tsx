@@ -5,8 +5,8 @@ import { Search, Send, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HueAvatar, PersonCell } from "@/components/shared";
 import {
-  STYLIST_THREADS,
-  STYLIST_CHAT_MESSAGES,
+  ADMIN_THREADS,
+  ADMIN_CHAT_MESSAGES,
   type ChatMessage,
   type MessageThread,
 } from "@/lib/data";
@@ -32,15 +32,15 @@ function newId() {
     : `m-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function StylistMessages() {
-  const [activeId, setActiveId] = useState<string>(STYLIST_THREADS[0].id);
+export function AdminMessages() {
+  const [activeId, setActiveId] = useState<string>(ADMIN_THREADS[0].id);
   const [showConvo, setShowConvo] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [messagesByThread, setMessagesByThread] = useState<Record<string, ChatMessage[]>>(
-    () => ({ [STYLIST_THREADS[0].id]: [...STYLIST_CHAT_MESSAGES] })
+    () => ({ [ADMIN_THREADS[0].id]: [...ADMIN_CHAT_MESSAGES] })
   );
 
-  const activeThread = STYLIST_THREADS.find((t) => t.id === activeId)!;
+  const activeThread = ADMIN_THREADS.find((t) => t.id === activeId)!;
   const messages = messagesByThread[activeId] ?? [];
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -57,7 +57,7 @@ export function StylistMessages() {
     setInputValue("");
     // Lazy-init each thread with the demo log the first time it's opened
     setMessagesByThread((prev) =>
-      prev[t.id] ? prev : { ...prev, [t.id]: [...STYLIST_CHAT_MESSAGES] }
+      prev[t.id] ? prev : { ...prev, [t.id]: [...ADMIN_CHAT_MESSAGES] }
     );
   }
 
@@ -72,7 +72,7 @@ export function StylistMessages() {
     };
     setMessagesByThread((prev) => ({
       ...prev,
-      [activeId]: [...(prev[activeId] ?? STYLIST_CHAT_MESSAGES), msg],
+      [activeId]: [...(prev[activeId] ?? ADMIN_CHAT_MESSAGES), msg],
     }));
     setInputValue("");
   }
@@ -97,7 +97,7 @@ export function StylistMessages() {
         </div>
 
         <div className="flex-1 overflow-auto">
-          {STYLIST_THREADS.map((t) => {
+          {ADMIN_THREADS.map((t) => {
             const last = messagesByThread[t.id]?.at(-1);
             return (
               <button

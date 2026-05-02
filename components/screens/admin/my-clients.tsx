@@ -1,8 +1,8 @@
 import { Search } from "lucide-react";
 import { PersonCell } from "@/components/shared";
-import { STYLIST_CLIENTS } from "@/lib/data";
+import { ADMIN_CLIENTS } from "@/lib/data";
 
-export function StylistMyClients() {
+export function AdminMyClients() {
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
       <div className="mb-6">
@@ -36,7 +36,7 @@ export function StylistMyClients() {
               </tr>
             </thead>
             <tbody>
-              {STYLIST_CLIENTS.map((c) => (
+              {ADMIN_CLIENTS.map((c) => (
                 <tr
                   key={c.name}
                   className="border-b border-[--line-soft] last:border-0 hover:bg-muted/40 motion-safe:transition-colors motion-safe:duration-150"

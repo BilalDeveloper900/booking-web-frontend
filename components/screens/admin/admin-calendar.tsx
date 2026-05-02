@@ -1,5 +1,5 @@
 import { CalendarScreen } from "@/components/screens/calendar-screen";
 
-export function StylistCalendar() {
+export function AdminCalendar() {
   return <CalendarScreen />;
 }

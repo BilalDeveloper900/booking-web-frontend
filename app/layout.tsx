@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Maison & Co. — Salon Management",
-  description: "Manage your salon bookings, stylists, and clients",
+  description: "Manage your salon bookings, admins, and clients",
   manifest: "/manifest.webmanifest",
   applicationName: "Maison & Co.",
   appleWebApp: {

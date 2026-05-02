@@ -87,7 +87,7 @@ function rangeForOffset(offset: number) {
 export function CalendarScreen() {
   const [view, setView] = useState<View>("Week");
   const [weekOffset, setWeekOffset] = useState(0);
-  const [stylistFilter, setStylistFilter] = useState<Set<string>>(
+  const [adminFilter, setAdminFilter] = useState<Set<string>>(
     () => new Set(TRAINERS.map((t) => t.name))
   );
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -107,9 +107,9 @@ export function CalendarScreen() {
     () =>
       CALENDAR_EVENTS.filter((e) => {
         if (e.closed) return true;
-        return stylistFilter.has(trainerForEvent(e).name);
+        return adminFilter.has(trainerForEvent(e).name);
       }),
-    [stylistFilter]
+    [adminFilter]
   );
 
   const eventsByDay = useMemo(() => {
@@ -133,8 +133,8 @@ export function CalendarScreen() {
   const totalEvents = filteredEvents.filter((e) => !e.closed).length;
   const dateRange = weekOffset === 0 ? "April 27 – May 3" : rangeForOffset(weekOffset);
 
-  function toggleStylist(name: string) {
-    setStylistFilter((prev) => {
+  function toggleAdmin(name: string) {
+    setAdminFilter((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
       else next.add(name);
@@ -156,7 +156,7 @@ export function CalendarScreen() {
           </h2>
           <p className="text-[12px] md:text-[13px] text-muted-foreground mt-1 tabular-nums">
             {totalEvents} bookings · {Math.round((totalEvents / 28) * 100)}% utilization ·{" "}
-            {stylistFilter.size} of {TRAINERS.length} stylists
+            {adminFilter.size} of {TRAINERS.length} admins
           </p>
         </div>
         <div className="flex-1" />
@@ -213,7 +213,7 @@ export function CalendarScreen() {
       </div>
 
       <div className="hidden lg:block">
-        <StylistLegend selected={stylistFilter} onToggle={toggleStylist} />
+        <AdminLegend selected={adminFilter} onToggle={toggleAdmin} />
       </div>
 
       {/* Mobile + tablet: agenda list pattern (date strip + stacked events). */}
@@ -378,7 +378,7 @@ function MobileAgenda({
 
 /* ---------------- legend ---------------- */
 
-function StylistLegend({
+function AdminLegend({
   selected,
   onToggle,
 }: {
@@ -388,7 +388,7 @@ function StylistLegend({
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mr-1.5">
-        <Filter className="w-3 h-3 inline mr-1" aria-hidden /> Stylists
+        <Filter className="w-3 h-3 inline mr-1" aria-hidden /> Admins
       </span>
       {TRAINERS.map((t) => {
         const on = selected.has(t.name);
@@ -829,7 +829,7 @@ function EventSheet({
             <Detail icon={<Scissors className="w-4 h-4" />} label="Service">
               {event.service}
             </Detail>
-            <Detail icon={<User className="w-4 h-4" />} label="Stylist">
+            <Detail icon={<User className="w-4 h-4" />} label="Admin">
               <div className="flex items-center gap-2">
                 <HueAvatar name={trainer.name} hue={trainer.hue} size={20} />
                 <span>{trainer.name}</span>
@@ -925,7 +925,7 @@ function NewBookingSheet({
             </div>
           </FormField>
 
-          <FormField label="Stylist">
+          <FormField label="Admin">
             <div className="flex flex-wrap gap-1.5">
               {TRAINERS.slice(0, 4).map((t) => (
                 <button

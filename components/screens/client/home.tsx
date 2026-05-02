@@ -76,7 +76,7 @@ export function ClientHome() {
                     {a.time} · {a.duration} · {a.credits} credits
                   </div>
                   <div className="mt-1.5">
-                    <PersonCell name={a.stylist} hue={a.hue} />
+                    <PersonCell name={a.admin} hue={a.hue} />
                   </div>
                 </div>
               </div>
@@ -98,7 +98,7 @@ export function ClientHome() {
               className="bg-card border border-border rounded-xl shadow-card p-4 min-w-[200px] shrink-0 flex flex-col motion-safe:transition-all motion-safe:duration-200 hover:shadow-hero hover:-translate-y-px"
             >
               <div className="text-[13px] font-medium mb-1">{b.service}</div>
-              <div className="text-xs text-muted-foreground mb-1">{b.stylist}</div>
+              <div className="text-xs text-muted-foreground mb-1">{b.admin}</div>
               <div className="text-xs text-muted-foreground mb-3 tabular-nums">
                 {b.duration} · {b.credits} credits
               </div>
@@ -117,7 +117,7 @@ export function ClientHome() {
                 <tr className="border-b border-border">
                   <Th>Date</Th>
                   <Th>Service</Th>
-                  <Th>Stylist</Th>
+                  <Th>Admin</Th>
                   <Th align="right">Credits</Th>
                   <Th align="right">Rating</Th>
                 </tr>
@@ -130,7 +130,7 @@ export function ClientHome() {
                   >
                     <td className="px-4 py-3 tabular-nums">{v.date}</td>
                     <td className="px-4 py-3">{v.service}</td>
-                    <td className="px-4 py-3">{v.stylist}</td>
+                    <td className="px-4 py-3">{v.admin}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{v.credits}</td>
                     <td className="px-4 py-3 text-right">
                       <Stars value={v.rating} />

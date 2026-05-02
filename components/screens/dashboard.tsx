@@ -14,7 +14,7 @@ export function DashboardScreen() {
             Good morning, Elena.
           </h2>
           <p className="text-[13px] text-muted-foreground mt-1">
-            Tuesday, 28 April · 3 stylists working today · 18 bookings ahead.
+            Tuesday, 28 April · 3 admins working today · 18 bookings ahead.
           </p>
         </div>
         <div className="flex-1" />
@@ -64,13 +64,13 @@ export function DashboardScreen() {
       <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5 mt-5">
         <Card>
           <CardHeader
-            title="Stylist performance"
-            right={<CardLink href="/owner/stylists">All stylists</CardLink>}
+            title="Admin performance"
+            right={<CardLink href="/owner/admins">All admins</CardLink>}
           />
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-border">
-                <ColHead>Stylist</ColHead>
+                <ColHead>Admin</ColHead>
                 <ColHead>Bookings</ColHead>
                 <ColHead>Utilization</ColHead>
                 <ColHead align="right">Earned (MTD)</ColHead>

@@ -1,10 +1,10 @@
 export const TRAINERS = [
   { name: "Camille Roux", role: "Senior Colorist", hue: 195, clients: 48, util: 92, rate: 65, mtd: 8420 },
-  { name: "Yuki Tanaka", role: "Master Stylist", hue: 165, clients: 41, util: 88, rate: 60, mtd: 7610 },
+  { name: "Yuki Tanaka", role: "Master Admin", hue: 165, clients: 41, util: 88, rate: 60, mtd: 7610 },
   { name: "Theo Bennett", role: "Barber", hue: 220, clients: 36, util: 81, rate: 55, mtd: 6240 },
   { name: "Asha Iyer", role: "Nail Artist", hue: 280, clients: 52, util: 86, rate: 50, mtd: 5980 },
   { name: "Lior Mendez", role: "Lash Specialist", hue: 330, clients: 29, util: 74, rate: 55, mtd: 4730 },
-  { name: "Marta Halász", role: "Junior Stylist", hue: 60, clients: 22, util: 64, rate: 45, mtd: 3120 },
+  { name: "Marta Halász", role: "Junior Admin", hue: 60, clients: 22, util: 64, rate: 45, mtd: 3120 },
 ] as const;
 
 export const CLIENTS = [
@@ -99,10 +99,10 @@ export const RECENT_TRANSACTIONS = [
 ];
 
 // ────────────────────────────────────────────────────────
-// STYLIST DATA
+// ADMIN DATA
 // ────────────────────────────────────────────────────────
 
-export const STYLIST_TODAY = [
+export const ADMIN_TODAY = [
   { time: "09:00", duration: 60, client: "Olivia Wren", service: "Cut + gloss", credits: 2, hue: 195, status: "done" as const },
   { time: "10:30", duration: 90, client: "Mei Lin Chen", service: "Balayage", credits: 4, hue: 280, status: "done" as const },
   { time: "12:00", duration: 45, client: "Hugo Bertrand", service: "Cut + style", credits: 2, hue: 165, status: "now" as const },
@@ -112,7 +112,7 @@ export const STYLIST_TODAY = [
   { time: "18:00", duration: 45, client: "Sven Andersson", service: "Trim", credits: 1, hue: 60, status: "upcoming" as const },
 ];
 
-export const STYLIST_BOOKINGS = [
+export const ADMIN_BOOKINGS = [
   { date: "28 Apr", time: "09:00", client: "Olivia Wren", hue: 195, service: "Cut + gloss", duration: "1h", credits: 2, status: "confirmed" as const },
   { date: "28 Apr", time: "10:30", client: "Mei Lin Chen", hue: 280, service: "Balayage", duration: "1h 30m", credits: 4, status: "now" as const },
   { date: "28 Apr", time: "12:00", client: "Hugo Bertrand", hue: 165, service: "Cut + style", duration: "45m", credits: 2, status: "confirmed" as const },
@@ -123,7 +123,7 @@ export const STYLIST_BOOKINGS = [
   { date: "30 Apr", time: "10:00", client: "Olivia Wren", hue: 195, service: "Root touch-up", duration: "1h 30m", credits: 3, status: "confirmed" as const },
 ];
 
-export const STYLIST_CLIENTS = [
+export const ADMIN_CLIENTS = [
   { name: "Olivia Wren", hue: 195, visits: 24, lastVisit: "Today", nextVisit: "30 Apr", favourite: "Cut + gloss", credits: 6, ltv: 2840 },
   { name: "Mei Lin Chen", hue: 280, visits: 18, lastVisit: "Today", nextVisit: "5 May", favourite: "Balayage", credits: 11, ltv: 4210 },
   { name: "Hugo Bertrand", hue: 165, visits: 12, lastVisit: "2 weeks ago", nextVisit: "28 Apr", favourite: "Cut + style", credits: 0, ltv: 1980 },
@@ -135,7 +135,7 @@ export const STYLIST_CLIENTS = [
 
 export type MessageThread = { id: string; name: string; hue: number; lastMsg: string; time: string; unread: number; online?: boolean };
 
-export const STYLIST_THREADS: MessageThread[] = [
+export const ADMIN_THREADS: MessageThread[] = [
   { id: "t1", name: "Olivia Wren", hue: 195, lastMsg: "Thanks! See you at 3 💇‍♀️", time: "2m ago", unread: 0, online: true },
   { id: "t2", name: "Mei Lin Chen", hue: 280, lastMsg: "Can I reschedule to Friday?", time: "18m ago", unread: 1 },
   { id: "t3", name: "Priya Anand", hue: 330, lastMsg: "Yes, plenty of credits ✓", time: "1h ago", unread: 2 },
@@ -145,7 +145,7 @@ export const STYLIST_THREADS: MessageThread[] = [
 
 export type ChatMessage = { id: string; sender: "me" | "them"; text: string; time: string };
 
-export const STYLIST_CHAT_MESSAGES: ChatMessage[] = [
+export const ADMIN_CHAT_MESSAGES: ChatMessage[] = [
   { id: "m1", sender: "them", text: "Hi Camille! I was wondering if you have any availability this week for a balayage touch-up?", time: "10:14 AM" },
   { id: "m2", sender: "me", text: "Hey Olivia! Yes, I have a slot on Thursday at 2 PM or Friday at 10 AM. Which works better?", time: "10:18 AM" },
   { id: "m3", sender: "them", text: "Thursday at 2 PM works perfectly!", time: "10:20 AM" },
@@ -155,10 +155,10 @@ export const STYLIST_CHAT_MESSAGES: ChatMessage[] = [
   { id: "m7", sender: "them", text: "Thanks! See you at 3 💇‍♀️", time: "10:34 AM" },
 ];
 
-export const STYLIST_EARNINGS_WEEKLY = [64, 72, 58, 81, 76, 69, 84, 78];
-export const STYLIST_EARNINGS_LABELS = ["W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8"];
+export const ADMIN_EARNINGS_WEEKLY = [64, 72, 58, 81, 76, 69, 84, 78];
+export const ADMIN_EARNINGS_LABELS = ["W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8"];
 
-export const STYLIST_SERVICE_MIX = [
+export const ADMIN_SERVICE_MIX = [
   { service: "Cut + gloss", sessions: 18, revenue: 2160, pct: 26 },
   { service: "Balayage", sessions: 12, revenue: 3600, pct: 43 },
   { service: "Gloss treatment", sessions: 8, revenue: 960, pct: 11 },
@@ -166,7 +166,7 @@ export const STYLIST_SERVICE_MIX = [
   { service: "Blowout", sessions: 4, revenue: 480, pct: 6 },
 ];
 
-export const STYLIST_STATEMENTS = [
+export const ADMIN_STATEMENTS = [
   { date: "28 Apr", client: "Olivia Wren", service: "Cut + gloss", credits: 2, gross: 120, commission: 65 },
   { date: "28 Apr", client: "Mei Lin Chen", service: "Balayage", credits: 4, gross: 280, commission: 65 },
   { date: "27 Apr", client: "Felix Wong", service: "Cut + colour", credits: 3, gross: 180, commission: 65 },
@@ -199,23 +199,23 @@ export const CLIENT_PROFILE = {
 };
 
 export const CLIENT_UPCOMING = [
-  { id: "cu1", date: "Thu", dateNum: 30, month: "Apr", time: "2:00 PM", service: "Balayage touch-up", stylist: "Camille Roux", hue: 195, duration: "1h 30m", credits: 3, status: "confirmed" as const },
-  { id: "cu2", date: "Mon", dateNum: 5, month: "May", time: "10:00 AM", service: "Cut + gloss", stylist: "Camille Roux", hue: 195, duration: "1h", credits: 2, status: "confirmed" as const },
+  { id: "cu1", date: "Thu", dateNum: 30, month: "Apr", time: "2:00 PM", service: "Balayage touch-up", admin: "Camille Roux", hue: 195, duration: "1h 30m", credits: 3, status: "confirmed" as const },
+  { id: "cu2", date: "Mon", dateNum: 5, month: "May", time: "10:00 AM", service: "Cut + gloss", admin: "Camille Roux", hue: 195, duration: "1h", credits: 2, status: "confirmed" as const },
 ];
 
 export const CLIENT_PAST_VISITS = [
-  { date: "25 Apr", service: "Root touch-up", stylist: "Camille Roux", credits: 3, rating: 5 },
-  { date: "18 Apr", service: "Cut + gloss", stylist: "Camille Roux", credits: 2, rating: 5 },
-  { date: "10 Apr", service: "Balayage", stylist: "Camille Roux", credits: 4, rating: 4 },
-  { date: "28 Mar", service: "Blowout", stylist: "Camille Roux", credits: 1, rating: 5 },
-  { date: "15 Mar", service: "Cut + gloss", stylist: "Camille Roux", credits: 2, rating: 5 },
-  { date: "1 Mar", service: "Gloss treatment", stylist: "Camille Roux", credits: 2, rating: 4 },
+  { date: "25 Apr", service: "Root touch-up", admin: "Camille Roux", credits: 3, rating: 5 },
+  { date: "18 Apr", service: "Cut + gloss", admin: "Camille Roux", credits: 2, rating: 5 },
+  { date: "10 Apr", service: "Balayage", admin: "Camille Roux", credits: 4, rating: 4 },
+  { date: "28 Mar", service: "Blowout", admin: "Camille Roux", credits: 1, rating: 5 },
+  { date: "15 Mar", service: "Cut + gloss", admin: "Camille Roux", credits: 2, rating: 5 },
+  { date: "1 Mar", service: "Gloss treatment", admin: "Camille Roux", credits: 2, rating: 4 },
 ];
 
 export const CLIENT_BOOK_AGAIN = [
-  { service: "Cut + gloss", stylist: "Camille Roux", duration: "1h", credits: 2, lastBooked: "18 Apr" },
-  { service: "Balayage", stylist: "Camille Roux", duration: "1h 30m", credits: 4, lastBooked: "10 Apr" },
-  { service: "Blowout", stylist: "Camille Roux", duration: "45m", credits: 1, lastBooked: "28 Mar" },
+  { service: "Cut + gloss", admin: "Camille Roux", duration: "1h", credits: 2, lastBooked: "18 Apr" },
+  { service: "Balayage", admin: "Camille Roux", duration: "1h 30m", credits: 4, lastBooked: "10 Apr" },
+  { service: "Blowout", admin: "Camille Roux", duration: "45m", credits: 1, lastBooked: "28 Mar" },
 ];
 
 export const CLIENT_BOOKING_DATES = [

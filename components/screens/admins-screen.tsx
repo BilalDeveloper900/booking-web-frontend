@@ -8,12 +8,12 @@ const PENDING_INVITATIONS = [
   { n: "Tomas Reyes", s: "Sent 5d ago", hue: 220 },
 ];
 
-export function StylistsScreen() {
+export function AdminsScreen() {
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
       <div className="flex items-start mb-6 gap-4 flex-wrap">
         <div>
-          <h2 className="text-[24px] font-semibold tracking-tight leading-tight">Stylists</h2>
+          <h2 className="text-[24px] font-semibold tracking-tight leading-tight">Admins</h2>
           <p className="text-[13px] text-muted-foreground mt-1">
             6 active · 1 on leave · avg utilization 81%
           </p>
@@ -24,7 +24,7 @@ export function StylistsScreen() {
             <Filter className="w-3.5 h-3.5" /> Active
           </Button>
           <Button size="sm" className="gap-2">
-            <Plus className="w-3.5 h-3.5" /> Invite stylist
+            <Plus className="w-3.5 h-3.5" /> Invite admin
           </Button>
         </div>
       </div>
@@ -52,7 +52,7 @@ export function StylistsScreen() {
             <Pill kind="sage">House avg</Pill>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Stylists keep 45–65% per booking. Adjust per stylist in their profile.
+            Admins keep 45–65% per booking. Adjust per admin in their profile.
           </p>
           <div className="h-px bg-border my-4" />
           <div className="flex items-center text-xs text-muted-foreground">
@@ -89,7 +89,7 @@ export function StylistsScreen() {
         <table className="w-full text-[13px]">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3 pl-6">Stylist</th>
+              <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3 pl-6">Admin</th>
               <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">Clients</th>
               <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">Utilization</th>
               <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">Commission</th>

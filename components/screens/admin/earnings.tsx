@@ -1,8 +1,8 @@
 import { StatBlock, PersonCell } from "@/components/shared";
-import { STYLIST_SERVICE_MIX, STYLIST_STATEMENTS } from "@/lib/data";
+import { ADMIN_SERVICE_MIX, ADMIN_STATEMENTS } from "@/lib/data";
 import { EarningsBars } from "@/components/charts/earnings-bars";
 
-export function StylistEarnings() {
+export function AdminEarnings() {
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
       <div className="mb-6">
@@ -31,7 +31,7 @@ export function StylistEarnings() {
         <Card>
           <div className="text-[13px] font-medium text-foreground mb-4">Service breakdown</div>
           <div className="flex flex-col gap-3.5">
-            {STYLIST_SERVICE_MIX.map((s) => (
+            {ADMIN_SERVICE_MIX.map((s) => (
               <div key={s.service}>
                 <div className="flex items-center justify-between mb-1.5 gap-2">
                   <span className="text-[13px] truncate">{s.service}</span>
@@ -69,7 +69,7 @@ export function StylistEarnings() {
               </tr>
             </thead>
             <tbody>
-              {STYLIST_STATEMENTS.map((s, i) => {
+              {ADMIN_STATEMENTS.map((s, i) => {
                 const net = Math.round((s.gross * s.commission) / 100);
                 return (
                   <tr

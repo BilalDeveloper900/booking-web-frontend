@@ -2,10 +2,10 @@ import Link from "next/link";
 import { ArrowRight, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatBlock, PersonCell, Pill, HueAvatar } from "@/components/shared";
-import { STYLIST_TODAY, STYLIST_THREADS } from "@/lib/data";
+import { ADMIN_TODAY, ADMIN_THREADS } from "@/lib/data";
 import { EarningsBars } from "@/components/charts/earnings-bars";
 
-export function StylistOverview() {
+export function AdminOverview() {
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
       <div className="flex items-start mb-6 gap-4 flex-wrap">
@@ -32,7 +32,7 @@ export function StylistOverview() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5">
         <Card>
-          <CardHeader title="Today" right={<CardLink href="/stylist/calendar">View calendar</CardLink>} />
+          <CardHeader title="Today" right={<CardLink href="/admin/calendar">View calendar</CardLink>} />
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
@@ -46,7 +46,7 @@ export function StylistOverview() {
                 </tr>
               </thead>
               <tbody>
-                {STYLIST_TODAY.map((s, i) => (
+                {ADMIN_TODAY.map((s, i) => (
                   <tr
                     key={i}
                     className="border-b border-[--line-soft] last:border-0 hover:bg-muted/40 motion-safe:transition-colors motion-safe:duration-150"
@@ -71,17 +71,17 @@ export function StylistOverview() {
 
         <div className="flex flex-col gap-5">
           <Card>
-            <CardHeader title="Weekly earnings" right={<CardLink href="/stylist/earnings">Details</CardLink>} />
+            <CardHeader title="Weekly earnings" right={<CardLink href="/admin/earnings">Details</CardLink>} />
             <EarningsBars height={140} />
           </Card>
 
           <Card>
-            <CardHeader title="Messages" right={<CardLink href="/stylist/messages">View all</CardLink>} />
+            <CardHeader title="Messages" right={<CardLink href="/admin/messages">View all</CardLink>} />
             <div className="flex flex-col gap-1">
-              {STYLIST_THREADS.slice(0, 3).map((t) => (
+              {ADMIN_THREADS.slice(0, 3).map((t) => (
                 <Link
                   key={t.id}
-                  href={`/stylist/messages?thread=${t.id}`}
+                  href={`/admin/messages?thread=${t.id}`}
                   className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-muted/50 motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <HueAvatar name={t.name} hue={t.hue} />

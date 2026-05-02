@@ -2,14 +2,14 @@ import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatBlock, PersonCell, Pill } from "@/components/shared";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { STYLIST_BOOKINGS } from "@/lib/data";
+import { ADMIN_BOOKINGS } from "@/lib/data";
 
-const UPCOMING_BOOKINGS = STYLIST_BOOKINGS.filter(
+const UPCOMING_BOOKINGS = ADMIN_BOOKINGS.filter(
   (b) => b.status === "confirmed" || b.status === "now"
 );
-const PENDING_BOOKINGS = STYLIST_BOOKINGS.filter((b) => b.status === "pending");
+const PENDING_BOOKINGS = ADMIN_BOOKINGS.filter((b) => b.status === "pending");
 
-export function StylistBookings() {
+export function AdminBookings() {
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
       <div className="mb-6">
@@ -49,7 +49,7 @@ export function StylistBookings() {
   );
 }
 
-function BookingsTable({ rows }: { rows: (typeof STYLIST_BOOKINGS)[number][] }) {
+function BookingsTable({ rows }: { rows: (typeof ADMIN_BOOKINGS)[number][] }) {
   return (
     <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
       <div className="overflow-x-auto">

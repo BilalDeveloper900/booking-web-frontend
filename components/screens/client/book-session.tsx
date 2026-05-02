@@ -20,8 +20,8 @@ const SERVICES = [
 
 type Service = (typeof SERVICES)[number];
 
-const STYLIST_OPTIONS = [
-  { id: "any", name: "Any stylist", short: "Any", initials: "—", hue: undefined as number | undefined },
+const ADMIN_OPTIONS = [
+  { id: "any", name: "Any admin", short: "Any", initials: "—", hue: undefined as number | undefined },
   ...TRAINERS.slice(0, 4).map((t) => ({
     id: t.name,
     name: t.name,
@@ -34,7 +34,7 @@ const STYLIST_OPTIONS = [
 export function ClientBookSession() {
   const initialDate = Math.max(0, CLIENT_BOOKING_DATES.findIndex((d) => d.selected));
   const [selectedService, setSelectedService] = useState<Service["id"]>("cut");
-  const [selectedStylist, setSelectedStylist] = useState<string>("Camille Roux");
+  const [selectedAdmin, setSelectedAdmin] = useState<string>("Camille Roux");
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [slots, setSlots] = useState(CLIENT_TIME_SLOTS);
 
@@ -58,7 +58,7 @@ export function ClientBookSession() {
   }
 
   const service = SERVICES.find((s) => s.id === selectedService) ?? SERVICES[0];
-  const stylist = STYLIST_OPTIONS.find((s) => s.id === selectedStylist) ?? STYLIST_OPTIONS[1];
+  const admin = ADMIN_OPTIONS.find((s) => s.id === selectedAdmin) ?? ADMIN_OPTIONS[1];
   const selectedSlot = slots.find((s) => s.status === "selected");
   const selectedDateInfo = CLIENT_BOOKING_DATES[selectedDate];
   const canConfirm = selectedSlot != null;
@@ -69,7 +69,7 @@ export function ClientBookSession() {
         Book a session
       </h2>
       <p className="text-[13px] text-muted-foreground mb-5">
-        Choose a service, stylist, and time
+        Choose a service, admin, and time
       </p>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6">
@@ -101,15 +101,15 @@ export function ClientBookSession() {
             </div>
           </Section>
 
-          <Section label="2. Stylist">
+          <Section label="2. Admin">
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-              {STYLIST_OPTIONS.map((s) => {
-                const on = s.id === selectedStylist;
+              {ADMIN_OPTIONS.map((s) => {
+                const on = s.id === selectedAdmin;
                 return (
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => setSelectedStylist(s.id)}
+                    onClick={() => setSelectedAdmin(s.id)}
                     aria-pressed={on}
                     className={cn(
                       "shrink-0 inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -192,7 +192,7 @@ export function ClientBookSession() {
             <h3 className="text-[13px] font-semibold mb-4">Booking summary</h3>
             <div className="space-y-3 text-[13px]">
               <SummaryRow label="Service" value={service.label} />
-              <SummaryRow label="Stylist" value={stylist.name} />
+              <SummaryRow label="Admin" value={admin.name} />
               <SummaryRow label="Duration" value={service.duration} />
               <SummaryRow
                 label="Date"

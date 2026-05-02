@@ -32,7 +32,7 @@ export function FinanceScreen() {
         <StatBlock label="Incoming" value="38,420" unit="€" delta="12.4%" foot="vs last month" hero />
         <StatBlock label="Outgoing" value="21,300" unit="€" delta="8.1%" deltaKind="neg" foot="payouts + fees" />
         <StatBlock label="Net" value="17,120" unit="€" delta="18.2%" foot="margin 44.6%" />
-        <StatBlock label="Pending payout" value="6,840" unit="€" foot="to 6 stylists · Apr 30" />
+        <StatBlock label="Pending payout" value="6,840" unit="€" foot="to 6 admins · Apr 30" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5">
@@ -76,7 +76,7 @@ export function FinanceScreen() {
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-border">
-                <ColHead>Stylist</ColHead>
+                <ColHead>Admin</ColHead>
                 <ColHead>Sessions</ColHead>
                 <ColHead>Rate</ColHead>
                 <ColHead align="right">Payout</ColHead>

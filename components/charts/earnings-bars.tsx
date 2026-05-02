@@ -1,7 +1,7 @@
 "use client";
 
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
-import { STYLIST_EARNINGS_LABELS, STYLIST_EARNINGS_WEEKLY } from "@/lib/data";
+import { ADMIN_EARNINGS_LABELS, ADMIN_EARNINGS_WEEKLY } from "@/lib/data";
 import {
   axisTick,
   chartTokens,
@@ -10,8 +10,8 @@ import {
   type RechartsTooltipProps,
 } from "@/components/charts/theme";
 
-const data = STYLIST_EARNINGS_WEEKLY.map((v, i) => ({
-  week: STYLIST_EARNINGS_LABELS[i],
+const data = ADMIN_EARNINGS_WEEKLY.map((v, i) => ({
+  week: ADMIN_EARNINGS_LABELS[i],
   earned: v,
 }));
 

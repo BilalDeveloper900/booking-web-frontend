@@ -12,7 +12,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-export type Role = "owner" | "stylist" | "client";
+export type Role = "owner" | "admin" | "client";
 
 export interface NavItem {
   id: string;
@@ -37,21 +37,21 @@ export const ROLE_CONFIGS: Record<Role, RoleConfig> = {
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/owner" },
       { id: "calendar", label: "Calendar", icon: CalendarDays, href: "/owner/calendar", badge: "12" },
       { id: "clients", label: "Clients", icon: Users, href: "/owner/clients" },
-      { id: "stylists", label: "Stylists", icon: Scissors, href: "/owner/stylists" },
+      { id: "admins", label: "Admins", icon: Scissors, href: "/owner/admins" },
       { id: "finance", label: "Finance", icon: Wallet, href: "/owner/finance" },
     ],
     user: { name: "Elena Marchetti", hue: 195, subtitle: "Owner · Pro plan" },
   },
-  stylist: {
-    role: "stylist",
-    label: "Stylist",
+  admin: {
+    role: "admin",
+    label: "Admin",
     navItems: [
-      { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/stylist" },
-      { id: "calendar", label: "My Calendar", icon: CalendarDays, href: "/stylist/calendar", badge: "7" },
-      { id: "bookings", label: "Bookings", icon: ClipboardList, href: "/stylist/bookings" },
-      { id: "clients", label: "My Clients", icon: Users, href: "/stylist/clients" },
-      { id: "messages", label: "Messages", icon: MessageSquare, href: "/stylist/messages", badge: "3" },
-      { id: "earnings", label: "Earnings", icon: Wallet, href: "/stylist/earnings" },
+      { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/admin" },
+      { id: "calendar", label: "My Calendar", icon: CalendarDays, href: "/admin/calendar", badge: "7" },
+      { id: "bookings", label: "Bookings", icon: ClipboardList, href: "/admin/bookings" },
+      { id: "clients", label: "My Clients", icon: Users, href: "/admin/clients" },
+      { id: "messages", label: "Messages", icon: MessageSquare, href: "/admin/messages", badge: "3" },
+      { id: "earnings", label: "Earnings", icon: Wallet, href: "/admin/earnings" },
     ],
     user: { name: "Camille Roux", hue: 195, subtitle: "Senior Colorist" },
   },

@@ -26,11 +26,11 @@ const NOTIFICATION_GROUPS: Record<
   owner: [
     { id: "new-booking", label: "New booking", sub: "When a client books a session", defaultOn: true },
     { id: "cancellation", label: "Cancellations", sub: "When a booking is cancelled or rescheduled", defaultOn: true },
-    { id: "payouts", label: "Payouts", sub: "Stylist payout cycles + ledger summary" },
+    { id: "payouts", label: "Payouts", sub: "Admin payout cycles + ledger summary" },
     { id: "subscription", label: "Subscription health", sub: "Churn, downgrades, low credits" },
     { id: "marketing", label: "Product updates", sub: "Maison & Co. roadmap and tips" },
   ],
-  stylist: [
+  admin: [
     { id: "new-booking", label: "New booking", sub: "When a client books with you", defaultOn: true },
     { id: "reminder", label: "Daily reminder", sub: "Tomorrow's schedule, evening before", defaultOn: true },
     { id: "messages", label: "Client messages", sub: "Push when a client sends a message" },
@@ -38,7 +38,7 @@ const NOTIFICATION_GROUPS: Record<
   ],
   client: [
     { id: "reminders", label: "Booking reminders", sub: "24h and 1h before your appointment", defaultOn: true },
-    { id: "messages", label: "Stylist messages", sub: "Push when your stylist replies", defaultOn: true },
+    { id: "messages", label: "Admin messages", sub: "Push when your admin replies", defaultOn: true },
     { id: "low-credits", label: "Low credits", sub: "When you have ≤2 credits left" },
     { id: "promotions", label: "Promotions", sub: "Top-up deals + new services" },
   ],
@@ -56,7 +56,7 @@ export function SettingsScreen({ role }: SettingsScreenProps) {
   const [email, setEmail] = useState(initialEmail);
   const [phone, setPhone] = useState("+33 6 12 34 56 78");
   const [bio, setBio] = useState(
-    role === "stylist"
+    role === "admin"
       ? "Senior colorist specializing in balayage and dimensional color. Trained in Paris and Milan."
       : role === "owner"
         ? "Owner of Maison & Co., running two locations in the 11th."

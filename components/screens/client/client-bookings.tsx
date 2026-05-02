@@ -35,7 +35,7 @@ export function ClientBookings() {
                     {a.time} · {a.duration} · {a.credits} credits
                   </div>
                   <div className="mt-1.5">
-                    <PersonCell name={a.stylist} hue={a.hue} />
+                    <PersonCell name={a.admin} hue={a.hue} />
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0 sm:ml-auto">
@@ -57,7 +57,7 @@ export function ClientBookings() {
                   <div className="min-w-0 flex-1">
                     <div className="text-[13px] font-medium mb-0.5">{v.service}</div>
                     <div className="text-xs text-muted-foreground tabular-nums">
-                      {v.stylist} · {v.credits} credits
+                      {v.admin} · {v.credits} credits
                     </div>
                     <div className="mt-1.5">
                       <Stars value={v.rating} />

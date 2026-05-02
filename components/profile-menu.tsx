@@ -50,7 +50,7 @@ export function ProfileMenu({
     { label: "View profile", icon: CircleUserRound, shortcut: "⌘P", href: settingsHref },
     role === "client"
       ? { label: "Payment methods", icon: CreditCard }
-      : role === "stylist"
+      : role === "admin"
         ? { label: "Payouts", icon: CreditCard }
         : { label: "Billing", icon: CreditCard },
     { label: "Account settings", icon: Settings, shortcut: "⌘,", href: settingsHref },
