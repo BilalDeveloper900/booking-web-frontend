@@ -45,7 +45,7 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
           title={deriveTitle(pathname, config)}
           onMenuClick={() => setMobileOpen(true)}
         />
-        <main className="flex-1 overflow-hidden">{children}</main>
+        <main className="flex-1 overflow-hidden flex flex-col min-h-0">{children}</main>
       </div>
     </div>
   );

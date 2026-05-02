@@ -1,3 +1,4 @@
+import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 
 export function HueAvatar({ name, hue, size = 28 }: { name: string; hue: number; size?: number }) {
@@ -9,6 +10,7 @@ export function HueAvatar({ name, hue, size = 28 }: { name: string; hue: number;
         height: size,
         fontSize: size * 0.39,
         background: `linear-gradient(135deg, oklch(0.7 0.08 ${hue}), oklch(0.55 0.07 ${hue + 30}))`,
+        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.12)",
       }}
     >
       {getInitials(name)}
@@ -20,9 +22,9 @@ export function PersonCell({ name, meta, hue }: { name: string; meta?: string; h
   return (
     <div className="flex items-center gap-2.5">
       <HueAvatar name={name} hue={hue} />
-      <div>
-        <div className="text-[13px] font-medium">{name}</div>
-        {meta && <div className="text-[11px] text-muted-foreground">{meta}</div>}
+      <div className="min-w-0">
+        <div className="text-[13px] font-medium leading-tight truncate">{name}</div>
+        {meta && <div className="text-[11px] text-muted-foreground truncate">{meta}</div>}
       </div>
     </div>
   );
@@ -32,7 +34,7 @@ export function Pill({ kind, dot, children }: { kind?: string; dot?: boolean; ch
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full font-medium tracking-tight",
+        "inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full font-medium tracking-tight motion-safe:transition-colors motion-safe:duration-150",
         kind === "teal" && "bg-[--teal-100] text-[--teal-900]",
         kind === "sage" && "bg-[--sage-100] text-[oklch(0.4_0.05_165)]",
         kind === "warn" && "bg-[oklch(0.96_0.04_70)] text-[oklch(0.45_0.1_60)]",
@@ -50,7 +52,10 @@ export function UtilBar({ value }: { value: number }) {
   return (
     <div className="flex items-center gap-2">
       <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${value}%`, background: color }} />
+        <div
+          className="h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-out"
+          style={{ width: `${value}%`, background: color }}
+        />
       </div>
       <span className="text-xs tabular-nums text-muted-foreground">{value}%</span>
     </div>
@@ -64,6 +69,7 @@ export function StatBlock({
   delta,
   deltaKind = "pos",
   foot,
+  hero = false,
 }: {
   label: string;
   value: string;
@@ -71,20 +77,38 @@ export function StatBlock({
   delta?: string;
   deltaKind?: "pos" | "neg";
   foot: string;
+  hero?: boolean;
 }) {
+  const TrendIcon = deltaKind === "pos" ? TrendingUp : TrendingDown;
   return (
-    <div className="bg-card border border-border rounded-lg p-[18px]">
+    <div
+      className={cn(
+        "bg-card border border-border rounded-lg p-[18px] motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-px",
+        hero ? "shadow-hero hover:shadow-overlay" : "shadow-card hover:shadow-hero"
+      )}
+    >
       <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-3.5">
         {label}
       </div>
-      <div className="text-[28px] font-semibold tracking-tight leading-none tabular-nums">
+      <div
+        className={cn(
+          "font-semibold tracking-tight leading-none tabular-nums",
+          hero ? "text-[32px]" : "text-[28px]"
+        )}
+      >
         {value}
-        {unit && <span className="text-sm text-muted-foreground ml-0.5">{unit}</span>}
+        {unit && <span className="text-sm text-muted-foreground ml-0.5 font-normal">{unit}</span>}
       </div>
       <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
         {delta && (
-          <span className={cn("font-medium tabular-nums", deltaKind === "pos" ? "text-[--pos]" : "text-[--neg]")}>
-            {deltaKind === "pos" ? "↑" : "↓"} {delta}
+          <span
+            className={cn(
+              "inline-flex items-center gap-0.5 font-medium tabular-nums",
+              deltaKind === "pos" ? "text-[--pos]" : "text-[--neg]"
+            )}
+          >
+            <TrendIcon className="w-3 h-3" aria-hidden />
+            {delta}
           </span>
         )}
         <span>{foot}</span>

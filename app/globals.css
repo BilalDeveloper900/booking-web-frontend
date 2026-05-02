@@ -136,10 +136,58 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* Role-specific accent theming */
-[data-role="owner"]  { --role-accent: var(--teal-700); --role-accent-light: var(--teal-100); --role-accent-dark: var(--teal-900); }
-[data-role="stylist"] { --role-accent: oklch(0.55 0.10 260); --role-accent-light: oklch(0.94 0.03 260); --role-accent-dark: oklch(0.30 0.06 260); }
-[data-role="client"]  { --role-accent: oklch(0.55 0.12 155); --role-accent-light: oklch(0.94 0.03 155); --role-accent-dark: oklch(0.30 0.06 155); }
+/* Role-specific accent theming.
+ * Each role overrides --primary and --ring so that the shadcn Button's
+ * default variant + every focus ring picks up the brand color automatically.
+ * See design-system/MASTER.md §2 (Brand) and §7 (Buttons). */
+[data-role="owner"] {
+  --role-accent: var(--teal-700);
+  --role-accent-light: var(--teal-100);
+  --role-accent-dark: var(--teal-900);
+  --primary: var(--teal-700);
+  --primary-foreground: #ffffff;
+  --ring: var(--teal-700);
+}
+[data-role="stylist"] {
+  --role-accent: oklch(0.55 0.10 260);
+  --role-accent-light: oklch(0.94 0.03 260);
+  --role-accent-dark: oklch(0.30 0.06 260);
+  --primary: oklch(0.55 0.10 260);
+  --primary-foreground: #ffffff;
+  --ring: oklch(0.55 0.10 260);
+}
+[data-role="client"] {
+  --role-accent: oklch(0.55 0.12 155);
+  --role-accent-light: oklch(0.94 0.03 155);
+  --role-accent-dark: oklch(0.30 0.06 155);
+  --primary: oklch(0.55 0.12 155);
+  --primary-foreground: #ffffff;
+  --ring: oklch(0.55 0.12 155);
+}
+
+/* Elevation utilities — use via the design-system MASTER §4 ladder. */
+@layer utilities {
+  .shadow-card {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .shadow-hero {
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 4px 12px -2px rgba(15, 23, 42, 0.05);
+  }
+  .shadow-overlay {
+    box-shadow: 0 8px 32px -8px rgba(15, 23, 42, 0.18);
+  }
+  .hover-lift {
+    @apply motion-safe:transition-all motion-safe:duration-200;
+  }
+  .hover-lift:hover {
+    @apply motion-safe:-translate-y-px;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.05),
+      0 8px 20px -4px rgba(15, 23, 42, 0.08);
+  }
+}
 
 @layer base {
   * {
