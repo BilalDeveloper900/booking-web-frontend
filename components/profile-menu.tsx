@@ -103,7 +103,7 @@ export function ProfileMenu({
 
         <MenuGroup>
           <MenuItem icon={LifeBuoy} label="Help &amp; support" />
-          <MenuItem icon={LogOut} label="Sign out" danger shortcut="⇧⌘Q" />
+          <MenuItem icon={LogOut} label="Sign out" danger shortcut="⇧⌘Q" href="/login" />
         </MenuGroup>
       </PopoverContent>
     </Popover>

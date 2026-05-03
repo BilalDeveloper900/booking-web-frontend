@@ -10,6 +10,7 @@ import {
   ClipboardList,
   CreditCard,
   MessageSquare,
+  Tags,
 } from "lucide-react";
 
 export type Role = "owner" | "admin" | "client";
@@ -38,6 +39,7 @@ export const ROLE_CONFIGS: Record<Role, RoleConfig> = {
       { id: "calendar", label: "Calendar", icon: CalendarDays, href: "/owner/calendar", badge: "12" },
       { id: "clients", label: "Clients", icon: Users, href: "/owner/clients" },
       { id: "admins", label: "Admins", icon: Scissors, href: "/owner/admins" },
+      { id: "offers", label: "Offers", icon: Tags, href: "/owner/offers" },
       { id: "finance", label: "Finance", icon: Wallet, href: "/owner/finance" },
     ],
     user: { name: "Elena Marchetti", hue: 195, subtitle: "Owner · Pro plan" },
