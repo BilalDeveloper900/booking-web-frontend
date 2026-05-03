@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Poppins, Geist_Mono } from "next/font/google";
 import { ThemeProvider, themeBootScript } from "@/components/theme-provider";
+import { OfflineIndicator } from "@/components/offline-indicator";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -62,7 +64,11 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <OfflineIndicator />
+          <PWAInstallPrompt />
+        </ThemeProvider>
         <Script id="register-sw" strategy="afterInteractive">
           {`if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); }`}
         </Script>

@@ -1,17 +1,60 @@
 {
   "name": "Maison & Co. — Salon Booking",
   "short_name": "Maison & Co.",
-  "description": "Manage your salon bookings, stylists, and clients.",
-  "start_url": "/",
+  "description": "Manage your salon bookings, admins, and clients.",
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
   "orientation": "portrait",
   "background_color": "#fafaf9",
   "theme_color": "#222222",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["lifestyle", "business", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
-    { "src": "/icons/maison-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/icons/maison-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/icons/maison-maskable.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "/icons/maison-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maison-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maison-maskable.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
   ],
-  "categories": ["lifestyle", "business"]
+  "shortcuts": [
+    {
+      "name": "Calendar",
+      "short_name": "Calendar",
+      "description": "Today's schedule and upcoming bookings",
+      "url": "/owner/calendar?source=shortcut",
+      "icons": [{ "src": "/icons/maison-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Book a session",
+      "short_name": "Book",
+      "description": "Book a new session as a client",
+      "url": "/client/book?source=shortcut",
+      "icons": [{ "src": "/icons/maison-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "description": "Chat with your stylist or clients",
+      "url": "/client/messages?source=shortcut",
+      "icons": [{ "src": "/icons/maison-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    }
+  ]
 }
