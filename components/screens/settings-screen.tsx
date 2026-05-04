@@ -11,6 +11,9 @@ import {
   Sun,
   Moon,
   Monitor,
+  Clock,
+  Plus,
+  CalendarOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -44,6 +47,30 @@ const NOTIFICATION_GROUPS: Record<
   ],
 };
 
+type DayHours = {
+  weekday: number;
+  label: string;
+  open: boolean;
+  start: string;
+  end: string;
+};
+
+const DEFAULT_WORKING_HOURS: DayHours[] = [
+  { weekday: 1, label: "Mon", open: false, start: "10:00", end: "18:00" },
+  { weekday: 2, label: "Tue", open: true,  start: "10:00", end: "18:00" },
+  { weekday: 3, label: "Wed", open: true,  start: "10:00", end: "18:00" },
+  { weekday: 4, label: "Thu", open: true,  start: "10:00", end: "18:00" },
+  { weekday: 5, label: "Fri", open: true,  start: "10:00", end: "18:00" },
+  { weekday: 6, label: "Sat", open: true,  start: "10:00", end: "16:00" },
+  { weekday: 0, label: "Sun", open: false, start: "10:00", end: "16:00" },
+];
+
+type TimeOff = { id: string; label: string; from: string; to: string };
+
+const DEFAULT_TIME_OFF: TimeOff[] = [
+  { id: "to-1", label: "Vacation", from: "2026-05-05", to: "2026-05-07" },
+];
+
 interface SettingsScreenProps {
   role: Role;
 }
@@ -71,6 +98,34 @@ export function SettingsScreen({ role }: SettingsScreenProps) {
     for (const n of NOTIFICATION_GROUPS[role]) out[n.id] = !!n.defaultOn;
     return out;
   });
+
+  // Admin-only working-hours state
+  const [workingDays, setWorkingDays] = useState<DayHours[]>(DEFAULT_WORKING_HOURS);
+  const [requireApproval, setRequireApproval] = useState(false);
+  const [bufferMin, setBufferMin] = useState(10);
+  const [timeOff, setTimeOff] = useState<TimeOff[]>(DEFAULT_TIME_OFF);
+
+  function setDay(weekday: number, patch: Partial<DayHours>) {
+    setWorkingDays((prev) =>
+      prev.map((d) => (d.weekday === weekday ? { ...d, ...patch } : d))
+    );
+  }
+
+  function addTimeOff() {
+    setTimeOff((prev) => [
+      ...prev,
+      {
+        id: `to-${Date.now()}`,
+        label: "Time off",
+        from: "2026-05-15",
+        to: "2026-05-15",
+      },
+    ]);
+  }
+
+  function removeTimeOff(id: string) {
+    setTimeOff((prev) => prev.filter((t) => t.id !== id));
+  }
 
   return (
     <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
@@ -163,6 +218,153 @@ export function SettingsScreen({ role }: SettingsScreenProps) {
             ))}
           </div>
         </Card>
+
+        {/* Working hours — admin only */}
+        {role === "admin" && (
+          <>
+            <Card>
+              <CardHeader
+                title="Working hours"
+                subtitle="Clients can only book free slots that fall inside these hours."
+              />
+
+              <div className="divide-y divide-[--line-soft]">
+                {workingDays.map((d) => (
+                  <div
+                    key={d.weekday}
+                    className="flex items-center gap-3 py-3 flex-wrap"
+                  >
+                    <div className="w-12 text-[13px] font-medium tabular-nums shrink-0">
+                      {d.label}
+                    </div>
+                    <Switch
+                      checked={d.open}
+                      onCheckedChange={(v: boolean) => setDay(d.weekday, { open: v })}
+                      aria-label={`${d.label} open`}
+                    />
+                    <div className="flex-1" />
+                    {d.open ? (
+                      <div className="flex items-center gap-2 text-[12px]">
+                        <Input
+                          type="time"
+                          value={d.start}
+                          onChange={(e) => setDay(d.weekday, { start: e.target.value })}
+                          className="!w-[110px]"
+                        />
+                        <span className="text-muted-foreground">→</span>
+                        <Input
+                          type="time"
+                          value={d.end}
+                          onChange={(e) => setDay(d.weekday, { end: e.target.value })}
+                          className="!w-[110px]"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-[12px] text-muted-foreground">Closed</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <FormFooter>
+                <Button variant="ghost">Discard</Button>
+                <Button>Save hours</Button>
+              </FormFooter>
+            </Card>
+
+            <Card>
+              <CardHeader
+                title="Booking rules"
+                subtitle="How clients book your time inside your working hours."
+              />
+
+              <div className="divide-y divide-[--line-soft]">
+                <label className="flex items-start gap-3 py-3 cursor-pointer">
+                  <span className="w-9 h-9 rounded-lg bg-muted text-muted-foreground grid place-items-center shrink-0">
+                    <Lock className="w-4 h-4" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium">Require my approval</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      New bookings land as pending until you confirm. Off by default — most clients expect instant confirmation.
+                    </div>
+                  </div>
+                  <Switch
+                    checked={requireApproval}
+                    onCheckedChange={setRequireApproval}
+                  />
+                </label>
+
+                <div className="flex items-start gap-3 py-3">
+                  <span className="w-9 h-9 rounded-lg bg-muted text-muted-foreground grid place-items-center shrink-0">
+                    <Clock className="w-4 h-4" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium">Buffer between sessions</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      Auto-blocked time after each 1-on-1 (cleanup, notes, transition).
+                    </div>
+                  </div>
+                  <Select
+                    value={String(bufferMin)}
+                    onChange={(e) => setBufferMin(Number(e.target.value))}
+                    className="!w-[120px]"
+                  >
+                    <option value="0">No buffer</option>
+                    <option value="5">5 min</option>
+                    <option value="10">10 min</option>
+                    <option value="15">15 min</option>
+                    <option value="30">30 min</option>
+                  </Select>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-start mb-5 gap-3">
+                <div className="flex-1">
+                  <h3 className="text-[15px] font-semibold tracking-tight">Time off</h3>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">
+                    Block dates where you&apos;re unavailable. Clients won&apos;t see those slots.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={addTimeOff}>
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </Button>
+              </div>
+
+              {timeOff.length === 0 ? (
+                <div className="text-[12px] text-muted-foreground border border-dashed border-border rounded-lg py-6 text-center">
+                  No time off scheduled.
+                </div>
+              ) : (
+                <div className="divide-y divide-[--line-soft]">
+                  {timeOff.map((t) => (
+                    <div key={t.id} className="flex items-center gap-3 py-3">
+                      <span className="w-9 h-9 rounded-lg bg-[--neg]/10 text-[--neg] grid place-items-center shrink-0">
+                        <CalendarOff className="w-4 h-4" />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium">{t.label}</div>
+                        <div className="text-[11px] text-muted-foreground tabular-nums">
+                          {t.from === t.to ? t.from : `${t.from} → ${t.to}`}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Remove ${t.label}`}
+                        onClick={() => removeTimeOff(t.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </>
+        )}
 
         {/* Appearance */}
         <Card>

@@ -42,15 +42,99 @@ export const CALENDAR_DAYS = [
 
 export const HOURS = ["8 AM", "9 AM", "10 AM", "11 AM", "12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM"];
 
+export type ServiceMode = "solo" | "group";
+
+export type Service = {
+  id: string;
+  adminName: string;          // who offers it
+  name: string;
+  mode: ServiceMode;
+  defaultCapacity: number;    // 1 for solo, N for group
+  durationMin: number;
+  credits: number;            // per attendee
+  hue: number;
+  description?: string;
+};
+
+export const SERVICES: Service[] = [
+  // ── solo (1-on-1) ──────────────────────────────────────
+  { id: "svc-cut",        adminName: "Camille Roux",   name: "Cut + gloss",       mode: "solo",  defaultCapacity: 1,  durationMin: 60, credits: 2, hue: 195 },
+  { id: "svc-balayage",   adminName: "Camille Roux",   name: "Balayage",          mode: "solo",  defaultCapacity: 1,  durationMin: 90, credits: 4, hue: 195 },
+  { id: "svc-color",      adminName: "Camille Roux",   name: "Color refresh",     mode: "solo",  defaultCapacity: 1,  durationMin: 90, credits: 2, hue: 195 },
+  { id: "svc-beard",      adminName: "Theo Bennett",   name: "Beard trim",        mode: "solo",  defaultCapacity: 1,  durationMin: 30, credits: 1, hue: 220 },
+  { id: "svc-manicure",   adminName: "Asha Iyer",      name: "Manicure",          mode: "solo",  defaultCapacity: 1,  durationMin: 60, credits: 1, hue: 280 },
+  { id: "svc-lash",       adminName: "Lior Mendez",    name: "Lash fill",         mode: "solo",  defaultCapacity: 1,  durationMin: 60, credits: 2, hue: 330 },
+  // ── group classes ──────────────────────────────────────
+  { id: "svc-yoga",       adminName: "Yuki Tanaka",    name: "Yoga Flow",         mode: "group", defaultCapacity: 12, durationMin: 60, credits: 1, hue: 165, description: "All-levels vinyasa flow" },
+  { id: "svc-pilates",    adminName: "Marta Halász",   name: "Pilates Reformer",  mode: "group", defaultCapacity: 6,  durationMin: 50, credits: 2, hue: 60,  description: "Core-focused reformer class" },
+  { id: "svc-spin",       adminName: "Theo Bennett",   name: "Spin Class",        mode: "group", defaultCapacity: 16, durationMin: 45, credits: 1, hue: 220, description: "High-energy cycling" },
+  { id: "svc-meditate",   adminName: "Yuki Tanaka",    name: "Mindful Meditation",mode: "group", defaultCapacity: 20, durationMin: 30, credits: 1, hue: 165, description: "Guided breathwork" },
+  { id: "svc-barre",      adminName: "Marta Halász",   name: "Barre Burn",        mode: "group", defaultCapacity: 14, durationMin: 50, credits: 1, hue: 60,  description: "Sculpt + cardio fusion" },
+];
+
+// Studio open/close hours, indexed by weekday 0=Sun … 6=Sat.
+export const STUDIO_HOURS = [
+  { weekday: 0, open: "—",     close: "—",     closed: true },
+  { weekday: 1, open: "09:00", close: "19:00", closed: false },
+  { weekday: 2, open: "09:00", close: "19:00", closed: false },
+  { weekday: 3, open: "09:00", close: "19:00", closed: false },
+  { weekday: 4, open: "09:00", close: "19:00", closed: false },
+  { weekday: 5, open: "09:00", close: "19:00", closed: false },
+  { weekday: 6, open: "10:00", close: "17:00", closed: false },
+] as const;
+
+// Per-admin recurring working hours. Multiple rows per admin allowed (e.g. split shifts).
+export type AvailabilityRule = {
+  adminName: string;
+  weekday: number;
+  startHour: number;     // 24h decimal, e.g. 10.5 = 10:30
+  endHour: number;
+};
+
+export const AVAILABILITY_RULES: AvailabilityRule[] = [
+  // Camille — Tue–Sat 10–18
+  { adminName: "Camille Roux", weekday: 2, startHour: 10, endHour: 18 },
+  { adminName: "Camille Roux", weekday: 3, startHour: 10, endHour: 18 },
+  { adminName: "Camille Roux", weekday: 4, startHour: 10, endHour: 18 },
+  { adminName: "Camille Roux", weekday: 5, startHour: 10, endHour: 18 },
+  { adminName: "Camille Roux", weekday: 6, startHour: 10, endHour: 16 },
+  // Yuki — yoga teacher, early mornings + evenings
+  { adminName: "Yuki Tanaka",  weekday: 1, startHour: 7,  endHour: 11 },
+  { adminName: "Yuki Tanaka",  weekday: 1, startHour: 17, endHour: 20 },
+  { adminName: "Yuki Tanaka",  weekday: 3, startHour: 7,  endHour: 11 },
+  { adminName: "Yuki Tanaka",  weekday: 3, startHour: 17, endHour: 20 },
+  { adminName: "Yuki Tanaka",  weekday: 5, startHour: 7,  endHour: 11 },
+];
+
+// One-off blocks (vacation, lunch) or extra hours (special workshop day).
+export type AvailabilityException = {
+  adminName: string;
+  date: string;          // ISO yyyy-mm-dd
+  startHour: number;
+  endHour: number;
+  type: "block" | "extra";
+  reason: string;
+};
+
+export const AVAILABILITY_EXCEPTIONS: AvailabilityException[] = [
+  { adminName: "Camille Roux", date: "2026-05-05", startHour: 0,  endHour: 24, type: "block", reason: "Vacation" },
+  { adminName: "Camille Roux", date: "2026-05-06", startHour: 0,  endHour: 24, type: "block", reason: "Vacation" },
+  { adminName: "Camille Roux", date: "2026-05-07", startHour: 0,  endHour: 24, type: "block", reason: "Vacation" },
+];
+
 export type CalendarEvent = {
   day: number;
   start: number;
   len: number;
-  client: string;
+  client: string;             // solo: client name. group: ignored (service used as label).
   service: string;
   hue: number;
   now?: boolean;
   closed?: boolean;
+  // Group-class extensions
+  mode?: ServiceMode;         // undefined → solo
+  capacity?: number;          // group only
+  attendees?: string[];       // group only — list of enrolled client names
 };
 
 export const CALENDAR_EVENTS: CalendarEvent[] = [
@@ -82,6 +166,19 @@ export const CALENDAR_EVENTS: CalendarEvent[] = [
   { day: 5, start: 5, len: 1.5, client: "S. Andersson", service: "Color", hue: 195 },
   { day: 5, start: 7, len: 1, client: "T. Ahmadi", service: "Manicure", hue: 25 },
   { day: 6, start: 1, len: 1, client: "—", service: "Closed", hue: 0, closed: true },
+  // ── Group classes (placed in evening / off-peak gaps so they don't overlap solo events) ──
+  // Mon 5:30pm — Spin Class with Theo, 12/16
+  { day: 0, start: 9.5, len: 0.75, client: "—", service: "Spin Class", hue: 220, mode: "group", capacity: 16, attendees: ["Olivia Wren", "Felix Wong", "Hugo Bertrand", "Sven Andersson", "Jasper Cole", "Mei Lin Chen", "Priya Anand", "Renata Oliveira", "L. Frost", "M. Petrov", "K. Naidu", "S. Olsen"] },
+  // Tue 5:30pm — Pilates Reformer with Marta, 5/6
+  { day: 1, start: 9.5, len: 0.83, client: "—", service: "Pilates Reformer", hue: 60, mode: "group", capacity: 6, attendees: ["Olivia Wren", "Felix Wong", "Mei Lin Chen", "Priya Anand", "Renata Oliveira"] },
+  // Wed 5:30pm — Yoga Flow with Yuki, 8/12
+  { day: 2, start: 9.5, len: 1, client: "—", service: "Yoga Flow", hue: 165, mode: "group", capacity: 12, attendees: ["Olivia Wren", "Felix Wong", "Mei Lin Chen", "Priya Anand", "Renata Oliveira", "Hugo Bertrand", "Sven Andersson", "Jasper Cole"] },
+  // Thu 4:30pm — Yoga Flow, fully booked 12/12
+  { day: 3, start: 8.5, len: 1, client: "—", service: "Yoga Flow", hue: 165, mode: "group", capacity: 12, attendees: ["Olivia Wren", "Felix Wong", "Mei Lin Chen", "Priya Anand", "Renata Oliveira", "Hugo Bertrand", "Sven Andersson", "Jasper Cole", "L. Frost", "M. Petrov", "K. Naidu", "S. Olsen"] },
+  // Fri 6:30pm — Mindful Meditation, 4/20
+  { day: 4, start: 10.5, len: 0.5, client: "—", service: "Mindful Meditation", hue: 165, mode: "group", capacity: 20, attendees: ["Olivia Wren", "Mei Lin Chen", "Priya Anand", "Felix Wong"] },
+  // Sat 4pm — Barre Burn, 9/14
+  { day: 5, start: 8, len: 0.83, client: "—", service: "Barre Burn", hue: 60, mode: "group", capacity: 14, attendees: ["Olivia Wren", "Mei Lin Chen", "Priya Anand", "Renata Oliveira", "Hugo Bertrand", "Felix Wong", "L. Frost", "S. Olsen", "K. Naidu"] },
 ];
 
 export const FINANCE_MONTHS = ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr"];
@@ -102,14 +199,27 @@ export const RECENT_TRANSACTIONS = [
 // ADMIN DATA
 // ────────────────────────────────────────────────────────
 
-export const ADMIN_TODAY = [
-  { time: "09:00", duration: 60, client: "Olivia Wren", service: "Cut + gloss", credits: 2, hue: 195, status: "done" as const },
-  { time: "10:30", duration: 90, client: "Mei Lin Chen", service: "Balayage", credits: 4, hue: 280, status: "done" as const },
-  { time: "12:00", duration: 45, client: "Hugo Bertrand", service: "Cut + style", credits: 2, hue: 165, status: "now" as const },
-  { time: "13:30", duration: 60, client: "Priya Anand", service: "Gloss treatment", credits: 2, hue: 330, status: "next" as const },
-  { time: "15:00", duration: 75, client: "Felix Wong", service: "Cut + colour", credits: 3, hue: 130, status: "upcoming" as const },
-  { time: "16:30", duration: 60, client: "Renata Oliveira", service: "Blowout", credits: 1, hue: 25, status: "upcoming" as const },
-  { time: "18:00", duration: 45, client: "Sven Andersson", service: "Trim", credits: 1, hue: 60, status: "upcoming" as const },
+export type AdminTodayItem = {
+  time: string;
+  duration: number;
+  service: string;
+  credits: number;
+  hue: number;
+  status: "done" | "now" | "next" | "upcoming";
+} & (
+  | { mode?: "solo"; client: string; capacity?: never; attendees?: never }
+  | { mode: "group"; client?: never; capacity: number; attendees: string[] }
+);
+
+export const ADMIN_TODAY: AdminTodayItem[] = [
+  { time: "07:00", duration: 60, mode: "group", service: "Yoga Flow", credits: 1, hue: 165, status: "done", capacity: 12, attendees: ["Olivia Wren", "Felix Wong", "Mei Lin Chen", "Priya Anand", "Renata Oliveira", "Hugo Bertrand", "Sven Andersson", "Jasper Cole"] },
+  { time: "09:00", duration: 60, client: "Olivia Wren", service: "Cut + gloss", credits: 2, hue: 195, status: "done" },
+  { time: "10:30", duration: 90, client: "Mei Lin Chen", service: "Balayage", credits: 4, hue: 280, status: "done" },
+  { time: "12:00", duration: 45, client: "Hugo Bertrand", service: "Cut + style", credits: 2, hue: 165, status: "now" },
+  { time: "13:30", duration: 60, client: "Priya Anand", service: "Gloss treatment", credits: 2, hue: 330, status: "next" },
+  { time: "15:00", duration: 75, client: "Felix Wong", service: "Cut + colour", credits: 3, hue: 130, status: "upcoming" },
+  { time: "16:30", duration: 60, client: "Renata Oliveira", service: "Blowout", credits: 1, hue: 25, status: "upcoming" },
+  { time: "18:30", duration: 30, mode: "group", service: "Mindful Meditation", credits: 1, hue: 165, status: "upcoming", capacity: 20, attendees: ["Olivia Wren", "Mei Lin Chen", "Priya Anand", "Felix Wong"] },
 ];
 
 export const ADMIN_BOOKINGS = [
@@ -229,6 +339,33 @@ export const CLIENT_BOOKING_DATES = [
 ];
 
 export type TimeSlotStatus = "available" | "taken" | "selected";
+
+// Group classes the client can browse + enroll in (Classes tab on /client/book).
+export type ClientClassSession = {
+  id: string;
+  serviceId: string;
+  service: string;
+  admin: string;
+  hue: number;
+  date: string;             // human label, e.g. "Mon 4 May"
+  time: string;             // e.g. "5:30 PM"
+  durationMin: number;
+  capacity: number;
+  enrolled: number;
+  credits: number;
+  enrolledByMe?: boolean;
+};
+
+export const CLIENT_CLASS_SESSIONS: ClientClassSession[] = [
+  { id: "cls-1", serviceId: "svc-yoga",     service: "Yoga Flow",         admin: "Yuki Tanaka",  hue: 165, date: "Mon 4 May",  time: "7:00 AM",  durationMin: 60, capacity: 12, enrolled: 8,  credits: 1, enrolledByMe: true },
+  { id: "cls-2", serviceId: "svc-spin",     service: "Spin Class",        admin: "Theo Bennett", hue: 220, date: "Mon 4 May",  time: "5:30 PM",  durationMin: 45, capacity: 16, enrolled: 12, credits: 1 },
+  { id: "cls-3", serviceId: "svc-pilates",  service: "Pilates Reformer",  admin: "Marta Halász", hue: 60,  date: "Tue 5 May",  time: "5:30 PM",  durationMin: 50, capacity: 6,  enrolled: 5,  credits: 2 },
+  { id: "cls-4", serviceId: "svc-yoga",     service: "Yoga Flow",         admin: "Yuki Tanaka",  hue: 165, date: "Wed 6 May",  time: "5:30 PM",  durationMin: 60, capacity: 12, enrolled: 8,  credits: 1 },
+  { id: "cls-5", serviceId: "svc-yoga",     service: "Yoga Flow",         admin: "Yuki Tanaka",  hue: 165, date: "Thu 7 May",  time: "4:30 PM",  durationMin: 60, capacity: 12, enrolled: 12, credits: 1 },
+  { id: "cls-6", serviceId: "svc-meditate", service: "Mindful Meditation",admin: "Yuki Tanaka",  hue: 165, date: "Fri 8 May",  time: "6:30 PM",  durationMin: 30, capacity: 20, enrolled: 4,  credits: 1, enrolledByMe: true },
+  { id: "cls-7", serviceId: "svc-barre",    service: "Barre Burn",        admin: "Marta Halász", hue: 60,  date: "Sat 9 May",  time: "4:00 PM",  durationMin: 50, capacity: 14, enrolled: 9,  credits: 1 },
+  { id: "cls-8", serviceId: "svc-spin",     service: "Spin Class",        admin: "Theo Bennett", hue: 220, date: "Sat 9 May",  time: "10:00 AM", durationMin: 45, capacity: 16, enrolled: 6,  credits: 1 },
+];
 
 export const CLIENT_TIME_SLOTS: { time: string; status: TimeSlotStatus }[] = [
   { time: "9:00 AM", status: "taken" },

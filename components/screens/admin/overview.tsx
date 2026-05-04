@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, Filter } from "lucide-react";
+import { ArrowRight, Filter, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatBlock, PersonCell, Pill, HueAvatar } from "@/components/shared";
 import { ADMIN_TODAY, ADMIN_THREADS } from "@/lib/data";
 import { EarningsBars } from "@/components/charts/earnings-bars";
+import { ServicesPanel } from "@/components/screens/admin/services";
+import { cn } from "@/lib/utils";
 
 export function AdminOverview() {
   return (
@@ -46,24 +48,42 @@ export function AdminOverview() {
                 </tr>
               </thead>
               <tbody>
-                {ADMIN_TODAY.map((s, i) => (
-                  <tr
-                    key={i}
-                    className="border-b border-[--line-soft] last:border-0 hover:bg-muted/40 motion-safe:transition-colors motion-safe:duration-150"
-                  >
-                    <td className="py-3 tabular-nums">{s.time}</td>
-                    <td className="py-3"><PersonCell name={s.client} hue={s.hue} /></td>
-                    <td className="py-3">{s.service}</td>
-                    <td className="py-3 tabular-nums">{s.duration}m</td>
-                    <td className="py-3 tabular-nums">{s.credits}</td>
-                    <td className="py-3">
-                      {s.status === "done" && <Pill>Done</Pill>}
-                      {s.status === "now" && <Pill kind="teal" dot>In session</Pill>}
-                      {s.status === "next" && <Pill kind="sage">Up next</Pill>}
-                      {s.status === "upcoming" && <Pill>Upcoming</Pill>}
-                    </td>
-                  </tr>
-                ))}
+                {ADMIN_TODAY.map((s, i) => {
+                  const isGroup = s.mode === "group";
+                  return (
+                    <tr
+                      key={i}
+                      className="border-b border-[--line-soft] last:border-0 hover:bg-muted/40 motion-safe:transition-colors motion-safe:duration-150"
+                    >
+                      <td className="py-3 tabular-nums">{s.time}</td>
+                      <td className="py-3">
+                        {isGroup ? (
+                          <AttendeeStack attendees={s.attendees} capacity={s.capacity} hue={s.hue} />
+                        ) : (
+                          <PersonCell name={s.client} hue={s.hue} />
+                        )}
+                      </td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-1.5">
+                          {s.service}
+                          {isGroup && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
+                              <Users className="w-2.5 h-2.5" aria-hidden /> Class
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 tabular-nums">{s.duration}m</td>
+                      <td className="py-3 tabular-nums">{s.credits}</td>
+                      <td className="py-3">
+                        {s.status === "done" && <Pill>Done</Pill>}
+                        {s.status === "now" && <Pill kind="teal" dot>In session</Pill>}
+                        {s.status === "next" && <Pill kind="sage">Up next</Pill>}
+                        {s.status === "upcoming" && <Pill>Upcoming</Pill>}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -103,6 +123,12 @@ export function AdminOverview() {
           </Card>
         </div>
       </div>
+
+      <div className="mt-5">
+        <Card>
+          <ServicesPanel />
+        </Card>
+      </div>
     </div>
   );
 }
@@ -139,6 +165,52 @@ function CardLink({ href, children }: { href: string; children: React.ReactNode 
       {children}
       <ArrowRight className="w-3 h-3" aria-hidden />
     </Link>
+  );
+}
+
+function AttendeeStack({
+  attendees,
+  capacity,
+  hue,
+}: {
+  attendees: readonly string[];
+  capacity: number;
+  hue: number;
+}) {
+  const visible = attendees.slice(0, 3);
+  const extra = attendees.length - visible.length;
+  const full = attendees.length >= capacity;
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="flex -space-x-1.5">
+        {visible.map((n, i) => (
+          <div
+            key={n + i}
+            className="ring-2 ring-card rounded-full"
+            style={{ zIndex: visible.length - i }}
+          >
+            <HueAvatar name={n} hue={hue + i * 8} size={26} />
+          </div>
+        ))}
+        {extra > 0 && (
+          <div
+            className="w-[26px] h-[26px] rounded-full bg-muted border border-border ring-2 ring-card grid place-items-center text-[10px] font-semibold text-muted-foreground tabular-nums"
+            style={{ zIndex: 0 }}
+          >
+            +{extra}
+          </div>
+        )}
+      </div>
+      <span
+        className={cn(
+          "text-[12px] font-medium tabular-nums",
+          full ? "text-[--neg]" : "text-foreground"
+        )}
+      >
+        {attendees.length}
+        <span className="text-muted-foreground">/{capacity}</span>
+      </span>
+    </div>
   );
 }
 

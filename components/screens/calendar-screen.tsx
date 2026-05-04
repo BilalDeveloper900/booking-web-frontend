@@ -12,8 +12,9 @@ import {
   MessageSquare,
   CalendarOff,
   Repeat,
+  Users,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -26,7 +27,9 @@ import {
   HOURS,
   CALENDAR_EVENTS,
   TRAINERS,
+  SERVICES,
   type CalendarEvent,
+  type Service,
 } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { HueAvatar, Pill } from "@/components/shared";
@@ -93,6 +96,7 @@ export function CalendarScreen() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [newSlot, setNewSlot] = useState<{ day: number; hour: number } | null>(null);
   const [openNewBooking, setOpenNewBooking] = useState(false);
+  const [openNewClass, setOpenNewClass] = useState(false);
   const [selectedDayIdx, setSelectedDayIdx] = useState(() =>
     CALENDAR_DAYS.findIndex((d) => d.today)
   );
@@ -206,6 +210,16 @@ export function CalendarScreen() {
             </Button>
           </div>
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setOpenNewClass(true)}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">New class</span>
+          </Button>
+
           <Button size="sm" className="gap-2" onClick={() => openSlot(selectedDayIdx, 1)}>
             <Plus className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Booking</span>
           </Button>
@@ -266,6 +280,11 @@ export function CalendarScreen() {
         open={openNewBooking}
         slot={newSlot}
         onOpenChange={setOpenNewBooking}
+      />
+      <NewClassSheet
+        open={openNewClass}
+        onOpenChange={setOpenNewClass}
+        defaultDayIdx={selectedDayIdx}
       />
     </div>
   );
@@ -344,6 +363,10 @@ function MobileAgenda({
           }
           const trainer = trainerForEvent(e);
           const { bg, accent } = eventColors(e.hue, isDark);
+          const isGroup = e.mode === "group";
+          const enrolled = e.attendees?.length ?? 0;
+          const cap = e.capacity ?? 0;
+          const full = isGroup && cap > 0 && enrolled >= cap;
           return (
             <div key={i} className="flex gap-3">
               <div className="w-12 shrink-0 pt-2.5 text-[12px] text-muted-foreground tabular-nums">
@@ -359,12 +382,25 @@ function MobileAgenda({
                   <span className="text-[13px] font-semibold truncate flex-1">
                     {e.service}
                   </span>
+                  {isGroup && (
+                    <span
+                      className={cn(
+                        "shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium tabular-nums",
+                        full ? "bg-[--neg]/15 text-[--neg]" : "bg-foreground/8 text-foreground/80"
+                      )}
+                    >
+                      <Users className="w-2.5 h-2.5" aria-hidden />
+                      {enrolled}/{cap}
+                    </span>
+                  )}
                   <span className="text-[11px] tabular-nums text-foreground/80 shrink-0">
                     {Math.round(e.len * 60)}m
                   </span>
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                  {e.client} · {trainer.name.split(" ")[0]}
+                  {isGroup
+                    ? `Class · ${trainer.name.split(" ")[0]}${full ? " · full" : ""}`
+                    : `${e.client} · ${trainer.name.split(" ")[0]}`}
                 </div>
               </button>
             </div>
@@ -673,6 +709,10 @@ function MonthView({
               <div className="space-y-1">
                 {events.slice(0, 3).map((e, ei) => {
                   const colors = e.closed ? null : eventColors(e.hue, isDark);
+                  const isGroupEvt = e.mode === "group";
+                  const label = isGroupEvt
+                    ? `${e.service} · ${e.attendees?.length ?? 0}/${e.capacity ?? 0}`
+                    : e.client;
                   return (
                     <div
                       key={ei}
@@ -682,7 +722,7 @@ function MonthView({
                         color: e.closed ? "var(--ink-500)" : colors!.text,
                       }}
                     >
-                      {e.client}
+                      {label}
                     </div>
                   );
                 })}
@@ -733,12 +773,20 @@ function CalendarEventBlock({
   }
 
   const { bg, accent, text } = eventColors(event.hue, isDark);
+  const isGroup = event.mode === "group";
+  const enrolled = event.attendees?.length ?? 0;
+  const cap = event.capacity ?? 0;
+  const full = isGroup && cap > 0 && enrolled >= cap;
 
   return (
     <button
       type="button"
       onClick={() => onClick(event)}
-      aria-label={`${event.client} — ${event.service} at ${formatHour(event.start)}`}
+      aria-label={
+        isGroup
+          ? `${event.service} class · ${enrolled} of ${cap} enrolled at ${formatHour(event.start)}`
+          : `${event.client} — ${event.service} at ${formatHour(event.start)}`
+      }
       className="absolute left-1 right-1 rounded-md overflow-hidden px-2 py-1.5 text-left motion-safe:transition-all motion-safe:duration-150 hover:scale-[1.02] hover:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       style={{
         top,
@@ -748,24 +796,70 @@ function CalendarEventBlock({
         boxShadow: event.now ? `0 0 0 2px ${accent}` : undefined,
       }}
     >
-      <div
-        className={cn(
-          "font-semibold tracking-tight truncate",
-          expanded ? "text-[13px]" : "text-[11px]"
-        )}
-        style={{ color: text }}
-      >
-        {event.client}
-      </div>
-      <div
-        className={cn(
-          "text-muted-foreground mt-0.5 truncate",
-          expanded ? "text-[12px]" : "text-[10px]"
-        )}
-      >
-        {event.service}
-        {expanded && ` · ${formatHour(event.start)}`}
-      </div>
+      {isGroup ? (
+        <>
+          <div className="flex items-center gap-1.5">
+            <div
+              className={cn(
+                "font-semibold tracking-tight truncate flex-1",
+                expanded ? "text-[13px]" : "text-[11px]"
+              )}
+              style={{ color: text }}
+            >
+              {event.service}
+            </div>
+            <span
+              className={cn(
+                "shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full font-medium tabular-nums",
+                expanded ? "text-[10px]" : "text-[9px]",
+                full ? "bg-[--neg]/15 text-[--neg]" : ""
+              )}
+              style={
+                !full
+                  ? {
+                      background: isDark ? `oklch(0.35 0.06 ${event.hue})` : `oklch(0.86 0.06 ${event.hue})`,
+                      color: text,
+                    }
+                  : undefined
+              }
+            >
+              <Users className={expanded ? "w-2.5 h-2.5" : "w-2 h-2"} aria-hidden />
+              {enrolled}/{cap}
+            </span>
+          </div>
+          <div
+            className={cn(
+              "text-muted-foreground mt-0.5 truncate",
+              expanded ? "text-[12px]" : "text-[10px]"
+            )}
+          >
+            Class
+            {expanded && ` · ${formatHour(event.start)}`}
+            {full && " · full"}
+          </div>
+        </>
+      ) : (
+        <>
+          <div
+            className={cn(
+              "font-semibold tracking-tight truncate",
+              expanded ? "text-[13px]" : "text-[11px]"
+            )}
+            style={{ color: text }}
+          >
+            {event.client}
+          </div>
+          <div
+            className={cn(
+              "text-muted-foreground mt-0.5 truncate",
+              expanded ? "text-[12px]" : "text-[10px]"
+            )}
+          >
+            {event.service}
+            {expanded && ` · ${formatHour(event.start)}`}
+          </div>
+        </>
+      )}
     </button>
   );
 }
@@ -801,6 +895,10 @@ function EventSheet({
   const accent = colors?.accent;
   const bg = colors?.bg;
 
+  const isGroup = event?.mode === "group";
+  const enrolled = event?.attendees?.length ?? 0;
+  const cap = event?.capacity ?? 0;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md p-0">
@@ -810,10 +908,10 @@ function EventSheet({
             style={{ background: bg, color: colors?.text }}
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: accent }} />
-            {event?.service}
+            {isGroup ? "Group class" : event?.service}
           </div>
           <SheetTitle className="text-[20px] font-semibold tracking-tight">
-            {event?.client}
+            {isGroup ? event?.service : event?.client}
           </SheetTitle>
           <SheetDescription>
             {dayLabel && `${dayLabel.d} · ${dayLabel.n}`}
@@ -826,16 +924,50 @@ function EventSheet({
             <Detail icon={<Clock className="w-4 h-4" />} label="Duration">
               {Math.round(event.len * 60)} minutes
             </Detail>
-            <Detail icon={<Scissors className="w-4 h-4" />} label="Service">
-              {event.service}
-            </Detail>
-            <Detail icon={<User className="w-4 h-4" />} label="Admin">
+            {!isGroup && (
+              <Detail icon={<Scissors className="w-4 h-4" />} label="Service">
+                {event.service}
+              </Detail>
+            )}
+            <Detail icon={<User className="w-4 h-4" />} label={isGroup ? "Instructor" : "Admin"}>
               <div className="flex items-center gap-2">
                 <HueAvatar name={trainer.name} hue={trainer.hue} size={20} />
                 <span>{trainer.name}</span>
                 <span className="text-muted-foreground">· {trainer.role}</span>
               </div>
             </Detail>
+
+            {isGroup && (
+              <Detail icon={<Users className="w-4 h-4" />} label="Enrollment">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium tabular-nums">
+                    {enrolled} / {cap}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {enrolled >= cap ? "· full" : `· ${cap - enrolled} seat${cap - enrolled === 1 ? "" : "s"} left`}
+                  </span>
+                </div>
+              </Detail>
+            )}
+
+            {isGroup && event.attendees && event.attendees.length > 0 && (
+              <div>
+                <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-2">
+                  Attendees
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-auto">
+                  {event.attendees.map((name) => (
+                    <span
+                      key={name}
+                      className="inline-flex items-center gap-1.5 pl-0.5 pr-2 py-0.5 rounded-full bg-muted/50 border border-border text-[11px]"
+                    >
+                      <HueAvatar name={name} hue={event.hue} size={18} />
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="h-px bg-border" />
 
@@ -846,29 +978,34 @@ function EventSheet({
                 <Pill kind="teal" dot>
                   In session
                 </Pill>
+              ) : isGroup && enrolled >= cap ? (
+                <Pill kind="warn">Full</Pill>
               ) : (
                 <Pill kind="sage">Confirmed</Pill>
               )}
             </div>
 
             <div className="flex items-center gap-2 text-[13px]">
-              <span className="text-muted-foreground">Cost</span>
+              <span className="text-muted-foreground">{isGroup ? "Per attendee" : "Cost"}</span>
               <div className="flex-1" />
-              <span className="font-medium tabular-nums">3 credits</span>
+              <span className="font-medium tabular-nums">
+                {isGroup ? "1 credit" : "3 credits"}
+              </span>
             </div>
           </div>
         )}
 
         <div className="mt-auto p-6 pt-4 border-t border-border flex flex-col gap-2">
           <Button className="w-full gap-2">
-            <MessageSquare className="w-4 h-4" /> Message client
+            <MessageSquare className="w-4 h-4" />
+            {isGroup ? "Message attendees" : "Message client"}
           </Button>
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1 gap-2">
               <Repeat className="w-4 h-4" /> Reschedule
             </Button>
             <Button variant="destructive" className="flex-1 gap-2">
-              <CalendarOff className="w-4 h-4" /> Cancel
+              <CalendarOff className="w-4 h-4" /> {isGroup ? "Cancel class" : "Cancel"}
             </Button>
           </div>
         </div>
@@ -946,6 +1083,180 @@ function NewBookingSheet({
             Cancel
           </Button>
         </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function NewClassSheet({
+  open,
+  onOpenChange,
+  defaultDayIdx,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultDayIdx: number;
+}) {
+  const myGroupServices = SERVICES.filter((s) => s.mode === "group");
+  const [serviceId, setServiceId] = useState<string>(myGroupServices[0]?.id ?? "");
+  const [dayIdx, setDayIdx] = useState(defaultDayIdx);
+  const [hour, setHour] = useState(2); // default 10am (HOURS[2])
+  const [capacityOverride, setCapacityOverride] = useState<number | null>(null);
+
+  const service: Service | undefined = myGroupServices.find((s) => s.id === serviceId);
+  const day = CALENDAR_DAYS[dayIdx];
+  const capacity = capacityOverride ?? service?.defaultCapacity ?? 0;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-md p-0">
+        <SheetHeader className="p-6 pb-4">
+          <div className="inline-flex items-center gap-2 self-start px-2 py-1 rounded-md text-[11px] font-medium mb-3 bg-[--role-accent-light] text-[--role-accent-dark]">
+            <Users className="w-3 h-3" />
+            New class
+          </div>
+          <SheetTitle className="text-[20px] font-semibold tracking-tight">
+            Schedule a class
+          </SheetTitle>
+          <SheetDescription>
+            Pick one of your group services and place it on the calendar. Clients can enroll once it&apos;s saved.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="px-6 space-y-5 overflow-auto">
+          {myGroupServices.length === 0 ? (
+            <div className="border border-dashed border-border rounded-xl p-6 text-center">
+              <div className="text-[13px] font-medium mb-1">No group services yet</div>
+              <p className="text-[12px] text-muted-foreground mb-3">
+                Create a class-mode service first from your overview.
+              </p>
+              <a
+                href="/admin"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Go to overview
+              </a>
+            </div>
+          ) : (
+            <>
+              <div>
+                <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-2">
+                  Class
+                </div>
+                <div className="grid gap-2">
+                  {myGroupServices.map((s) => {
+                    const on = s.id === serviceId;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setServiceId(s.id)}
+                        aria-pressed={on}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-lg border text-left motion-safe:transition-colors",
+                          on
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                            : "border-border hover:border-primary/50 bg-card"
+                        )}
+                      >
+                        <HueAvatar name={s.name} hue={s.hue} size={32} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-semibold">{s.name}</div>
+                          <div className="text-[11px] text-muted-foreground tabular-nums">
+                            {s.durationMin}m · up to {s.defaultCapacity} · {s.credits} cr
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-2">
+                  Day
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {CALENDAR_DAYS.map((d, i) => {
+                    const on = i === dayIdx;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setDayIdx(i)}
+                        aria-pressed={on}
+                        className={cn(
+                          "flex flex-col items-center justify-center w-12 h-12 rounded-lg border text-sm motion-safe:transition-colors",
+                          on
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        <span className="text-[10px] uppercase tracking-wider">{d.d}</span>
+                        <span className="text-[14px] font-semibold tabular-nums leading-none mt-0.5">{d.n}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-2">
+                  Time
+                </div>
+                <select
+                  value={hour}
+                  onChange={(e) => setHour(Number(e.target.value))}
+                  className="w-full h-10 px-3 border border-border rounded-lg text-[13px] bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {HOURS.map((h, i) => (
+                    <option key={h} value={i}>{h}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="flex items-baseline justify-between mb-1.5">
+                  <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground">
+                    Capacity
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    Default: {service?.defaultCapacity}
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  value={capacity}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (Number.isNaN(n)) return;
+                    setCapacityOverride(n);
+                  }}
+                  min={2}
+                  className="w-full h-10 px-3 border border-border rounded-lg text-[13px] bg-card tabular-nums focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              <div className="bg-muted/40 border border-border rounded-lg p-3 text-[12px]">
+                <div className="font-medium text-foreground mb-1">Preview</div>
+                <div className="text-muted-foreground">
+                  {service?.name} · {day?.d} {day?.n} · {HOURS[hour]} · {capacity} seats
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {myGroupServices.length > 0 && (
+          <div className="mt-auto p-6 pt-4 border-t border-border flex flex-col gap-2">
+            <Button className="w-full" onClick={() => onOpenChange(false)}>
+              Schedule class
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
