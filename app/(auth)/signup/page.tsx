@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Divider, Field, Input, SocialButtons } from "../_form";
+import { Divider, Field, Input } from "../_form";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -17,6 +18,8 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   const strength = scorePassword(password);
   const canSubmit =
@@ -26,12 +29,78 @@ export default function SignupPage() {
     accepted &&
     !submitting;
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
-    // Mock signup — replace with real call later.
-    setTimeout(() => router.push("/owner"), 700);
+    setError(null);
+
+    const supabase = createClient();
+
+    // 1) Create the auth user. The on_auth_user_created trigger mirrors them
+    // into public.users automatically.
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name: name.trim() } },
+    });
+
+    if (signUpError) {
+      setError(humanizeAuthError(signUpError.message));
+      setSubmitting(false);
+      return;
+    }
+
+    // If email confirmation is on (default in Supabase), there is no session yet.
+    // Show a "check your inbox" message; studio gets provisioned on first login.
+    if (!signUpData.session) {
+      setNeedsConfirm(true);
+      setSubmitting(false);
+      // Stash the studio name so we can use it after confirmation login.
+      try {
+        sessionStorage.setItem("maison.pending_studio_name", studio.trim() || `${name.trim()}'s Studio`);
+      } catch {
+        /* sessionStorage unavailable — best-effort only */
+      }
+      return;
+    }
+
+    // 2) Email confirmation off: we have a session, provision the studio now.
+    const studioName = studio.trim() || `${name.trim()}'s Studio`;
+    const { error: rpcError } = await supabase.rpc("create_studio_for_owner", {
+      p_studio_name: studioName,
+    });
+
+    if (rpcError) {
+      setError(`Account created but studio setup failed: ${rpcError.message}. Try signing in again.`);
+      setSubmitting(false);
+      return;
+    }
+
+    router.replace("/owner");
+  }
+
+  if (needsConfirm) {
+    return (
+      <div>
+        <h1 className="font-serif text-[36px] leading-tight tracking-tight mb-2">Check your inbox</h1>
+        <p className="text-[14px] text-muted-foreground mb-6">
+          We sent a confirmation link to{" "}
+          <span className="text-foreground font-medium">{email}</span>. Click it
+          to finish setup, then sign in.
+        </p>
+        <div className="rounded-xl border border-border bg-card p-4 text-[12px] text-muted-foreground leading-relaxed mb-6">
+          Didn&rsquo;t get it? Check spam, or wait a minute and try again. The
+          link expires in 24 hours.
+        </div>
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium hover:underline"
+        >
+          Back to sign in <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -44,9 +113,6 @@ export default function SignupPage() {
         <span className="text-[--pos] font-medium">Setup takes under 60 seconds.</span>
       </p>
       <Perks />
-
-      <SocialButtons />
-      <Divider>or sign up with email</Divider>
 
       <form onSubmit={onSubmit} className="space-y-4">
         <Field label="Your name">
@@ -117,6 +183,15 @@ export default function SignupPage() {
           </span>
         </label>
 
+        {error && (
+          <div
+            role="alert"
+            className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg]"
+          >
+            {error}
+          </div>
+        )}
+
         <Button type="submit" disabled={!canSubmit} className="w-full h-11 gap-2">
           {submitting ? (
             <>
@@ -130,19 +205,28 @@ export default function SignupPage() {
         </Button>
       </form>
 
-      <p className="text-[13px] text-muted-foreground text-center mt-8">
+      <Divider>or</Divider>
+
+      <p className="text-[13px] text-muted-foreground text-center">
         Already have an account?{" "}
         <Link href="/login" className="text-foreground font-medium hover:underline">
           Sign in
         </Link>
       </p>
-
-      <p className="text-[11px] text-muted-foreground text-center mt-6 leading-relaxed">
-        Got an invite from a studio? Open the link in your email — you&rsquo;ll land here with
-        the rest pre-filled.
-      </p>
     </div>
   );
+}
+
+function humanizeAuthError(msg: string): string {
+  const lower = msg.toLowerCase();
+  if (lower.includes("already registered") || lower.includes("user already")) {
+    return "An account with that email already exists. Sign in instead?";
+  }
+  if (lower.includes("rate limit")) return "Too many attempts. Wait a minute and try again.";
+  if (lower.includes("password") && lower.includes("weak")) {
+    return "Password too weak — try mixing upper, lower, numbers, and symbols.";
+  }
+  return msg;
 }
 
 function Perks() {

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   CircleUserRound,
   CreditCard,
@@ -10,6 +11,7 @@ import {
   Moon,
   LogOut,
   Bell,
+  Loader2,
 } from "lucide-react";
 import { HueAvatar } from "@/components/shared";
 import { Switch } from "@/components/ui/switch";
@@ -20,9 +22,19 @@ import {
 } from "@/components/ui/popover";
 import { useTheme } from "@/components/theme-provider";
 import type { RoleConfig } from "@/lib/roles";
+import { useCurrentMember } from "@/lib/auth/use-current-member";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-type Item = { label: string; icon: React.ComponentType<{ className?: string }>; shortcut?: string; danger?: boolean; href?: string; onClick?: () => void };
+type Item = {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  shortcut?: string;
+  danger?: boolean;
+  href?: string;
+  onClick?: () => void;
+  loading?: boolean;
+};
 
 interface ProfileMenuProps {
   user: RoleConfig["user"];
@@ -41,9 +53,22 @@ export function ProfileMenu({
   side = "top",
   sideOffset = 8,
 }: ProfileMenuProps) {
+  const router = useRouter();
   const [notifications, setNotifications] = React.useState(true);
+  const [signingOut, setSigningOut] = React.useState(false);
   const { resolvedTheme, setTheme } = useTheme();
-  const email = `${user.name.split(" ")[0].toLowerCase()}@maison.co`;
+  const { member } = useCurrentMember();
+  // Real email from Supabase, with a placeholder until the hook resolves.
+  const email = member?.user.email ?? "Loading...";
+
+  async function signOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  }
 
   const settingsHref = `/${role}/settings`;
   const items: Item[] = [
@@ -103,7 +128,14 @@ export function ProfileMenu({
 
         <MenuGroup>
           <MenuItem icon={LifeBuoy} label="Help &amp; support" />
-          <MenuItem icon={LogOut} label="Sign out" danger shortcut="⇧⌘Q" href="/login" />
+          <MenuItem
+            icon={signingOut ? Loader2 : LogOut}
+            label={signingOut ? "Signing out…" : "Sign out"}
+            danger
+            shortcut={signingOut ? undefined : "⇧⌘Q"}
+            onClick={signOut}
+            loading={signingOut}
+          />
         </MenuGroup>
       </PopoverContent>
     </Popover>
@@ -125,16 +157,18 @@ function MenuItem({
   danger,
   href,
   onClick,
+  loading,
 }: Item) {
   const className = cn(
     "flex items-center gap-2.5 px-2.5 py-1.5 mx-1 rounded-md text-[13px] motion-safe:transition-colors motion-safe:duration-100 focus-visible:outline-none focus-visible:bg-muted w-[calc(100%-0.5rem)]",
     danger
       ? "text-[--neg] hover:bg-[--neg]/10"
-      : "text-foreground hover:bg-muted"
+      : "text-foreground hover:bg-muted",
+    loading && "opacity-70 cursor-wait"
   );
   const inner = (
     <>
-      <Icon className="w-4 h-4 shrink-0" aria-hidden />
+      <Icon className={cn("w-4 h-4 shrink-0", loading && "animate-spin")} aria-hidden />
       <span className="flex-1 text-left">{label}</span>
       {shortcut && (
         <kbd className="text-[10px] text-muted-foreground tabular-nums">
@@ -151,7 +185,7 @@ function MenuItem({
     );
   }
   return (
-    <button type="button" onClick={onClick} className={className}>
+    <button type="button" onClick={onClick} disabled={loading} className={className}>
       {inner}
     </button>
   );

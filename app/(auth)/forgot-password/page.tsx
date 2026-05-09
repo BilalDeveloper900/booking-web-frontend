@@ -5,22 +5,38 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "../_form";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const canSubmit = email.includes("@") && !submitting;
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      setSent(true);
-    }, 600);
+    setError(null);
+
+    const supabase = createClient();
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/reset-password`,
+    });
+
+    setSubmitting(false);
+    if (resetError) {
+      // Don't leak which emails exist — show success regardless of error type
+      // unless it's a rate limit (which IS user-actionable).
+      if (resetError.message.toLowerCase().includes("rate")) {
+        setError("Too many attempts. Wait a minute and try again.");
+        return;
+      }
+    }
+    setSent(true);
   }
 
   return (
@@ -69,6 +85,15 @@ export default function ForgotPasswordPage() {
               required
             />
           </Field>
+
+          {error && (
+            <div
+              role="alert"
+              className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg]"
+            >
+              {error}
+            </div>
+          )}
 
           <Button type="submit" disabled={!canSubmit} className="w-full h-11 gap-2">
             {submitting ? (

@@ -10,8 +10,8 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
-import type { Role } from "@/lib/roles";
-import { ROLE_CONFIGS } from "@/lib/roles";
+import { ROLE_CONFIGS, type Role, type RoleConfig } from "@/lib/roles";
+import { useCurrentMember } from "@/lib/auth/use-current-member";
 
 function deriveTitle(pathname: string, config: { navItems: { href: string; label: string }[] }): string {
   const match = config.navItems.find(
@@ -27,8 +27,26 @@ interface DashboardShellProps {
 
 export function DashboardShell({ role, children }: DashboardShellProps) {
   const pathname = usePathname();
-  const config = ROLE_CONFIGS[role];
+  const staticConfig = ROLE_CONFIGS[role];
+  const { member } = useCurrentMember();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Live user from Supabase, with the static config as fallback while the
+  // hook resolves on first paint. Subtitle stays from static config until we
+  // wire studio_subscriptions / client plan into the membership query.
+  const config: RoleConfig = member
+    ? {
+        ...staticConfig,
+        user: {
+          name: member.user.name,
+          hue: member.user.avatar_hue,
+          subtitle:
+            role === "admin" && member.member.specialty
+              ? member.member.specialty
+              : staticConfig.user.subtitle,
+        },
+      }
+    : staticConfig;
 
   return (
     <div data-role={role} className="flex h-dvh overflow-hidden bg-background">

@@ -1140,7 +1140,7 @@ export type Database = {
     }
     Functions: {
       create_studio_for_owner: {
-        Args: { p_slug: string; p_studio_name: string; p_user_id: string }
+        Args: { p_studio_name?: string }
         Returns: string
       }
       current_member: {

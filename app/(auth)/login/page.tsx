@@ -1,28 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Divider, Field, Input, SocialButtons } from "../_form";
+import { Divider, Field, Input } from "../_form";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const search = useSearchParams();
+  const next = search.get("next");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const canSubmit = email.includes("@") && password.length >= 6 && !submitting;
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
-    // Simulate auth — replace with real call once backend is wired.
-    setTimeout(() => router.push("/owner"), 600);
+    setError(null);
+
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      setError(humanizeAuthError(signInError.message));
+      setSubmitting(false);
+      return;
+    }
+
+    // First-login auto-provision: if this user has no active membership, they
+    // came from a confirmed-email signup and we still need to create their
+    // studio. The RPC is idempotent so this is safe to call.
+    const provisionedTarget = await ensureProvisioned(supabase);
+
+    // Resolve where to send them: ?next=<path>, else the resolved dashboard.
+    if (next && /^\/(owner|admin|client)(\/|$)/.test(next)) {
+      router.replace(next);
+    } else {
+      router.replace(provisionedTarget);
+    }
+    // Don't unset submitting — we're navigating away.
   }
 
   return (
@@ -31,9 +59,6 @@ export default function LoginPage() {
       <p className="text-[14px] text-muted-foreground mb-8">
         Sign in to keep running your studio.
       </p>
-
-      <SocialButtons />
-      <Divider>or continue with email</Divider>
 
       <form onSubmit={onSubmit} className="space-y-4">
         <Field label="Email">
@@ -89,6 +114,15 @@ export default function LoginPage() {
           Keep me signed in for 30 days
         </label>
 
+        {error && (
+          <div
+            role="alert"
+            className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg]"
+          >
+            {error}
+          </div>
+        )}
+
         <Button type="submit" disabled={!canSubmit} className="w-full h-11 gap-2 mt-2">
           {submitting ? (
             <>
@@ -102,7 +136,9 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="text-[13px] text-muted-foreground text-center mt-8">
+      <Divider>or</Divider>
+
+      <p className="text-[13px] text-muted-foreground text-center">
         New to Maison?{" "}
         <Link href="/signup" className="text-foreground font-medium hover:underline">
           Create an account
@@ -110,4 +146,56 @@ export default function LoginPage() {
       </p>
     </div>
   );
+}
+
+function humanizeAuthError(msg: string): string {
+  const lower = msg.toLowerCase();
+  if (lower.includes("invalid login credentials")) return "Wrong email or password.";
+  if (lower.includes("email not confirmed")) return "Please confirm your email first — check your inbox.";
+  if (lower.includes("rate limit")) return "Too many attempts. Wait a minute and try again.";
+  return msg;
+}
+
+/**
+ * After a successful sign-in: figure out where to send the user, and if they
+ * have no membership yet (post-email-confirmation signup), create one now.
+ */
+async function ensureProvisioned(
+  supabase: ReturnType<typeof createClient>
+): Promise<string> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "/login";
+
+  const { data: rows } = await supabase
+    .from("studio_members")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("status", "active");
+
+  const roles = (rows ?? []).map((r) => r.role as string);
+  if (roles.includes("owner")) return "/owner";
+  if (roles.includes("admin")) return "/admin";
+  if (roles.includes("client")) return "/client";
+
+  // No active membership: auto-provision a studio. Pull the studio name
+  // sessionStorage'd by /signup, else default ("<name>'s Studio").
+  let pendingName: string | null = null;
+  try {
+    pendingName = sessionStorage.getItem("maison.pending_studio_name");
+    sessionStorage.removeItem("maison.pending_studio_name");
+  } catch {
+    /* sessionStorage unavailable */
+  }
+
+  const { error } = await supabase.rpc("create_studio_for_owner", {
+    p_studio_name: pendingName ?? "",
+  });
+  if (error) {
+    // Don't block the user — drop them at /owner; the dashboard will show
+    // an empty state since the row didn't get created.
+    console.error("[login] create_studio_for_owner failed:", error.message);
+  }
+  return "/owner";
 }
