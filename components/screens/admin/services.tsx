@@ -8,6 +8,8 @@ import {
   Users,
   Sparkles,
   ChevronRight,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -19,33 +21,68 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Pill } from "@/components/shared";
-import { SERVICES, type Service, type ServiceMode } from "@/lib/data";
+import {
+  useServices,
+  createService,
+  updateService,
+  deleteService,
+  setServiceActive,
+  type ServiceRow,
+} from "@/lib/services";
+import { useCurrentMember } from "@/lib/auth/use-current-member";
 import { cn } from "@/lib/utils";
 
-const ME = "Camille Roux"; // mock — current admin
+type ServiceMode = "solo" | "group";
 
-type EditableService = Service & { active: boolean };
+// Draft used by the editor form. Same shape as the DB row, but `id` is empty
+// for new services (which signals "insert" on save).
+type Draft = {
+  id: string;
+  studio_id: string;
+  admin_member_id: string;
+  name: string;
+  description: string;
+  mode: ServiceMode;
+  default_capacity: number;
+  duration_min: number;
+  credits_cost: number;
+  gross_price_cents: number;
+  hue: number;
+  active: boolean;
+};
 
-const newId = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `svc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+function rowToDraft(row: ServiceRow): Draft {
+  return {
+    id: row.id,
+    studio_id: row.studio_id,
+    admin_member_id: row.admin_member_id ?? "",
+    name: row.name,
+    description: row.description ?? "",
+    mode: row.mode as ServiceMode,
+    default_capacity: row.default_capacity,
+    duration_min: row.duration_min,
+    credits_cost: row.credits_cost,
+    gross_price_cents: row.gross_price_cents,
+    hue: row.hue,
+    active: row.active,
+  };
+}
 
 /**
  * Embeddable services panel for the admin overview.
  * Two sub-sections: 1-on-1 services and Classes. Each row is click-to-edit
  * with an inline active toggle; sub-sections have their own contextual "Add".
+ *
+ * Reads live from `public.services` filtered by this admin's member id.
  */
 export function ServicesPanel() {
-  const [services, setServices] = useState<EditableService[]>(() => {
-    const mine = SERVICES.filter((s) => s.adminName === ME).map((s) => ({ ...s, active: true }));
-    if (mine.length === 0) {
-      return SERVICES.slice(0, 4).map((s) => ({ ...s, adminName: ME, active: true }));
-    }
-    return mine;
-  });
+  const { member, loading: memberLoading } = useCurrentMember();
+  const adminMemberId = member?.member.id;
+  const studioId = member?.studio.id;
+  const { services, loading, error, refetch } = useServices(adminMemberId);
 
-  const [editing, setEditing] = useState<EditableService | null>(null);
+  const [editing, setEditing] = useState<Draft | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const { soloList, groupList } = useMemo(() => {
     const soloList = services.filter((s) => s.mode === "solo");
@@ -53,39 +90,82 @@ export function ServicesPanel() {
     return { soloList, groupList };
   }, [services]);
 
-  function save(next: EditableService) {
-    setServices((prev) => {
-      const exists = prev.some((s) => s.id === next.id);
-      return exists ? prev.map((s) => (s.id === next.id ? next : s)) : [...prev, next];
-    });
-    setEditing(null);
+  async function save(draft: Draft) {
+    setSaveError(null);
+    try {
+      if (draft.id === "") {
+        await createService({
+          studio_id: draft.studio_id,
+          admin_member_id: draft.admin_member_id,
+          name: draft.name,
+          description: draft.description || null,
+          mode: draft.mode,
+          default_capacity: draft.default_capacity,
+          duration_min: draft.duration_min,
+          credits_cost: draft.credits_cost,
+          gross_price_cents: draft.gross_price_cents,
+          hue: draft.hue,
+          active: draft.active,
+        });
+      } else {
+        await updateService(draft.id, {
+          name: draft.name,
+          description: draft.description || null,
+          mode: draft.mode,
+          default_capacity: draft.default_capacity,
+          duration_min: draft.duration_min,
+          credits_cost: draft.credits_cost,
+          gross_price_cents: draft.gross_price_cents,
+          hue: draft.hue,
+          active: draft.active,
+        });
+      }
+      await refetch();
+      setEditing(null);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : String(e));
+    }
   }
 
-  function remove(id: string) {
-    setServices((prev) => prev.filter((s) => s.id !== id));
-    setEditing(null);
+  async function remove(id: string) {
+    setSaveError(null);
+    try {
+      await deleteService(id);
+      await refetch();
+      setEditing(null);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : String(e));
+    }
   }
 
-  function toggle(id: string) {
-    setServices((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, active: !s.active } : s))
-    );
+  async function toggle(id: string, next: boolean) {
+    try {
+      await setServiceActive(id, next);
+      await refetch();
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : String(e));
+    }
   }
 
   function startNew(mode: ServiceMode) {
+    if (!studioId || !adminMemberId) return;
     setEditing({
-      id: newId(),
-      adminName: ME,
+      id: "",
+      studio_id: studioId,
+      admin_member_id: adminMemberId,
       name: "",
-      mode,
-      defaultCapacity: mode === "solo" ? 1 : 12,
-      durationMin: 60,
-      credits: 1,
-      hue: 195,
       description: "",
+      mode,
+      default_capacity: mode === "solo" ? 1 : 12,
+      duration_min: 60,
+      credits_cost: 1,
+      gross_price_cents: 0,
+      hue: 195,
       active: true,
     });
   }
+
+  const showInitialLoading = memberLoading || (loading && services.length === 0);
 
   return (
     <>
@@ -96,49 +176,72 @@ export function ServicesPanel() {
         </p>
       </div>
 
-      <div className="space-y-5">
-        <ServiceSection
-          icon={User}
-          title="1-on-1 services"
-          subtitle="One client at a time."
-          count={soloList.length}
-          onAdd={() => startNew("solo")}
-          emptyHint="Add a service like a haircut or training session."
-          mode="solo"
+      {error && (
+        <div
+          role="alert"
+          className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg] mb-4 inline-flex items-center gap-2"
         >
-          {soloList.map((s) => (
-            <ServiceRow
-              key={s.id}
-              service={s}
-              onEdit={() => setEditing(s)}
-              onToggle={() => toggle(s.id)}
-            />
-          ))}
-        </ServiceSection>
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          Couldn&rsquo;t load services: {error}
+        </div>
+      )}
 
-        <ServiceSection
-          icon={Users}
-          title="Classes"
-          subtitle="Group sessions with a capacity."
-          count={groupList.length}
-          onAdd={() => startNew("group")}
-          emptyHint="Add a class like Yoga Flow or Spin."
-          mode="group"
-        >
-          {groupList.map((s) => (
-            <ServiceRow
-              key={s.id}
-              service={s}
-              onEdit={() => setEditing(s)}
-              onToggle={() => toggle(s.id)}
-            />
-          ))}
-        </ServiceSection>
-      </div>
+      {showInitialLoading ? (
+        <div className="space-y-5">
+          <SectionSkeleton title="1-on-1 services" subtitle="One client at a time." />
+          <SectionSkeleton title="Classes" subtitle="Group sessions with a capacity." />
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <ServiceSection
+            icon={User}
+            title="1-on-1 services"
+            subtitle="One client at a time."
+            count={soloList.length}
+            onAdd={() => startNew("solo")}
+            disabled={!studioId || !adminMemberId}
+            emptyHint="Add a service like a haircut or training session."
+            mode="solo"
+          >
+            {soloList.map((s) => (
+              <ServiceRowItem
+                key={s.id}
+                service={s}
+                onEdit={() => setEditing(rowToDraft(s))}
+                onToggle={(next) => toggle(s.id, next)}
+              />
+            ))}
+          </ServiceSection>
+
+          <ServiceSection
+            icon={Users}
+            title="Classes"
+            subtitle="Group sessions with a capacity."
+            count={groupList.length}
+            onAdd={() => startNew("group")}
+            disabled={!studioId || !adminMemberId}
+            emptyHint="Add a class like Yoga Flow or Spin."
+            mode="group"
+          >
+            {groupList.map((s) => (
+              <ServiceRowItem
+                key={s.id}
+                service={s}
+                onEdit={() => setEditing(rowToDraft(s))}
+                onToggle={(next) => toggle(s.id, next)}
+              />
+            ))}
+          </ServiceSection>
+        </div>
+      )}
 
       <ServiceEditorSheet
         editing={editing}
-        onClose={() => setEditing(null)}
+        saveError={saveError}
+        onClose={() => {
+          setEditing(null);
+          setSaveError(null);
+        }}
         onSave={save}
         onDelete={remove}
       />
@@ -146,7 +249,31 @@ export function ServicesPanel() {
   );
 }
 
-/* ───────── Section (header + list / empty state) ───────── */
+/* ───────── Section (header + list / empty state / skeleton) ───────── */
+
+function SectionSkeleton({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <section>
+      <div className="flex items-center gap-3 mb-2.5">
+        <span className="w-7 h-7 rounded-md bg-muted text-muted-foreground grid place-items-center shrink-0">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-[13px] font-semibold tracking-tight">{title}</h4>
+          <p className="text-[11px] text-muted-foreground leading-tight">{subtitle}</p>
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        {[0, 1].map((i) => (
+          <div
+            key={i}
+            className="h-14.5 rounded-lg border border-border bg-muted/30 animate-pulse"
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function ServiceSection({
   icon: Icon,
@@ -154,6 +281,7 @@ function ServiceSection({
   subtitle,
   count,
   onAdd,
+  disabled,
   emptyHint,
   mode,
   children,
@@ -163,6 +291,7 @@ function ServiceSection({
   subtitle: string;
   count: number;
   onAdd: () => void;
+  disabled?: boolean;
   emptyHint: string;
   mode: ServiceMode;
   children: React.ReactNode;
@@ -181,7 +310,13 @@ function ServiceSection({
           </div>
           <p className="text-[11px] text-muted-foreground leading-tight">{subtitle}</p>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={onAdd}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 shrink-0"
+          onClick={onAdd}
+          disabled={disabled}
+        >
           <Plus className="w-3.5 h-3.5" /> Add
         </Button>
       </div>
@@ -190,7 +325,8 @@ function ServiceSection({
         <button
           type="button"
           onClick={onAdd}
-          className="block w-full border border-dashed border-border rounded-lg py-5 text-center motion-safe:transition-colors motion-safe:duration-150 hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          disabled={disabled}
+          className="block w-full border border-dashed border-border rounded-lg py-5 text-center motion-safe:transition-colors motion-safe:duration-150 hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div className="text-[12px] text-muted-foreground">
             No {mode === "group" ? "classes" : "1-on-1 services"} yet.
@@ -206,14 +342,14 @@ function ServiceSection({
 
 /* ───────── Row ───────── */
 
-function ServiceRow({
+function ServiceRowItem({
   service,
   onEdit,
   onToggle,
 }: {
-  service: EditableService;
+  service: ServiceRow;
   onEdit: () => void;
-  onToggle: () => void;
+  onToggle: (next: boolean) => void;
 }) {
   const isGroup = service.mode === "group";
   const stripe = `oklch(0.6 0.10 ${service.hue})`;
@@ -260,15 +396,15 @@ function ServiceRow({
         </div>
 
         <div className="hidden sm:flex items-center gap-3 text-[11px] text-muted-foreground tabular-nums shrink-0">
-          <span>{service.durationMin}m</span>
+          <span>{service.duration_min}m</span>
           <span>·</span>
           <span>
-            {service.credits} cr{service.credits === 1 ? "" : "s"}
+            {service.credits_cost} cr{service.credits_cost === 1 ? "" : "s"}
           </span>
           {isGroup && (
             <>
               <span>·</span>
-              <span>{service.defaultCapacity} seats</span>
+              <span>{service.default_capacity} seats</span>
             </>
           )}
         </div>
@@ -295,14 +431,16 @@ function ServiceRow({
 
 function ServiceEditorSheet({
   editing,
+  saveError,
   onClose,
   onSave,
   onDelete,
 }: {
-  editing: EditableService | null;
+  editing: Draft | null;
+  saveError: string | null;
   onClose: () => void;
-  onSave: (s: EditableService) => void;
-  onDelete: (id: string) => void;
+  onSave: (draft: Draft) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }) {
   return (
     <Sheet open={editing !== null} onOpenChange={(o) => !o && onClose()}>
@@ -310,6 +448,7 @@ function ServiceEditorSheet({
         {editing && (
           <ServiceEditorForm
             initial={editing}
+            saveError={saveError}
             onCancel={onClose}
             onSave={onSave}
             onDelete={() => onDelete(editing.id)}
@@ -324,20 +463,24 @@ const HUE_PALETTE = [195, 165, 220, 280, 330, 60, 130, 25];
 
 function ServiceEditorForm({
   initial,
+  saveError,
   onCancel,
   onSave,
   onDelete,
 }: {
-  initial: EditableService;
+  initial: Draft;
+  saveError: string | null;
   onCancel: () => void;
-  onSave: (s: EditableService) => void;
-  onDelete: () => void;
+  onSave: (draft: Draft) => Promise<void>;
+  onDelete: () => Promise<void>;
 }) {
-  const [draft, setDraft] = useState<EditableService>(initial);
+  const [draft, setDraft] = useState<Draft>(initial);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const isGroup = draft.mode === "group";
-  const isNew = initial.name.trim() === "";
+  const isNew = initial.id === "";
 
-  function set<K extends keyof EditableService>(key: K, value: EditableService[K]) {
+  function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
   }
 
@@ -345,8 +488,22 @@ function ServiceEditorForm({
     setDraft((d) => ({
       ...d,
       mode,
-      defaultCapacity: mode === "solo" ? 1 : Math.max(2, d.defaultCapacity),
+      default_capacity: mode === "solo" ? 1 : Math.max(2, d.default_capacity),
     }));
+  }
+
+  async function handleSave() {
+    if (saving) return;
+    setSaving(true);
+    await onSave(draft);
+    setSaving(false);
+  }
+
+  async function handleDelete() {
+    if (deleting) return;
+    setDeleting(true);
+    await onDelete();
+    setDeleting(false);
   }
 
   return (
@@ -404,7 +561,7 @@ function ServiceEditorForm({
 
         <Field label="Description" hint="Shown to clients when they browse classes">
           <Textarea
-            value={draft.description ?? ""}
+            value={draft.description}
             onChange={(v) => set("description", v)}
             placeholder={isGroup ? "All-levels vinyasa flow…" : "Cut, wash, gloss treatment…"}
           />
@@ -413,8 +570,8 @@ function ServiceEditorForm({
         <div className="grid grid-cols-2 gap-3">
           <Field label="Duration" hint="minutes">
             <NumberInput
-              value={draft.durationMin}
-              onChange={(v) => set("durationMin", v)}
+              value={draft.duration_min}
+              onChange={(v) => set("duration_min", v)}
               min={5}
               step={5}
               suffix="min"
@@ -422,19 +579,29 @@ function ServiceEditorForm({
           </Field>
           <Field label="Credits" hint="per attendee">
             <NumberInput
-              value={draft.credits}
-              onChange={(v) => set("credits", v)}
+              value={draft.credits_cost}
+              onChange={(v) => set("credits_cost", v)}
               min={0}
-              suffix={`cr${draft.credits === 1 ? "" : "s"}`}
+              suffix={`cr${draft.credits_cost === 1 ? "" : "s"}`}
             />
           </Field>
         </div>
 
+        <Field label="Gross price" hint="EUR; used for earnings + statements">
+          <NumberInput
+            value={Math.round(draft.gross_price_cents / 100)}
+            onChange={(v) => set("gross_price_cents", Math.max(0, v) * 100)}
+            min={0}
+            step={5}
+            suffix="EUR"
+          />
+        </Field>
+
         {isGroup && (
           <Field label="Capacity" hint="max attendees per class instance">
             <NumberInput
-              value={draft.defaultCapacity}
-              onChange={(v) => set("defaultCapacity", v)}
+              value={draft.default_capacity}
+              onChange={(v) => set("default_capacity", v)}
               min={2}
               max={100}
               suffix="seats"
@@ -475,23 +642,55 @@ function ServiceEditorForm({
           </div>
           <Switch checked={draft.active} onCheckedChange={(v) => set("active", v)} />
         </div>
+
+        {saveError && (
+          <div
+            role="alert"
+            className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg]"
+          >
+            {saveError}
+          </div>
+        )}
       </div>
 
       <div className="mt-auto p-6 pt-4 border-t border-border flex flex-col gap-2">
-        <Button className="w-full" onClick={() => onSave(draft)} disabled={!draft.name.trim()}>
-          {isNew ? "Create service" : "Save changes"}
+        <Button
+          className="w-full"
+          onClick={handleSave}
+          disabled={!draft.name.trim() || saving || deleting}
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {isNew ? "Creating" : "Saving"}
+            </>
+          ) : isNew ? (
+            "Create service"
+          ) : (
+            "Save changes"
+          )}
         </Button>
         {isNew ? (
-          <Button variant="ghost" className="w-full" onClick={onCancel}>
+          <Button variant="ghost" className="w-full" onClick={onCancel} disabled={saving}>
             Cancel
           </Button>
         ) : (
           <div className="flex gap-2">
-            <Button variant="ghost" className="flex-1" onClick={onCancel}>
+            <Button variant="ghost" className="flex-1" onClick={onCancel} disabled={saving || deleting}>
               Cancel
             </Button>
-            <Button variant="destructive" className="flex-1 gap-2" onClick={onDelete}>
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+            <Button
+              variant="destructive"
+              className="flex-1 gap-2"
+              onClick={handleDelete}
+              disabled={saving || deleting}
+            >
+              {deleting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}{" "}
+              {deleting ? "Deleting" : "Delete"}
             </Button>
           </div>
         )}

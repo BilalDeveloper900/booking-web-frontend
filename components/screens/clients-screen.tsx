@@ -1,17 +1,63 @@
 "use client";
 
-import { useState } from "react";
-import { Filter, ArrowUpRight, Plus, Search, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Filter,
+  ArrowUpRight,
+  Plus,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Loader2,
+  AlertCircle,
+  X,
+  Copy,
+  Check,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StatBlock, PersonCell, Pill } from "@/components/shared";
-import { CLIENTS } from "@/lib/data";
+import { StatBlock, PersonCell, Pill, HueAvatar } from "@/components/shared";
+import { useCurrentMember } from "@/lib/auth/use-current-member";
+import {
+  useStudioMembers,
+  useStudioInvitations,
+  cancelInvitation,
+  inviteUrl,
+} from "@/lib/members";
+import { InviteSheet } from "@/components/invite-sheet";
 import { cn } from "@/lib/utils";
 
 const FILTERS = ["All", "Subscribers", "Pay-as-you-go", "Lapsed"] as const;
-type Filter = (typeof FILTERS)[number];
+type FilterT = (typeof FILTERS)[number];
 
 export function ClientsScreen() {
-  const [filter, setFilter] = useState<Filter>("All");
+  const [filter, setFilter] = useState<FilterT>("All");
+  const [inviteOpen, setInviteOpen] = useState(false);
+
+  const { member } = useCurrentMember();
+  const studioId = member?.studio.id;
+  const ownerUserId = member?.user.id;
+
+  const {
+    members: clients,
+    loading: clientsLoading,
+    error: clientsError,
+    refetch: refetchClients,
+  } = useStudioMembers(studioId, "client");
+
+  const {
+    invitations,
+    loading: invitesLoading,
+    error: invitesError,
+    refetch: refetchInvites,
+  } = useStudioInvitations(studioId, "client");
+
+  // Top-line stats from live data. Some are placeholders until bookings land.
+  const stats = useMemo(() => {
+    const total = clients.length;
+    const pending = invitations.length;
+    return { total, pending };
+  }, [clients, invitations]);
 
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
@@ -19,7 +65,8 @@ export function ClientsScreen() {
         <div>
           <h2 className="text-[24px] font-semibold tracking-tight leading-tight">Clients</h2>
           <p className="text-[13px] text-muted-foreground mt-1">
-            312 total · 186 active subscribers · 28 new this month
+            {stats.total} total · {stats.pending} pending invite
+            {stats.pending === 1 ? "" : "s"}
           </p>
         </div>
         <div className="flex-1" />
@@ -30,18 +77,64 @@ export function ClientsScreen() {
           <Button variant="outline" size="sm" className="gap-2">
             <ArrowUpRight className="w-3.5 h-3.5" /> Export
           </Button>
-          <Button size="sm" className="gap-2">
+          <Button
+            size="sm"
+            className="gap-2"
+            onClick={() => setInviteOpen(true)}
+            disabled={!studioId || !ownerUserId}
+          >
             <Plus className="w-3.5 h-3.5" /> Invite client
           </Button>
         </div>
       </div>
 
+      {(clientsError || invitesError) && (
+        <div
+          role="alert"
+          className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg] mb-4 inline-flex items-center gap-2"
+        >
+          <AlertCircle className="w-3.5 h-3.5" />
+          {clientsError ?? invitesError}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatBlock label="Active" value="186" foot="of 312 total" hero />
-        <StatBlock label="Low credits" value="14" foot="< 2 remaining" />
-        <StatBlock label="Lapsed (60d)" value="22" foot="re-engagement queued" />
-        <StatBlock label="Avg LTV" value="2,140" unit="€" foot="across all plans" />
+        <StatBlock
+          label="Total"
+          value={String(stats.total)}
+          foot={`${stats.pending} pending invite${stats.pending === 1 ? "" : "s"}`}
+          hero
+        />
+        <StatBlock label="Active subscribers" value="—" foot="needs plans data" />
+        <StatBlock label="Low credits" value="—" foot="needs bookings data" />
+        <StatBlock label="Avg LTV" value="—" foot="needs bookings data" />
       </div>
+
+      {invitations.length > 0 && (
+        <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden mb-5">
+          <div className="px-6 py-3 border-b border-border">
+            <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground">
+              Pending invitations
+            </div>
+          </div>
+          <div className="divide-y divide-[--line-soft]">
+            {invitesLoading
+              ? Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-12 m-2 rounded-md bg-muted/40 animate-pulse" />
+                ))
+              : invitations.map((inv) => (
+                  <PendingInviteRow
+                    key={inv.id}
+                    id={inv.id}
+                    email={inv.email}
+                    token={inv.token}
+                    createdAt={inv.created_at}
+                    onCancelled={refetchInvites}
+                  />
+                ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
         <div className="flex items-center px-6 py-4 border-b border-border gap-4 flex-wrap">
@@ -80,81 +173,216 @@ export function ClientsScreen() {
         <table className="w-full text-[13px]">
           <thead>
             <tr className="border-b border-border">
-              <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3 pl-6">Client</th>
-              <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">Plan</th>
-              <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">Credits</th>
-              <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">Admin</th>
-              <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">Last visit</th>
-              <th className="text-right text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">LTV</th>
-              <th className="text-left text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3">Status</th>
+              <Th first>Client</Th>
+              <Th>Plan</Th>
+              <Th>Credits</Th>
+              <Th>Joined</Th>
+              <Th align="right">LTV</Th>
+              <Th>Status</Th>
               <th className="pb-3 pt-3 pr-4" />
             </tr>
           </thead>
           <tbody>
-            {CLIENTS.map((c) => (
-              <tr
-                key={c.name}
-                className="border-b border-[--line-soft] last:border-0 hover:bg-muted/40 motion-safe:transition-colors motion-safe:duration-150"
-              >
-                <td className="py-3.5 pl-6"><PersonCell name={c.name} hue={c.hue} /></td>
-                <td className="text-xs text-muted-foreground">{c.plan}</td>
-                <td><CreditsCell value={c.credits} /></td>
-                <td className="text-xs text-muted-foreground">{c.trainer}</td>
-                <td className="text-xs text-muted-foreground">{c.last}</td>
-                <td className="text-right tabular-nums">€{c.ltv.toLocaleString()}</td>
-                <td>
-                  {c.status === "active" && <Pill kind="sage" dot>Active</Pill>}
-                  {c.status === "low" && <Pill kind="warn" dot>Low credits</Pill>}
-                  {c.status === "lapsed" && <Pill dot>Lapsed</Pill>}
-                </td>
-                <td className="pr-4">
-                  <Button variant="ghost" size="icon-sm" aria-label={`More actions for ${c.name}`}>
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
+            {clientsLoading && clients.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-12 text-center">
+                  <Loader2 className="w-4 h-4 animate-spin inline mr-2 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Loading clients…</span>
                 </td>
               </tr>
-            ))}
+            ) : clients.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
+                  No clients yet.{" "}
+                  <button
+                    type="button"
+                    onClick={() => setInviteOpen(true)}
+                    className="text-[--role-accent] hover:underline font-medium"
+                    disabled={!studioId || !ownerUserId}
+                  >
+                    Invite one
+                  </button>{" "}
+                  to get started.
+                </td>
+              </tr>
+            ) : (
+              clients.map((c) => (
+                <tr
+                  key={c.id}
+                  className="border-b border-[--line-soft] last:border-0 hover:bg-muted/40 motion-safe:transition-colors motion-safe:duration-150"
+                >
+                  <td className="py-3.5 pl-6">
+                    <PersonCell
+                      name={c.user.name}
+                      meta={c.user.email}
+                      hue={c.user.avatar_hue}
+                    />
+                  </td>
+                  <td className="text-xs text-muted-foreground">—</td>
+                  <td className="text-xs text-muted-foreground">—</td>
+                  <td className="text-xs text-muted-foreground tabular-nums">
+                    {formatJoined(c.joined_at)}
+                  </td>
+                  <td className="text-right tabular-nums text-muted-foreground">—</td>
+                  <td>
+                    <Pill kind="sage" dot>
+                      Active
+                    </Pill>
+                  </td>
+                  <td className="pr-4">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`More actions for ${c.user.name}`}
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
 
-        <div className="flex items-center px-6 py-3.5 border-t border-border text-xs text-muted-foreground">
-          <span>Showing 8 of 312</span>
+        <div className="flex items-center px-6 py-3.5 border-t border-border text-xs text-muted-foreground tabular-nums">
+          <span>
+            Showing {clients.length} of {clients.length}
+          </span>
           <div className="flex-1" />
           <div className="flex items-center gap-1.5">
-            <Button variant="outline" size="icon-sm" aria-label="Previous page">
+            <Button variant="outline" size="icon-sm" aria-label="Previous page" disabled>
               <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
-            <Button variant="outline" size="icon-sm" aria-label="Next page">
+            <Button variant="outline" size="icon-sm" aria-label="Next page" disabled>
               <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
       </div>
+
+      <InviteSheet
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        studioId={studioId}
+        invitedBy={ownerUserId}
+        role="client"
+        onInvited={() => {
+          refetchInvites();
+          refetchClients();
+        }}
+      />
     </div>
   );
 }
 
-function CreditsCell({ value }: { value: number }) {
-  const max = 12;
-  const pct = Math.min(100, (value / max) * 100);
-  const color = value === 0 ? "var(--neg)" : value <= 2 ? "var(--warn)" : "var(--teal-700)";
+function PendingInviteRow({
+  id,
+  email,
+  token,
+  createdAt,
+  onCancelled,
+}: {
+  id: string;
+  email: string;
+  token: string;
+  createdAt: string;
+  onCancelled: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(inviteUrl(token));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard blocked */
+    }
+  }
+
+  async function cancel() {
+    if (cancelling) return;
+    setCancelling(true);
+    try {
+      await cancelInvitation(id);
+    } catch (e) {
+      console.error("[clients] cancelInvitation:", e);
+    } finally {
+      setCancelling(false);
+      onCancelled();
+    }
+  }
+
   return (
-    <div className="flex items-center gap-2">
-      <div className="w-14 h-1.25 bg-muted rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-out"
-          style={{ width: `${pct}%`, background: color }}
-        />
+    <div className="flex items-center gap-2.5 px-6 py-3">
+      <HueAvatar name={email} hue={hashHue(email)} />
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] font-medium truncate">{email}</div>
+        <div className="text-[11px] text-muted-foreground">Sent {timeAgo(createdAt)}</div>
       </div>
-      <span
-        className="text-xs tabular-nums"
-        style={{
-          color: value === 0 ? "var(--neg)" : "var(--ink-900)",
-          fontWeight: value <= 2 ? 600 : 400,
-        }}
+      <Button
+        variant="ghost"
+        size="xs"
+        className="gap-1 text-[--role-accent] hover:text-[--role-accent-dark]"
+        onClick={copy}
       >
-        {value}
-      </span>
+        {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+        {copied ? "Copied" : "Copy link"}
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label={`Cancel invite for ${email}`}
+        onClick={cancel}
+        disabled={cancelling}
+      >
+        {cancelling ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+      </Button>
     </div>
+  );
+}
+
+function hashHue(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return h;
+}
+
+function formatJoined(ts: string): string {
+  const d = new Date(ts);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function timeAgo(ts: string): string {
+  const d = new Date(ts);
+  const diffMs = Date.now() - d.getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function Th({
+  children,
+  first,
+  align = "left",
+}: {
+  children: React.ReactNode;
+  first?: boolean;
+  align?: "left" | "right";
+}) {
+  return (
+    <th
+      className={`text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground pb-3 pt-3 ${
+        align === "right" ? "text-right" : "text-left"
+      } ${first ? "pl-6" : ""}`}
+    >
+      {children}
+    </th>
   );
 }

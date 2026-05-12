@@ -13,6 +13,8 @@ import {
   CalendarOff,
   Repeat,
   Users,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -22,18 +24,25 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { HOURS } from "@/lib/data";
+import { useServices, type ServiceRow } from "@/lib/services";
+import { useCurrentMember } from "@/lib/auth/use-current-member";
+import { useStudioMembers, type MemberWithUser } from "@/lib/members";
+import { createGroupSession } from "@/lib/sessions";
 import {
-  CALENDAR_DAYS,
-  HOURS,
-  CALENDAR_EVENTS,
-  TRAINERS,
-  SERVICES,
-  type CalendarEvent,
-  type Service,
-} from "@/lib/data";
+  useCalendarSessions,
+  weekDays,
+  weekRangeLabel,
+  HOURS_START,
+  type LiveCalendarEvent,
+  type CalendarDay,
+} from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 import { HueAvatar, Pill } from "@/components/shared";
 import { useTheme } from "@/components/theme-provider";
+
+/** Local alias so existing render code reads the same. */
+type CalendarEvent = LiveCalendarEvent;
 
 /**
  * Resolve the per-event background + accent (left rail / text)
@@ -50,14 +59,22 @@ function eventColors(hue: number, isDark: boolean) {
 }
 
 const ROW_H = 56;
-const HOURS_START = 8; // HOURS[0] === "8 AM"
 const VIEWS = ["Day", "Week", "Month"] as const;
 type View = (typeof VIEWS)[number];
 
-function trainerForEvent(event: CalendarEvent) {
-  return (
-    TRAINERS.find((t) => Math.abs(t.hue - event.hue) <= 5) ?? TRAINERS[0]
-  );
+/** Each live event carries its admin info inline — no lookups needed. */
+function trainerForEvent(event: CalendarEvent): {
+  name: string;
+  hue: number;
+  role: string;
+  id: string;
+} {
+  return {
+    name: event.adminName,
+    hue: event.adminHue,
+    role: "Admin", // specialty isn't joined yet; show generic role label
+    id: event.adminMemberId,
+  };
 }
 
 function formatHour(start: number) {
@@ -69,37 +86,60 @@ function formatHour(start: number) {
   return `${h12}:${minute.toString().padStart(2, "0")} ${ampm}`;
 }
 
-function rangeForOffset(offset: number) {
-  const ref = new Date();
-  ref.setHours(0, 0, 0, 0);
-  ref.setDate(ref.getDate() + offset * 7);
-  const dow = ref.getDay();
-  const diffToMon = dow === 0 ? -6 : 1 - dow;
-  const mon = new Date(ref);
-  mon.setDate(mon.getDate() + diffToMon);
-  const sun = new Date(mon);
-  sun.setDate(sun.getDate() + 6);
-  const sameMonth = mon.getMonth() === sun.getMonth();
-  const monLabel = mon.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const sunLabel = sameMonth
-    ? sun.getDate().toString()
-    : sun.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${monLabel} – ${sunLabel}`;
-}
-
 export function CalendarScreen() {
+  const { member } = useCurrentMember();
+  const studioId = member?.studio.id;
+  const myRole = member?.role;
+  const myMemberId = member?.member.id;
+
+  // Owner sees all studio sessions; admin only their own.
+  const scopedAdminId = myRole === "admin" ? myMemberId : undefined;
+
   const [view, setView] = useState<View>("Week");
   const [weekOffset, setWeekOffset] = useState(0);
-  const [adminFilter, setAdminFilter] = useState<Set<string>>(
-    () => new Set(TRAINERS.map((t) => t.name))
+
+  // Real admin list for owner's legend filter. Empty for admin role (legend hidden).
+  const { members: admins } = useStudioMembers(studioId, "admin");
+
+  // Visible week's 7 days, derived from weekOffset.
+  const days = useMemo(() => weekDays(weekOffset), [weekOffset]);
+
+  // Default day selection = today within visible week, else first day.
+  const todayIdxInWeek = days.findIndex((d) => d.today);
+  const [pickedDayIdx, setPickedDayIdx] = useState<number | null>(null);
+  const selectedDayIdx =
+    pickedDayIdx != null && pickedDayIdx >= 0 && pickedDayIdx < 7
+      ? pickedDayIdx
+      : todayIdxInWeek >= 0
+        ? todayIdxInWeek
+        : 0;
+  const setSelectedDayIdx = setPickedDayIdx;
+
+  // Owner-only filter: which admin chips are toggled on.
+  const [adminFilterIds, setAdminFilterIds] = useState<Set<string> | null>(null);
+  // Seed the filter once admins load (all on by default). Memoized so the
+  // identity is stable across renders when the filter is the implicit
+  // "everyone" default — otherwise `useMemo` consumers refire each render.
+  const effectiveAdminFilter = useMemo(
+    () => adminFilterIds ?? new Set(admins.map((a) => a.id)),
+    [adminFilterIds, admins]
   );
+
+  const {
+    events: allEvents,
+    loading: eventsLoading,
+    error: eventsError,
+    refetch: refetchEvents,
+  } = useCalendarSessions({
+    studioId,
+    weekOffset,
+    adminMemberId: scopedAdminId,
+  });
+
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [newSlot, setNewSlot] = useState<{ day: number; hour: number } | null>(null);
   const [openNewBooking, setOpenNewBooking] = useState(false);
   const [openNewClass, setOpenNewClass] = useState(false);
-  const [selectedDayIdx, setSelectedDayIdx] = useState(() =>
-    CALENDAR_DAYS.findIndex((d) => d.today)
-  );
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -109,11 +149,10 @@ export function CalendarScreen() {
 
   const filteredEvents = useMemo(
     () =>
-      CALENDAR_EVENTS.filter((e) => {
-        if (e.closed) return true;
-        return adminFilter.has(trainerForEvent(e).name);
-      }),
-    [adminFilter]
+      myRole === "owner"
+        ? allEvents.filter((e) => effectiveAdminFilter.has(e.adminMemberId))
+        : allEvents,
+    [allEvents, effectiveAdminFilter, myRole]
   );
 
   const eventsByDay = useMemo(() => {
@@ -134,14 +173,16 @@ export function CalendarScreen() {
     minute: "2-digit",
   });
 
-  const totalEvents = filteredEvents.filter((e) => !e.closed).length;
-  const dateRange = weekOffset === 0 ? "April 27 – May 3" : rangeForOffset(weekOffset);
+  const totalEvents = filteredEvents.length;
+  const dateRange = weekRangeLabel(weekOffset);
+  const showLegend = myRole === "owner";
 
-  function toggleAdmin(name: string) {
-    setAdminFilter((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
+  function toggleAdmin(id: string) {
+    setAdminFilterIds((prev) => {
+      const base = prev ?? new Set(admins.map((a) => a.id));
+      const next = new Set(base);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -159,8 +200,22 @@ export function CalendarScreen() {
             {dateRange}
           </h2>
           <p className="text-[12px] md:text-[13px] text-muted-foreground mt-1 tabular-nums">
-            {totalEvents} bookings · {Math.round((totalEvents / 28) * 100)}% utilization ·{" "}
-            {adminFilter.size} of {TRAINERS.length} admins
+            {eventsLoading ? (
+              <>
+                <Loader2 className="w-3 h-3 inline animate-spin mr-1" /> Loading…
+              </>
+            ) : (
+              <>
+                {totalEvents} booking{totalEvents === 1 ? "" : "s"}
+                {showLegend && admins.length > 0 && (
+                  <>
+                    {" · "}
+                    {effectiveAdminFilter.size} of {admins.length} admin
+                    {admins.length === 1 ? "" : "s"}
+                  </>
+                )}
+              </>
+            )}
           </p>
         </div>
         <div className="flex-1" />
@@ -226,13 +281,30 @@ export function CalendarScreen() {
         </div>
       </div>
 
-      <div className="hidden lg:block">
-        <AdminLegend selected={adminFilter} onToggle={toggleAdmin} />
-      </div>
+      {eventsError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg] mb-3 inline-flex items-center gap-2"
+        >
+          <AlertCircle className="w-3.5 h-3.5" />
+          {eventsError}
+        </div>
+      )}
+
+      {showLegend && (
+        <div className="hidden lg:block">
+          <AdminLegend
+            admins={admins}
+            selectedIds={effectiveAdminFilter}
+            onToggle={toggleAdmin}
+          />
+        </div>
+      )}
 
       {/* Mobile + tablet: agenda list pattern (date strip + stacked events). */}
       <div className="lg:hidden flex-1 overflow-hidden flex flex-col">
         <MobileAgenda
+          days={days}
           dayIdx={selectedDayIdx}
           onDayChange={setSelectedDayIdx}
           events={eventsByDay.get(selectedDayIdx) ?? []}
@@ -244,6 +316,7 @@ export function CalendarScreen() {
       <div className="hidden lg:flex bg-card border border-border rounded-xl shadow-card flex-1 overflow-hidden flex-col mt-3">
         {view === "Week" && (
           <WeekView
+            days={days}
             eventsByDay={eventsByDay}
             nowTop={nowTop}
             nowVisible={nowVisible}
@@ -254,11 +327,12 @@ export function CalendarScreen() {
         )}
         {view === "Day" && (
           <DayView
+            days={days}
             dayIdx={selectedDayIdx}
             onDayChange={setSelectedDayIdx}
             events={eventsByDay.get(selectedDayIdx) ?? []}
             nowTop={nowTop}
-            nowVisible={nowVisible && CALENDAR_DAYS[selectedDayIdx]?.today === true}
+            nowVisible={nowVisible && days[selectedDayIdx]?.today === true}
             nowLabel={nowLabel}
             onEventClick={setSelectedEvent}
             onSlotClick={(hour) => openSlot(selectedDayIdx, hour)}
@@ -266,6 +340,7 @@ export function CalendarScreen() {
         )}
         {view === "Month" && (
           <MonthView
+            days={days}
             eventsByDay={eventsByDay}
             onDayClick={(idx) => {
               setSelectedDayIdx(idx);
@@ -275,16 +350,24 @@ export function CalendarScreen() {
         )}
       </div>
 
-      <EventSheet event={selectedEvent} onOpenChange={(o) => !o && setSelectedEvent(null)} />
+      <EventSheet
+        days={days}
+        event={selectedEvent}
+        onOpenChange={(o) => !o && setSelectedEvent(null)}
+      />
       <NewBookingSheet
+        days={days}
+        admins={admins}
         open={openNewBooking}
         slot={newSlot}
         onOpenChange={setOpenNewBooking}
       />
       <NewClassSheet
+        days={days}
         open={openNewClass}
         onOpenChange={setOpenNewClass}
         defaultDayIdx={selectedDayIdx}
+        onCreated={refetchEvents}
       />
     </div>
   );
@@ -293,11 +376,13 @@ export function CalendarScreen() {
 /* ---------------- mobile agenda (per design spec) ---------------- */
 
 function MobileAgenda({
+  days,
   dayIdx,
   onDayChange,
   events,
   onEventClick,
 }: {
+  days: CalendarDay[];
   dayIdx: number;
   onDayChange: (i: number) => void;
   events: CalendarEvent[];
@@ -310,7 +395,7 @@ function MobileAgenda({
   return (
     <div className="flex-1 overflow-hidden flex flex-col mt-3 -mx-4 bg-card border-y border-border">
       <div className="flex gap-2 overflow-x-auto px-4 py-3 border-b border-[--line-soft]">
-        {CALENDAR_DAYS.map((d, i) => {
+        {days.map((d, i) => {
           const active = i === dayIdx;
           return (
             <button
@@ -415,23 +500,26 @@ function MobileAgenda({
 /* ---------------- legend ---------------- */
 
 function AdminLegend({
-  selected,
+  admins,
+  selectedIds,
   onToggle,
 }: {
-  selected: Set<string>;
-  onToggle: (name: string) => void;
+  admins: MemberWithUser[];
+  selectedIds: Set<string>;
+  onToggle: (id: string) => void;
 }) {
+  if (admins.length === 0) return null;
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mr-1.5">
         <Filter className="w-3 h-3 inline mr-1" aria-hidden /> Admins
       </span>
-      {TRAINERS.map((t) => {
-        const on = selected.has(t.name);
+      {admins.map((a) => {
+        const on = selectedIds.has(a.id);
         return (
           <button
-            key={t.name}
-            onClick={() => onToggle(t.name)}
+            key={a.id}
+            onClick={() => onToggle(a.id)}
             aria-pressed={on}
             className={cn(
               "inline-flex items-center gap-1.5 pr-2.5 pl-1 py-0.5 rounded-full border text-[11px] font-medium motion-safe:transition-all motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -440,8 +528,8 @@ function AdminLegend({
                 : "border-transparent bg-muted/30 text-muted-foreground opacity-60 hover:opacity-100"
             )}
           >
-            <HueAvatar name={t.name} hue={t.hue} size={18} />
-            <span>{t.name.split(" ")[0]}</span>
+            <HueAvatar name={a.user.name} hue={a.user.avatar_hue} size={18} />
+            <span>{a.user.name.split(" ")[0]}</span>
           </button>
         );
       })}
@@ -452,6 +540,7 @@ function AdminLegend({
 /* ---------------- week view ---------------- */
 
 function WeekView({
+  days,
   eventsByDay,
   nowTop,
   nowVisible,
@@ -459,6 +548,7 @@ function WeekView({
   onEventClick,
   onSlotClick,
 }: {
+  days: CalendarDay[];
   eventsByDay: Map<number, CalendarEvent[]>;
   nowTop: number;
   nowVisible: boolean;
@@ -473,7 +563,7 @@ function WeekView({
         style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}
       >
         <div className="border-b border-border" />
-        {CALENDAR_DAYS.map((d, i) => (
+        {days.map((d, i) => (
           <div
             key={i}
             className="py-3.5 px-3 border-l border-b border-[--line-soft]"
@@ -511,7 +601,7 @@ function WeekView({
               </div>
             ))}
           </div>
-          {CALENDAR_DAYS.map((d, di) => (
+          {days.map((d, di) => (
             <div
               key={di}
               className="border-l border-[--line-soft] relative"
@@ -546,6 +636,7 @@ function WeekView({
 /* ---------------- day view ---------------- */
 
 function DayView({
+  days,
   dayIdx,
   onDayChange,
   events,
@@ -555,6 +646,7 @@ function DayView({
   onEventClick,
   onSlotClick,
 }: {
+  days: CalendarDay[];
   dayIdx: number;
   onDayChange: (i: number) => void;
   events: CalendarEvent[];
@@ -564,11 +656,11 @@ function DayView({
   onEventClick: (e: CalendarEvent) => void;
   onSlotClick: (hour: number) => void;
 }) {
-  const day = CALENDAR_DAYS[dayIdx];
+  const day = days[dayIdx];
   return (
     <>
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border overflow-x-auto">
-        {CALENDAR_DAYS.map((d, i) => {
+        {days.map((d, i) => {
           const active = i === dayIdx;
           return (
             <button
@@ -643,21 +735,36 @@ function DayView({
 /* ---------------- month view ---------------- */
 
 function MonthView({
+  days,
   eventsByDay,
   onDayClick,
 }: {
+  days: CalendarDay[];
   eventsByDay: Map<number, CalendarEvent[]>;
   onDayClick: (i: number) => void;
 }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  // Build a 5-row mock month: [-7..-1, 0..6 (current week), 7..13, 14..20, 21..27]
-  const rows: { offset: number; weekIdx: number | null }[][] = [];
+  // 5-row month view: the visible week is row 1 (interactive); the surrounding
+  // 4 rows are read-only placeholders that show date numbers but no events,
+  // until a real month-level query lands in a future phase.
+  const rows: { weekIdx: number | null; dateNum: number | null; isToday: boolean }[][] = [];
+  const firstDay = days[0]?.date ?? new Date();
   for (let r = 0; r < 5; r++) {
-    const row: { offset: number; weekIdx: number | null }[] = [];
+    const row: { weekIdx: number | null; dateNum: number | null; isToday: boolean }[] = [];
     for (let c = 0; c < 7; c++) {
-      const offset = (r - 1) * 7 + c;
-      row.push({ offset, weekIdx: r === 1 ? c : null });
+      if (r === 1) {
+        row.push({
+          weekIdx: c,
+          dateNum: days[c]?.n ?? null,
+          isToday: days[c]?.today ?? false,
+        });
+      } else {
+        const offsetDays = (r - 1) * 7 + c;
+        const date = new Date(firstDay);
+        date.setDate(firstDay.getDate() + offsetDays);
+        row.push({ weekIdx: null, dateNum: date.getDate(), isToday: false });
+      }
     }
     rows.push(row);
   }
@@ -678,11 +785,8 @@ function MonthView({
         {rows.flat().map((cell, i) => {
           const events = cell.weekIdx !== null ? eventsByDay.get(cell.weekIdx) ?? [] : [];
           const isCurrent = cell.weekIdx !== null;
-          const isToday = cell.weekIdx !== null && CALENDAR_DAYS[cell.weekIdx]?.today;
-          const dateNum =
-            cell.weekIdx !== null
-              ? CALENDAR_DAYS[cell.weekIdx]?.n
-              : null;
+          const isToday = cell.isToday;
+          const dateNum = cell.dateNum;
 
           return (
             <button
@@ -880,9 +984,11 @@ function NowLine({ top, label }: { top: number; label: string }) {
 /* ---------------- sheets ---------------- */
 
 function EventSheet({
+  days,
   event,
   onOpenChange,
 }: {
+  days: CalendarDay[];
   event: CalendarEvent | null;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -890,7 +996,7 @@ function EventSheet({
   const isDark = resolvedTheme === "dark";
   const open = event !== null;
   const trainer = event ? trainerForEvent(event) : null;
-  const dayLabel = event ? CALENDAR_DAYS[event.day] : null;
+  const dayLabel = event ? days[event.day] : null;
   const colors = event ? eventColors(event.hue, isDark) : null;
   const accent = colors?.accent;
   const bg = colors?.bg;
@@ -1015,15 +1121,19 @@ function EventSheet({
 }
 
 function NewBookingSheet({
+  days,
+  admins,
   open,
   slot,
   onOpenChange,
 }: {
+  days: CalendarDay[];
+  admins: MemberWithUser[];
   open: boolean;
   slot: { day: number; hour: number } | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const day = slot ? CALENDAR_DAYS[slot.day] : null;
+  const day = slot ? days[slot.day] : null;
   const hourLabel = slot ? HOURS[slot.hour] : null;
 
   return (
@@ -1050,29 +1160,32 @@ function NewBookingSheet({
           </FormField>
 
           <FormField label="Service">
-            <div className="grid grid-cols-2 gap-2">
-              {["Cut + gloss", "Balayage", "Beard trim", "Manicure"].map((s) => (
-                <button
-                  key={s}
-                  className="px-3 py-2 border border-border rounded-lg text-[13px] hover:bg-muted/40 hover:border-[--role-accent] motion-safe:transition-colors text-left"
-                >
-                  {s}
-                </button>
-              ))}
+            <div className="text-[12px] text-muted-foreground py-2">
+              Service picker arrives in Phase 2.E — for now, the slot is captured.
             </div>
           </FormField>
 
           <FormField label="Admin">
             <div className="flex flex-wrap gap-1.5">
-              {TRAINERS.slice(0, 4).map((t) => (
-                <button
-                  key={t.name}
-                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border border-border text-[11px] hover:bg-muted/40 motion-safe:transition-colors"
-                >
-                  <HueAvatar name={t.name} hue={t.hue} size={16} />
-                  {t.name.split(" ")[0]}
-                </button>
-              ))}
+              {admins.length === 0 ? (
+                <span className="text-[12px] text-muted-foreground">
+                  No admins yet. Invite one from /owner/admins.
+                </span>
+              ) : (
+                admins.slice(0, 6).map((a) => (
+                  <button
+                    key={a.id}
+                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border border-border text-[11px] hover:bg-muted/40 motion-safe:transition-colors"
+                  >
+                    <HueAvatar
+                      name={a.user.name}
+                      hue={a.user.avatar_hue}
+                      size={16}
+                    />
+                    {a.user.name.split(" ")[0]}
+                  </button>
+                ))
+              )}
             </div>
           </FormField>
         </div>
@@ -1089,23 +1202,85 @@ function NewBookingSheet({
 }
 
 function NewClassSheet({
+  days,
   open,
   onOpenChange,
   defaultDayIdx,
+  onCreated,
 }: {
+  days: CalendarDay[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultDayIdx: number;
+  onCreated?: () => void | Promise<void>;
 }) {
-  const myGroupServices = SERVICES.filter((s) => s.mode === "group");
-  const [serviceId, setServiceId] = useState<string>(myGroupServices[0]?.id ?? "");
+  const { member } = useCurrentMember();
+  const { services, loading: servicesLoading } = useServices(member?.member.id);
+  const myGroupServices = useMemo(
+    () => services.filter((s) => s.mode === "group" && s.active),
+    [services]
+  );
+
+  // User's explicit pick (null = no pick yet, fall back to first available)
+  const [pickedServiceId, setPickedServiceId] = useState<string | null>(null);
   const [dayIdx, setDayIdx] = useState(defaultDayIdx);
   const [hour, setHour] = useState(2); // default 10am (HOURS[2])
   const [capacityOverride, setCapacityOverride] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const service: Service | undefined = myGroupServices.find((s) => s.id === serviceId);
-  const day = CALENDAR_DAYS[dayIdx];
-  const capacity = capacityOverride ?? service?.defaultCapacity ?? 0;
+  // Derived effective selection: user's pick if it's still in the list, else first.
+  const serviceId =
+    pickedServiceId && myGroupServices.some((s) => s.id === pickedServiceId)
+      ? pickedServiceId
+      : myGroupServices[0]?.id ?? "";
+  const service: ServiceRow | undefined = myGroupServices.find((s) => s.id === serviceId);
+  const day = days[dayIdx];
+  const capacity = capacityOverride ?? service?.default_capacity ?? 0;
+
+  async function submit() {
+    if (submitting) return;
+    if (!member?.studio.id || !member?.member.id) {
+      setError("You must be logged in as an admin to schedule a class.");
+      return;
+    }
+    if (!service) {
+      setError("Pick a class first.");
+      return;
+    }
+    if (!day) {
+      setError("Pick a day inside the visible week.");
+      return;
+    }
+    if (capacity < 1) {
+      setError("Capacity must be at least 1.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const startsAt = new Date(day.date);
+    startsAt.setHours(HOURS_START + hour, 0, 0, 0);
+    try {
+      await createGroupSession({
+        studioId: member.studio.id,
+        serviceId: service.id,
+        adminMemberId: member.member.id,
+        startsAt,
+        durationMin: service.duration_min,
+        capacity,
+      });
+      await onCreated?.();
+      // Reset local state for next open and close the sheet.
+      setPickedServiceId(null);
+      setCapacityOverride(null);
+      setHour(2);
+      onOpenChange(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1124,7 +1299,13 @@ function NewClassSheet({
         </SheetHeader>
 
         <div className="px-6 space-y-5 overflow-auto">
-          {myGroupServices.length === 0 ? (
+          {servicesLoading ? (
+            <div className="grid gap-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-14 rounded-lg border border-border bg-muted/30 animate-pulse" />
+              ))}
+            </div>
+          ) : myGroupServices.length === 0 ? (
             <div className="border border-dashed border-border rounded-xl p-6 text-center">
               <div className="text-[13px] font-medium mb-1">No group services yet</div>
               <p className="text-[12px] text-muted-foreground mb-3">
@@ -1150,7 +1331,7 @@ function NewClassSheet({
                       <button
                         key={s.id}
                         type="button"
-                        onClick={() => setServiceId(s.id)}
+                        onClick={() => setPickedServiceId(s.id)}
                         aria-pressed={on}
                         className={cn(
                           "flex items-center gap-3 p-3 rounded-lg border text-left motion-safe:transition-colors",
@@ -1163,7 +1344,7 @@ function NewClassSheet({
                         <div className="flex-1 min-w-0">
                           <div className="text-[13px] font-semibold">{s.name}</div>
                           <div className="text-[11px] text-muted-foreground tabular-nums">
-                            {s.durationMin}m · up to {s.defaultCapacity} · {s.credits} cr
+                            {s.duration_min}m · up to {s.default_capacity} · {s.credits_cost} cr
                           </div>
                         </div>
                       </button>
@@ -1177,7 +1358,7 @@ function NewClassSheet({
                   Day
                 </div>
                 <div className="flex gap-1.5 flex-wrap">
-                  {CALENDAR_DAYS.map((d, i) => {
+                  {days.map((d, i) => {
                     const on = i === dayIdx;
                     return (
                       <button
@@ -1221,7 +1402,7 @@ function NewClassSheet({
                     Capacity
                   </div>
                   <span className="text-[10px] text-muted-foreground">
-                    Default: {service?.defaultCapacity}
+                    Default: {service?.default_capacity}
                   </span>
                 </div>
                 <input
@@ -1243,16 +1424,34 @@ function NewClassSheet({
                   {service?.name} · {day?.d} {day?.n} · {HOURS[hour]} · {capacity} seats
                 </div>
               </div>
+
+              {error && (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg]"
+                >
+                  {error}
+                </div>
+              )}
             </>
           )}
         </div>
 
         {myGroupServices.length > 0 && (
           <div className="mt-auto p-6 pt-4 border-t border-border flex flex-col gap-2">
-            <Button className="w-full" onClick={() => onOpenChange(false)}>
-              Schedule class
+            <Button
+              className="w-full"
+              onClick={submit}
+              disabled={submitting || !service || !day || capacity < 1}
+            >
+              {submitting ? "Scheduling…" : "Schedule class"}
             </Button>
-            <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => onOpenChange(false)}
+              disabled={submitting}
+            >
               Cancel
             </Button>
           </div>

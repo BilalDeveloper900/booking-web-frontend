@@ -6,11 +6,11 @@ import {
   Pencil,
   Trash2,
   Check,
-  Star,
   Eye,
   CreditCard,
   Layers,
-  GripVertical,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -22,109 +22,197 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Pill } from "@/components/shared";
-import { CLIENT_PLANS, CLIENT_TOPUP_PACKS } from "@/lib/data";
+import {
+  useSubscriptionPlans,
+  useCreditPacks,
+  createPlan,
+  updatePlan,
+  deletePlan,
+  setPlanActive,
+  createPack,
+  updatePack,
+  deletePack,
+  setPackActive,
+  planFeatures,
+  formatPrice,
+  type PlanRow,
+  type PackRow,
+} from "@/lib/offers";
+import { useCurrentMember } from "@/lib/auth/use-current-member";
 import { cn } from "@/lib/utils";
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
+/* ────────── Form draft types (UI works in whole-currency units) ────────── */
 
-type Plan = {
-  id: string;
+type PlanDraft = {
+  id: string; // "" = new
+  studio_id: string;
   name: string;
-  price: number;
+  description: string;
+  price: number; // whole units (e.g. 89 EUR)
   credits: number;
-  desc: string;
   features: string[];
-  current?: boolean;
-  popular?: boolean;
+  sort_order: number;
   active: boolean;
 };
 
-type Pack = {
-  id: string;
+type PackDraft = {
+  id: string; // "" = new
+  studio_id: string;
   credits: number;
-  price: number;
+  price: number; // whole units
   label: string;
+  sort_order: number;
   active: boolean;
 };
 
-const newId = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `id-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+function planToDraft(row: PlanRow): PlanDraft {
+  return {
+    id: row.id,
+    studio_id: row.studio_id,
+    name: row.name,
+    description: row.description ?? "",
+    price: row.price_cents / 100,
+    credits: row.credits_granted,
+    features: planFeatures(row),
+    sort_order: row.sort_order,
+    active: row.active,
+  };
+}
 
-/* ------------------------------------------------------------------ */
-/*  Screen                                                             */
-/* ------------------------------------------------------------------ */
+function packToDraft(row: PackRow): PackDraft {
+  return {
+    id: row.id,
+    studio_id: row.studio_id,
+    credits: row.credits,
+    price: row.price_cents / 100,
+    label: row.label ?? "",
+    sort_order: row.sort_order,
+    active: row.active,
+  };
+}
+
+/* ────────── Screen ────────── */
 
 export function OffersScreen() {
-  const [plans, setPlans] = useState<Plan[]>(() =>
-    CLIENT_PLANS.map((p) => ({ ...p, active: true, popular: !!p.current, features: [...p.features] }))
-  );
-  const [packs, setPacks] = useState<Pack[]>(() =>
-    CLIENT_TOPUP_PACKS.map((p, i) => ({
-      id: `pk-${i}`,
-      credits: p.credits,
-      price: p.price,
-      label: p.label,
-      active: true,
-    }))
-  );
+  const { member } = useCurrentMember();
+  const studioId = member?.studio.id;
+  const currency = member?.studio.currency ?? "EUR";
 
-  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
-  const [editingPack, setEditingPack] = useState<Pack | null>(null);
+  const {
+    plans,
+    loading: plansLoading,
+    error: plansError,
+    refetch: refetchPlans,
+  } = useSubscriptionPlans(studioId);
+
+  const {
+    packs,
+    loading: packsLoading,
+    error: packsError,
+    refetch: refetchPacks,
+  } = useCreditPacks(studioId);
+
+  const [editingPlan, setEditingPlan] = useState<PlanDraft | null>(null);
+  const [editingPack, setEditingPack] = useState<PackDraft | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  function savePlan(next: Plan) {
-    setPlans((prev) => {
-      const exists = prev.some((p) => p.id === next.id);
-      return exists ? prev.map((p) => (p.id === next.id ? next : p)) : [...prev, next];
-    });
+  async function savePlan(draft: PlanDraft) {
+    const features = draft.features.filter((f) => f.trim().length > 0);
+    if (draft.id === "") {
+      await createPlan({
+        studio_id: draft.studio_id,
+        name: draft.name,
+        description: draft.description || null,
+        price_cents: Math.round(draft.price * 100),
+        credits_granted: draft.credits,
+        features,
+        sort_order: draft.sort_order,
+        active: draft.active,
+      });
+    } else {
+      await updatePlan(draft.id, {
+        name: draft.name,
+        description: draft.description || null,
+        price_cents: Math.round(draft.price * 100),
+        credits_granted: draft.credits,
+        features,
+        sort_order: draft.sort_order,
+        active: draft.active,
+      });
+    }
+    await refetchPlans();
     setEditingPlan(null);
   }
 
-  function savePack(next: Pack) {
-    setPacks((prev) => {
-      const exists = prev.some((p) => p.id === next.id);
-      return exists ? prev.map((p) => (p.id === next.id ? next : p)) : [...prev, next];
-    });
-    setEditingPack(null);
-  }
-
-  function deletePlan(id: string) {
-    setPlans((prev) => prev.filter((p) => p.id !== id));
+  async function removePlan(id: string) {
+    await deletePlan(id);
+    await refetchPlans();
     setEditingPlan(null);
   }
-  function deletePack(id: string) {
-    setPacks((prev) => prev.filter((p) => p.id !== id));
+
+  async function togglePlan(id: string, next: boolean) {
+    await setPlanActive(id, next);
+    await refetchPlans();
+  }
+
+  async function savePack(draft: PackDraft) {
+    if (draft.id === "") {
+      await createPack({
+        studio_id: draft.studio_id,
+        credits: draft.credits,
+        price_cents: Math.round(draft.price * 100),
+        label: draft.label || null,
+        sort_order: draft.sort_order,
+        active: draft.active,
+      });
+    } else {
+      await updatePack(draft.id, {
+        credits: draft.credits,
+        price_cents: Math.round(draft.price * 100),
+        label: draft.label || null,
+        sort_order: draft.sort_order,
+        active: draft.active,
+      });
+    }
+    await refetchPacks();
     setEditingPack(null);
   }
 
-  function toggleActivePlan(id: string) {
-    setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p)));
-  }
-  function toggleActivePack(id: string) {
-    setPacks((prev) => prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p)));
+  async function removePack(id: string) {
+    await deletePack(id);
+    await refetchPacks();
+    setEditingPack(null);
   }
 
-  function newPlan() {
+  async function togglePack(id: string, next: boolean) {
+    await setPackActive(id, next);
+    await refetchPacks();
+  }
+
+  function newPlanDraft() {
+    if (!studioId) return;
     setEditingPlan({
-      id: newId(),
-      name: "New plan",
+      id: "",
+      studio_id: studioId,
+      name: "",
+      description: "",
       price: 0,
       credits: 0,
-      desc: "",
       features: [],
+      sort_order: plans.length,
       active: true,
     });
   }
-  function newPack() {
+
+  function newPackDraft() {
+    if (!studioId) return;
     setEditingPack({
-      id: newId(),
+      id: "",
+      studio_id: studioId,
       credits: 5,
       price: 50,
       label: "",
+      sort_order: packs.length,
       active: true,
     });
   }
@@ -146,138 +234,173 @@ export function OffersScreen() {
         </Button>
       </div>
 
-      {/* Subscription plans */}
+      {(plansError || packsError) && (
+        <div
+          role="alert"
+          className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg] mb-4 inline-flex items-center gap-2"
+        >
+          <AlertCircle className="w-3.5 h-3.5" />
+          {plansError ?? packsError}
+        </div>
+      )}
+
       <Section
         eyebrow="Subscription plans"
         title="Recurring revenue offers"
         sub="Clients pay monthly. Each plan includes a credit allotment they can use for bookings."
         icon={Layers}
         action={
-          <Button size="sm" className="gap-2" onClick={newPlan}>
+          <Button size="sm" className="gap-2" onClick={newPlanDraft} disabled={!studioId}>
             <Plus className="w-3.5 h-3.5" /> New plan
           </Button>
         }
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {plans.map((p) => (
-            <PlanCard
-              key={p.id}
-              plan={p}
-              onEdit={() => setEditingPlan({ ...p, features: [...p.features] })}
-              onToggle={() => toggleActivePlan(p.id)}
-            />
-          ))}
-        </div>
+        {plansLoading && plans.length === 0 ? (
+          <GridSkeleton cols="md:grid-cols-2 lg:grid-cols-3" />
+        ) : plans.length === 0 ? (
+          <EmptyState
+            text="No plans yet."
+            hint="Subscription plans give clients recurring credits each month."
+            onAdd={newPlanDraft}
+            label="Create your first plan"
+            disabled={!studioId}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {plans.map((p) => (
+              <PlanCard
+                key={p.id}
+                plan={p}
+                currency={currency}
+                onEdit={() => setEditingPlan(planToDraft(p))}
+                onToggle={(next) => togglePlan(p.id, next)}
+              />
+            ))}
+          </div>
+        )}
       </Section>
 
-      {/* Credit packs */}
       <Section
         eyebrow="Credit packs"
         title="One-time top-ups"
         sub="Clients pay once and get a bundle of credits. Great for casual users and as upsells when subscribers run low."
         icon={CreditCard}
         action={
-          <Button size="sm" className="gap-2" onClick={newPack}>
+          <Button size="sm" className="gap-2" onClick={newPackDraft} disabled={!studioId}>
             <Plus className="w-3.5 h-3.5" /> New pack
           </Button>
         }
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {packs.map((p) => (
-            <PackCard
-              key={p.id}
-              pack={p}
-              onEdit={() => setEditingPack({ ...p })}
-              onToggle={() => toggleActivePack(p.id)}
-            />
-          ))}
-        </div>
+        {packsLoading && packs.length === 0 ? (
+          <GridSkeleton cols="sm:grid-cols-2 lg:grid-cols-4" />
+        ) : packs.length === 0 ? (
+          <EmptyState
+            text="No packs yet."
+            hint="Credit packs are one-time purchases for top-ups."
+            onAdd={newPackDraft}
+            label="Create your first pack"
+            disabled={!studioId}
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {packs.map((p) => (
+              <PackCard
+                key={p.id}
+                pack={p}
+                currency={currency}
+                onEdit={() => setEditingPack(packToDraft(p))}
+                onToggle={(next) => togglePack(p.id, next)}
+              />
+            ))}
+          </div>
+        )}
       </Section>
 
-      {/* Sheets */}
       <PlanSheet
-        plan={editingPlan}
+        draft={editingPlan}
+        currency={currency}
+        onChange={setEditingPlan}
         onSave={savePlan}
-        onDelete={editingPlan ? () => deletePlan(editingPlan.id) : undefined}
+        onDelete={editingPlan && editingPlan.id !== "" ? () => removePlan(editingPlan.id) : undefined}
         onCancel={() => setEditingPlan(null)}
       />
       <PackSheet
-        pack={editingPack}
+        draft={editingPack}
+        currency={currency}
+        onChange={setEditingPack}
         onSave={savePack}
-        onDelete={editingPack ? () => deletePack(editingPack.id) : undefined}
+        onDelete={editingPack && editingPack.id !== "" ? () => removePack(editingPack.id) : undefined}
         onCancel={() => setEditingPack(null)}
       />
       <PreviewSheet
         open={previewOpen}
         plans={plans.filter((p) => p.active)}
         packs={packs.filter((p) => p.active)}
+        currency={currency}
         onOpenChange={setPreviewOpen}
       />
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Plan card                                                          */
-/* ------------------------------------------------------------------ */
+/* ────────── Plan card ────────── */
 
 function PlanCard({
   plan,
+  currency,
   onEdit,
   onToggle,
 }: {
-  plan: Plan;
+  plan: PlanRow;
+  currency: string;
   onEdit: () => void;
-  onToggle: () => void;
+  onToggle: (next: boolean) => void;
 }) {
+  const features = planFeatures(plan);
   return (
     <div
       className={cn(
-        "bg-card border rounded-xl shadow-card p-5 flex flex-col motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-px hover:shadow-hero",
-        plan.popular ? "border-primary ring-1 ring-primary/30" : "border-border",
+        "bg-card border border-border rounded-xl shadow-card p-5 flex flex-col motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-px hover:shadow-hero",
         !plan.active && "opacity-60"
       )}
     >
       <div className="flex items-start gap-2 mb-2">
-        <GripVertical className="w-4 h-4 text-muted-foreground/40 mt-1 shrink-0" aria-hidden />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[15px] font-semibold">{plan.name}</span>
-            {plan.popular && (
-              <Pill kind="teal">
-                <Star className="w-2.5 h-2.5" /> Popular
-              </Pill>
-            )}
+            {!plan.active && <Pill kind="warn">Hidden</Pill>}
           </div>
           <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-1">
-            {plan.desc || "—"}
+            {plan.description || "—"}
           </p>
         </div>
       </div>
 
       <div className="flex items-baseline gap-1 mt-1">
         <span className="text-[24px] font-semibold tracking-tight tabular-nums">
-          {plan.price === 0 ? "Free" : `$${plan.price}`}
+          {plan.price_cents === 0 ? "Free" : formatPrice(plan.price_cents, currency)}
         </span>
-        {plan.price > 0 && (
+        {plan.price_cents > 0 && (
           <span className="text-[12px] text-muted-foreground">/mo</span>
         )}
       </div>
       <div className="text-[11px] text-muted-foreground mb-3 tabular-nums">
-        {plan.credits > 0 ? `${plan.credits} credits / month` : "No credits included"}
+        {plan.credits_granted > 0
+          ? `${plan.credits_granted} credits / month`
+          : "No credits included"}
       </div>
 
-      {plan.features.length > 0 && (
+      {features.length > 0 && (
         <ul className="text-[12px] space-y-1 mb-4 flex-1">
-          {plan.features.slice(0, 3).map((f) => (
-            <li key={f} className="flex gap-1.5 items-start">
+          {features.slice(0, 3).map((f, i) => (
+            <li key={`${f}-${i}`} className="flex gap-1.5 items-start">
               <Check className="w-3 h-3 text-[--pos] mt-0.5 shrink-0" aria-hidden />
               <span className="line-clamp-1">{f}</span>
             </li>
           ))}
-          {plan.features.length > 3 && (
+          {features.length > 3 && (
             <li className="text-[11px] text-muted-foreground pl-4.5">
-              + {plan.features.length - 3} more
+              + {features.length - 3} more
             </li>
           )}
         </ul>
@@ -297,27 +420,27 @@ function PlanCard({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Pack card                                                          */
-/* ------------------------------------------------------------------ */
+/* ────────── Pack card ────────── */
 
 function PackCard({
   pack,
+  currency,
   onEdit,
   onToggle,
 }: {
-  pack: Pack;
+  pack: PackRow;
+  currency: string;
   onEdit: () => void;
-  onToggle: () => void;
+  onToggle: (next: boolean) => void;
 }) {
-  const perCredit = pack.credits > 0 ? pack.price / pack.credits : 0;
+  const perCreditCents = pack.credits > 0 ? pack.price_cents / pack.credits : 0;
   const featured = pack.label === "Best value" || pack.label === "Pro";
 
   return (
     <div
       className={cn(
-        "bg-card border rounded-xl shadow-card p-4 flex flex-col motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-px hover:shadow-hero relative",
-        featured ? "border-primary ring-1 ring-primary/30" : "border-border",
+        "bg-card border border-border rounded-xl shadow-card p-4 flex flex-col motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-px hover:shadow-hero relative",
+        featured && "border-primary ring-1 ring-primary/30",
         !pack.active && "opacity-60"
       )}
     >
@@ -328,7 +451,8 @@ function PackCard({
       )}
       <div className="text-[20px] font-semibold tabular-nums mb-0.5">{pack.credits} credits</div>
       <div className="text-[12px] text-muted-foreground tabular-nums mb-1">
-        ${pack.price} · ${perCredit.toFixed(2)}/credit
+        {formatPrice(pack.price_cents, currency)} ·{" "}
+        {formatPrice(perCreditCents, currency)}/credit
       </div>
       <div className="flex-1" />
       <div className="mt-3 pt-3 border-t border-[--line-soft] flex items-center gap-2">
@@ -345,27 +469,28 @@ function PackCard({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Plan editor sheet                                                  */
-/* ------------------------------------------------------------------ */
+/* ────────── Plan editor sheet ────────── */
 
 function PlanSheet({
-  plan,
+  draft,
+  currency,
+  onChange,
   onSave,
   onDelete,
   onCancel,
 }: {
-  plan: Plan | null;
-  onSave: (p: Plan) => void;
-  onDelete?: () => void;
+  draft: PlanDraft | null;
+  currency: string;
+  onChange: (next: PlanDraft) => void;
+  onSave: (draft: PlanDraft) => Promise<void>;
+  onDelete?: () => Promise<void>;
   onCancel: () => void;
 }) {
-  const open = plan !== null;
-  const [draft, setDraft] = useState<Plan | null>(plan);
-  // Keep draft in sync when sheet opens with a different plan
-  if (open && draft?.id !== plan!.id) setDraft(plan);
-  if (!open && draft !== null) setDraft(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  const open = draft !== null;
   if (!draft) {
     return (
       <Sheet open={open} onOpenChange={(o) => !o && onCancel()}>
@@ -373,45 +498,83 @@ function PlanSheet({
       </Sheet>
     );
   }
+  const isNew = draft.id === "";
 
-  function set<K extends keyof Plan>(key: K, value: Plan[K]) {
-    setDraft((d) => (d ? { ...d, [key]: value } : d));
+  function set<K extends keyof PlanDraft>(key: K, value: PlanDraft[K]) {
+    onChange({ ...draft!, [key]: value });
   }
 
   function addFeature() {
-    setDraft((d) => (d ? { ...d, features: [...d.features, ""] } : d));
+    onChange({ ...draft!, features: [...draft!.features, ""] });
   }
   function updateFeature(i: number, v: string) {
-    setDraft((d) =>
-      d ? { ...d, features: d.features.map((f, idx) => (idx === i ? v : f)) } : d
-    );
+    onChange({
+      ...draft!,
+      features: draft!.features.map((f, idx) => (idx === i ? v : f)),
+    });
   }
   function removeFeature(i: number) {
-    setDraft((d) => (d ? { ...d, features: d.features.filter((_, idx) => idx !== i) } : d));
+    onChange({
+      ...draft!,
+      features: draft!.features.filter((_, idx) => idx !== i),
+    });
+  }
+
+  async function handleSave() {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(draft!);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!onDelete || deleting) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await onDelete();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onCancel()}>
       <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
         <SheetHeader className="p-5 border-b border-border">
-          <SheetTitle>Edit plan</SheetTitle>
-          <SheetDescription>
-            Edit how this offer appears to clients.
-          </SheetDescription>
+          <SheetTitle>{isNew ? "New plan" : "Edit plan"}</SheetTitle>
+          <SheetDescription>How this offer appears to clients.</SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-auto p-5 space-y-4">
           <Field label="Name">
-            <Input value={draft.name} onChange={(e) => set("name", e.target.value)} />
+            <Input
+              value={draft.name}
+              onChange={(e) => set("name", e.target.value)}
+              placeholder="e.g. Studio"
+            />
           </Field>
           <Field label="Tagline">
-            <Input value={draft.desc} onChange={(e) => set("desc", e.target.value)} placeholder="One short line shown under the name" />
+            <Input
+              value={draft.description}
+              onChange={(e) => set("description", e.target.value)}
+              placeholder="One short line shown under the name"
+            />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Price (USD / mo)">
+            <Field label={`Price (${currency} / mo)`}>
               <Input
                 type="number"
                 min={0}
+                step="0.01"
                 value={draft.price}
                 onChange={(e) => set("price", Math.max(0, Number(e.target.value) || 0))}
               />
@@ -456,22 +619,6 @@ function PlanSheet({
 
           <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
             <div className="flex items-center gap-2 text-[13px]">
-              <Star className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Mark as popular</div>
-                <div className="text-[11px] text-muted-foreground">
-                  Highlights this plan in the client view.
-                </div>
-              </div>
-            </div>
-            <Switch
-              checked={!!draft.popular}
-              onCheckedChange={(v: boolean) => set("popular", v)}
-            />
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
-            <div className="flex items-center gap-2 text-[13px]">
               <Eye className="w-4 h-4 text-muted-foreground" />
               <div>
                 <div className="font-medium">Live</div>
@@ -485,43 +632,76 @@ function PlanSheet({
               onCheckedChange={(v: boolean) => set("active", v)}
             />
           </div>
+
+          {error && (
+            <div
+              role="alert"
+              className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg]"
+            >
+              {error}
+            </div>
+          )}
         </div>
 
         <div className="border-t border-border p-4 flex items-center gap-2">
           {onDelete && (
-            <Button variant="destructive" onClick={onDelete} className="gap-1.5">
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              className="gap-1.5"
+              disabled={saving || deleting}
+            >
+              {deleting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}{" "}
+              Delete
             </Button>
           )}
           <div className="flex-1" />
-          <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-          <Button onClick={() => onSave(draft)}>Save plan</Button>
+          <Button variant="ghost" onClick={onCancel} disabled={saving || deleting}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={!draft.name.trim() || saving || deleting}>
+            {saving ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> {isNew ? "Creating" : "Saving"}
+              </>
+            ) : isNew ? (
+              "Create plan"
+            ) : (
+              "Save plan"
+            )}
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Pack editor sheet                                                  */
-/* ------------------------------------------------------------------ */
+/* ────────── Pack editor sheet ────────── */
 
 function PackSheet({
-  pack,
+  draft,
+  currency,
+  onChange,
   onSave,
   onDelete,
   onCancel,
 }: {
-  pack: Pack | null;
-  onSave: (p: Pack) => void;
-  onDelete?: () => void;
+  draft: PackDraft | null;
+  currency: string;
+  onChange: (next: PackDraft) => void;
+  onSave: (draft: PackDraft) => Promise<void>;
+  onDelete?: () => Promise<void>;
   onCancel: () => void;
 }) {
-  const open = pack !== null;
-  const [draft, setDraft] = useState<Pack | null>(pack);
-  if (open && draft?.id !== pack!.id) setDraft(pack);
-  if (!open && draft !== null) setDraft(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  const open = draft !== null;
   if (!draft) {
     return (
       <Sheet open={open} onOpenChange={(o) => !o && onCancel()}>
@@ -529,18 +709,44 @@ function PackSheet({
       </Sheet>
     );
   }
+  const isNew = draft.id === "";
+  const perCredit = draft.credits > 0 ? draft.price / draft.credits : 0;
 
-  function set<K extends keyof Pack>(key: K, value: Pack[K]) {
-    setDraft((d) => (d ? { ...d, [key]: value } : d));
+  function set<K extends keyof PackDraft>(key: K, value: PackDraft[K]) {
+    onChange({ ...draft!, [key]: value });
   }
 
-  const perCredit = draft.credits > 0 ? draft.price / draft.credits : 0;
+  async function handleSave() {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(draft!);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!onDelete || deleting) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await onDelete();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onCancel()}>
       <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
         <SheetHeader className="p-5 border-b border-border">
-          <SheetTitle>Edit credit pack</SheetTitle>
+          <SheetTitle>{isNew ? "New credit pack" : "Edit credit pack"}</SheetTitle>
           <SheetDescription>
             One-time purchase. Clients pay once and credits land in their wallet.
           </SheetDescription>
@@ -556,10 +762,11 @@ function PackSheet({
                 onChange={(e) => set("credits", Math.max(1, Number(e.target.value) || 1))}
               />
             </Field>
-            <Field label="Price (USD)">
+            <Field label={`Price (${currency})`}>
               <Input
                 type="number"
                 min={0}
+                step="0.01"
                 value={draft.price}
                 onChange={(e) => set("price", Math.max(0, Number(e.target.value) || 0))}
               />
@@ -567,7 +774,7 @@ function PackSheet({
           </div>
 
           <div className="text-[12px] p-3 rounded-lg bg-muted/40 border border-border tabular-nums">
-            ${perCredit.toFixed(2)} per credit
+            {formatPrice(perCredit * 100, currency)} per credit
           </div>
 
           <Field label="Badge (optional)" hint="Shown as a small tag on the pack card.">
@@ -598,36 +805,67 @@ function PackSheet({
               onCheckedChange={(v: boolean) => set("active", v)}
             />
           </div>
+
+          {error && (
+            <div
+              role="alert"
+              className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg]"
+            >
+              {error}
+            </div>
+          )}
         </div>
 
         <div className="border-t border-border p-4 flex items-center gap-2">
           {onDelete && (
-            <Button variant="destructive" onClick={onDelete} className="gap-1.5">
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              className="gap-1.5"
+              disabled={saving || deleting}
+            >
+              {deleting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}{" "}
+              Delete
             </Button>
           )}
           <div className="flex-1" />
-          <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-          <Button onClick={() => onSave(draft)}>Save pack</Button>
+          <Button variant="ghost" onClick={onCancel} disabled={saving || deleting}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving || deleting}>
+            {saving ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> {isNew ? "Creating" : "Saving"}
+              </>
+            ) : isNew ? (
+              "Create pack"
+            ) : (
+              "Save pack"
+            )}
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Preview sheet (what clients see)                                   */
-/* ------------------------------------------------------------------ */
+/* ────────── Preview sheet ────────── */
 
 function PreviewSheet({
   open,
   plans,
   packs,
+  currency,
   onOpenChange,
 }: {
   open: boolean;
-  plans: Plan[];
-  packs: Pack[];
+  plans: PlanRow[];
+  packs: PackRow[];
+  currency: string;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
@@ -646,42 +884,38 @@ function PreviewSheet({
               Plans
             </div>
             <div className="grid grid-cols-1 gap-2">
-              {plans.length === 0 && (
-                <EmptyMini text="No active plans." />
-              )}
-              {plans.map((p) => (
-                <div
-                  key={p.id}
-                  className={cn(
-                    "border rounded-lg p-4",
-                    p.popular ? "border-primary ring-1 ring-primary/30" : "border-border"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="text-[14px] font-semibold flex-1">{p.name}</div>
-                    {p.popular && <Pill kind="teal">Popular</Pill>}
-                  </div>
-                  <div className="text-[20px] font-bold tabular-nums mt-1">
-                    {p.price === 0 ? "Free" : `$${p.price}`}
-                    {p.price > 0 && <span className="text-xs font-normal text-muted-foreground">/mo</span>}
-                  </div>
-                  {p.credits > 0 && (
-                    <div className="text-[11px] text-muted-foreground tabular-nums">
-                      {p.credits} credits/month
+              {plans.length === 0 ? <EmptyMini text="No active plans." /> : null}
+              {plans.map((p) => {
+                const features = planFeatures(p);
+                return (
+                  <div key={p.id} className="border border-border rounded-lg p-4">
+                    <div className="flex items-center gap-2">
+                      <div className="text-[14px] font-semibold flex-1">{p.name}</div>
                     </div>
-                  )}
-                  {p.features.length > 0 && (
-                    <ul className="text-[12px] space-y-1 mt-2">
-                      {p.features.map((f) => (
-                        <li key={f} className="flex gap-1.5 items-start">
-                          <Check className="w-3 h-3 text-[--pos] mt-0.5 shrink-0" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
+                    <div className="text-[20px] font-bold tabular-nums mt-1">
+                      {p.price_cents === 0 ? "Free" : formatPrice(p.price_cents, currency)}
+                      {p.price_cents > 0 && (
+                        <span className="text-xs font-normal text-muted-foreground">/mo</span>
+                      )}
+                    </div>
+                    {p.credits_granted > 0 && (
+                      <div className="text-[11px] text-muted-foreground tabular-nums">
+                        {p.credits_granted} credits/month
+                      </div>
+                    )}
+                    {features.length > 0 && (
+                      <ul className="text-[12px] space-y-1 mt-2">
+                        {features.map((f, i) => (
+                          <li key={`${f}-${i}`} className="flex gap-1.5 items-start">
+                            <Check className="w-3 h-3 text-[--pos] mt-0.5 shrink-0" />
+                            <span>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -690,36 +924,46 @@ function PreviewSheet({
               Top-up packs
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {packs.length === 0 && <EmptyMini text="No active packs." />}
-              {packs.map((p) => (
-                <div
-                  key={p.id}
-                  className={cn(
-                    "border rounded-lg p-3 relative",
-                    (p.label === "Best value" || p.label === "Pro")
-                      ? "border-primary ring-1 ring-primary/30"
-                      : "border-border"
-                  )}
-                >
-                  {p.label && (
-                    <span className="absolute top-2 right-2">
-                      <Pill kind={p.label === "Best value" || p.label === "Pro" ? "teal" : "sage"}>
-                        {p.label}
-                      </Pill>
-                    </span>
-                  )}
-                  <div className="text-[15px] font-bold tabular-nums">{p.credits} credits</div>
-                  <div className="text-[11px] text-muted-foreground tabular-nums">
-                    ${p.price} · ${(p.price / Math.max(1, p.credits)).toFixed(2)}/cr
+              {packs.length === 0 ? <EmptyMini text="No active packs." /> : null}
+              {packs.map((p) => {
+                const featured = p.label === "Best value" || p.label === "Pro";
+                return (
+                  <div
+                    key={p.id}
+                    className={cn(
+                      "border rounded-lg p-3 relative",
+                      featured
+                        ? "border-primary ring-1 ring-primary/30"
+                        : "border-border"
+                    )}
+                  >
+                    {p.label && (
+                      <span className="absolute top-2 right-2">
+                        <Pill kind={featured ? "teal" : "sage"}>{p.label}</Pill>
+                      </span>
+                    )}
+                    <div className="text-[15px] font-bold tabular-nums">
+                      {p.credits} credits
+                    </div>
+                    <div className="text-[11px] text-muted-foreground tabular-nums">
+                      {formatPrice(p.price_cents, currency)} ·{" "}
+                      {formatPrice(
+                        p.credits > 0 ? p.price_cents / p.credits : 0,
+                        currency
+                      )}
+                      /cr
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
 
         <div className="border-t border-border p-4 flex justify-end">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Close</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -734,9 +978,7 @@ function EmptyMini({ text }: { text: string }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Section + form primitives                                          */
-/* ------------------------------------------------------------------ */
+/* ────────── Section + primitives ────────── */
 
 function Section({
   eyebrow,
@@ -772,6 +1014,48 @@ function Section({
       </header>
       {children}
     </section>
+  );
+}
+
+function GridSkeleton({ cols }: { cols: string }) {
+  return (
+    <div className={cn("grid grid-cols-1 gap-3", cols)}>
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className="h-44 rounded-xl border border-border bg-muted/30 animate-pulse"
+        />
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({
+  text,
+  hint,
+  label,
+  onAdd,
+  disabled,
+}: {
+  text: string;
+  hint: string;
+  label: string;
+  onAdd: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      disabled={disabled}
+      className="block w-full border border-dashed border-border rounded-xl py-10 text-center motion-safe:transition-colors motion-safe:duration-150 hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <div className="text-[13px] font-medium mb-1">{text}</div>
+      <div className="text-[12px] text-muted-foreground mb-3">{hint}</div>
+      <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[--role-accent]">
+        <Plus className="w-3.5 h-3.5" /> {label}
+      </span>
+    </button>
   );
 }
 

@@ -362,6 +362,70 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          cancelled_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: string
+          studio_id: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role: string
+          studio_id: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: string
+          studio_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           attachments: Json | null
@@ -1139,6 +1203,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invitation: { Args: { p_token: string }; Returns: string }
+      book_class: { Args: { p_session_id: string }; Returns: string }
+      book_solo: {
+        Args: { p_service_id: string; p_starts_at: string }
+        Returns: string
+      }
+      cancel_invitation: { Args: { p_id: string }; Returns: undefined }
+      cancel_my_booking: {
+        Args: { p_booking_id: string; p_reason?: string }
+        Returns: undefined
+      }
       create_studio_for_owner: {
         Args: { p_studio_name?: string }
         Returns: string
@@ -1171,8 +1246,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      free_solo_slots: {
+        Args: { p_date: string; p_service_id: string; p_step_minutes?: number }
+        Returns: string[]
+      }
       is_member_of: { Args: { target_studio: string }; Returns: boolean }
       my_role_in: { Args: { target_studio: string }; Returns: string }
+      peek_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          accepted_at: string
+          cancelled_at: string
+          email: string
+          expires_at: string
+          role: string
+          studio_id: string
+          studio_name: string
+          studio_slug: string
+        }[]
+      }
       session_range: {
         Args: { p_duration: number; p_starts: string }
         Returns: unknown

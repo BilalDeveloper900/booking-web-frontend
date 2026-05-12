@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,24 @@ import { Divider, Field, Input } from "../_form";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
+/**
+ * Owner-only signup. Creates a new studio + owner membership.
+ *
+ * Admins and clients use `/join?invite=TOKEN` instead — that's where invite
+ * acceptance lives. If someone lands here with `?invite=...`, we redirect.
+ */
 export default function SignupPage() {
   const router = useRouter();
+  const search = useSearchParams();
+  const inviteToken = search.get("invite");
+
+  // Back-compat: old invite links pointed at /signup. Forward to /join.
+  useEffect(() => {
+    if (inviteToken) {
+      router.replace(`/join?invite=${inviteToken}`);
+    }
+  }, [inviteToken, router]);
+
   const [name, setName] = useState("");
   const [studio, setStudio] = useState("");
   const [email, setEmail] = useState("");
@@ -37,8 +53,6 @@ export default function SignupPage() {
 
     const supabase = createClient();
 
-    // 1) Create the auth user. The on_auth_user_created trigger mirrors them
-    // into public.users automatically.
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -51,39 +65,53 @@ export default function SignupPage() {
       return;
     }
 
-    // If email confirmation is on (default in Supabase), there is no session yet.
-    // Show a "check your inbox" message; studio gets provisioned on first login.
+    // Email confirmation flow — stash the studio name so /login can pick it
+    // up after confirmation + sign-in.
     if (!signUpData.session) {
+      try {
+        sessionStorage.setItem(
+          "maison.pending_studio_name",
+          studio.trim() || `${name.trim()}'s Studio`
+        );
+      } catch {
+        /* sessionStorage unavailable */
+      }
       setNeedsConfirm(true);
       setSubmitting(false);
-      // Stash the studio name so we can use it after confirmation login.
-      try {
-        sessionStorage.setItem("maison.pending_studio_name", studio.trim() || `${name.trim()}'s Studio`);
-      } catch {
-        /* sessionStorage unavailable — best-effort only */
-      }
       return;
     }
 
-    // 2) Email confirmation off: we have a session, provision the studio now.
+    // Session present — provision the studio now.
     const studioName = studio.trim() || `${name.trim()}'s Studio`;
     const { error: rpcError } = await supabase.rpc("create_studio_for_owner", {
       p_studio_name: studioName,
     });
-
     if (rpcError) {
-      setError(`Account created but studio setup failed: ${rpcError.message}. Try signing in again.`);
+      setError(
+        `Account created but studio setup failed: ${rpcError.message}. Try signing in again.`
+      );
       setSubmitting(false);
       return;
     }
-
     router.replace("/owner");
+  }
+
+  // Don't render anything until we resolve the redirect.
+  if (inviteToken) {
+    return (
+      <div className="inline-flex items-center gap-2 text-[14px] text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Redirecting to your invite…
+      </div>
+    );
   }
 
   if (needsConfirm) {
     return (
       <div>
-        <h1 className="font-serif text-[36px] leading-tight tracking-tight mb-2">Check your inbox</h1>
+        <h1 className="font-serif text-[36px] leading-tight tracking-tight mb-2">
+          Check your inbox
+        </h1>
         <p className="text-[14px] text-muted-foreground mb-6">
           We sent a confirmation link to{" "}
           <span className="text-foreground font-medium">{email}</span>. Click it
@@ -110,7 +138,9 @@ export default function SignupPage() {
       </h1>
       <p className="text-[14px] text-muted-foreground mb-2">
         Free forever — no credit card.{" "}
-        <span className="text-[--pos] font-medium">Setup takes under 60 seconds.</span>
+        <span className="text-[--pos] font-medium">
+          Setup takes under 60 seconds.
+        </span>
       </p>
       <Perks />
 
@@ -162,7 +192,11 @@ export default function SignupPage() {
               aria-label={showPassword ? "Hide password" : "Show password"}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 grid place-items-center text-muted-foreground hover:text-foreground rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {showPassword ? (
+                <EyeOff className="w-3.5 h-3.5" />
+              ) : (
+                <Eye className="w-3.5 h-3.5" />
+              )}
             </button>
           </div>
           {password.length > 0 && <PasswordStrength score={strength} />}
@@ -177,9 +211,14 @@ export default function SignupPage() {
           />
           <span>
             I agree to the{" "}
-            <Link href="#" className="underline hover:text-foreground">Terms</Link>{" "}
+            <Link href="#" className="underline hover:text-foreground">
+              Terms
+            </Link>{" "}
             and{" "}
-            <Link href="#" className="underline hover:text-foreground">Privacy Policy</Link>.
+            <Link href="#" className="underline hover:text-foreground">
+              Privacy Policy
+            </Link>
+            .
           </span>
         </label>
 
@@ -213,6 +252,11 @@ export default function SignupPage() {
           Sign in
         </Link>
       </p>
+
+      <p className="text-[11px] text-muted-foreground text-center mt-6 leading-relaxed">
+        Have an invite link? Open it directly — it&rsquo;ll bring you straight
+        in.
+      </p>
     </div>
   );
 }
@@ -222,7 +266,8 @@ function humanizeAuthError(msg: string): string {
   if (lower.includes("already registered") || lower.includes("user already")) {
     return "An account with that email already exists. Sign in instead?";
   }
-  if (lower.includes("rate limit")) return "Too many attempts. Wait a minute and try again.";
+  if (lower.includes("rate limit"))
+    return "Too many attempts. Wait a minute and try again.";
   if (lower.includes("password") && lower.includes("weak")) {
     return "Password too weak — try mixing upper, lower, numbers, and symbols.";
   }

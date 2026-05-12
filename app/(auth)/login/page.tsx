@@ -159,6 +159,9 @@ function humanizeAuthError(msg: string): string {
 /**
  * After a successful sign-in: figure out where to send the user, and if they
  * have no membership yet (post-email-confirmation signup), create one now.
+ * Pending state from /signup is stashed in sessionStorage:
+ *   - "maison.pending_invite_token" -> accept invitation (admin/client signup)
+ *   - "maison.pending_studio_name"  -> create studio (owner signup)
  */
 async function ensureProvisioned(
   supabase: ReturnType<typeof createClient>
@@ -179,22 +182,43 @@ async function ensureProvisioned(
   if (roles.includes("admin")) return "/admin";
   if (roles.includes("client")) return "/client";
 
-  // No active membership: auto-provision a studio. Pull the studio name
-  // sessionStorage'd by /signup, else default ("<name>'s Studio").
+  // Pending invite (admin / client confirmation flow)
+  let pendingInvite: string | null = null;
   let pendingName: string | null = null;
   try {
+    pendingInvite = sessionStorage.getItem("maison.pending_invite_token");
     pendingName = sessionStorage.getItem("maison.pending_studio_name");
+    sessionStorage.removeItem("maison.pending_invite_token");
     sessionStorage.removeItem("maison.pending_studio_name");
   } catch {
     /* sessionStorage unavailable */
   }
 
+  if (pendingInvite) {
+    const { error } = await supabase.rpc("accept_invitation", {
+      p_token: pendingInvite,
+    });
+    if (error) {
+      console.error("[login] accept_invitation failed:", error.message);
+      return "/owner"; // dead-end; UI will show empty state, user can re-invite
+    }
+    // Re-read role to know where to send them.
+    const { data: postRows } = await supabase
+      .from("studio_members")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("status", "active");
+    const postRoles = (postRows ?? []).map((r) => r.role as string);
+    if (postRoles.includes("admin")) return "/admin";
+    if (postRoles.includes("client")) return "/client";
+    return "/owner";
+  }
+
+  // No invite -> fresh owner signup. Auto-provision a studio.
   const { error } = await supabase.rpc("create_studio_for_owner", {
     p_studio_name: pendingName ?? "",
   });
   if (error) {
-    // Don't block the user — drop them at /owner; the dashboard will show
-    // an empty state since the row didn't get created.
     console.error("[login] create_studio_for_owner failed:", error.message);
   }
   return "/owner";

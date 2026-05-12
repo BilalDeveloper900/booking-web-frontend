@@ -11,9 +11,16 @@ import { NextResponse, type NextRequest } from "next/server";
  * Skips static assets and Next internals via the `matcher` config below.
  */
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/signup",
+  "/join",
+  "/forgot-password",
+  "/reset-password",
+];
 const PROTECTED_PREFIXES = ["/owner", "/admin", "/client"];
-const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
+const AUTH_PAGES = ["/login", "/signup", "/join", "/forgot-password"];
 
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
