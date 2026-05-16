@@ -1,22 +1,57 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Filter, Users } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+} from "recharts";
 import { Button } from "@/components/ui/button";
 import { StatBlock, PersonCell, Pill, HueAvatar } from "@/components/shared";
-import { ADMIN_TODAY, ADMIN_THREADS } from "@/lib/data";
-import { EarningsBars } from "@/components/charts/earnings-bars";
+import {
+  useAdminToday,
+  useAdminOverviewStats,
+  useAdminWeekSessions,
+  useAdminMessagePreview,
+  type AdminTodaySession,
+} from "@/lib/admin-overview";
+import { useCurrentMember } from "@/lib/auth/use-current-member";
 import { ServicesPanel } from "@/components/screens/admin/services";
+import {
+  axisTick,
+  chartTokens,
+  ChartTooltipFrame,
+  ChartTooltipRow,
+  type RechartsTooltipProps,
+} from "@/components/charts/theme";
 import { cn } from "@/lib/utils";
 
 export function AdminOverview() {
+  const { member } = useCurrentMember();
+  const studioId = member?.studio.id;
+  const adminMemberId = member?.member.id;
+  const firstName = member?.user.name?.split(" ")[0] ?? "there";
+
+  const today = useAdminToday({ studioId, adminMemberId });
+  const stats = useAdminOverviewStats({ studioId, adminMemberId });
+  const week = useAdminWeekSessions({ studioId, adminMemberId });
+  const messages = useAdminMessagePreview({ adminMemberId });
+
+  const headlineCount = stats.stats.todayCount;
+  const sessionsWord = headlineCount === 1 ? "session" : "sessions";
+
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
       <div className="flex items-start mb-6 gap-4 flex-wrap">
         <div>
           <h2 className="text-[24px] font-semibold tracking-tight leading-tight">
-            Hi Camille — 7 sessions today
+            Hi {firstName} — {headlineCount} {sessionsWord} today
           </h2>
           <p className="text-[13px] text-muted-foreground mt-1">
-            Tuesday, 28 April 2026
+            {formatTodayLabel(new Date())}
           </p>
         </div>
         <div className="flex-1" />
@@ -26,10 +61,35 @@ export function AdminOverview() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatBlock label="Today" value="7" unit="sessions" foot="3 completed" hero />
-        <StatBlock label="This week" value="34" delta="12%" foot="vs last week" />
-        <StatBlock label="Earned MTD" value="8,420" unit="€" delta="8.4%" foot="vs last month" />
-        <StatBlock label="Avg rating" value="4.92" unit="★" foot="48 reviews" />
+        <StatBlock
+          label="Today"
+          value={String(stats.stats.todayCount)}
+          unit="sessions"
+          foot={completedFoot(today.items)}
+          hero
+        />
+        <StatBlock
+          label="This week"
+          value={String(stats.stats.weekCount)}
+          unit="sessions"
+          foot="Mon–Sun"
+        />
+        <StatBlock
+          label="Sessions MTD"
+          value={String(stats.stats.sessionsMTD)}
+          unit="sessions"
+          foot={monthFoot(new Date())}
+        />
+        <StatBlock
+          label="Avg rating"
+          value={stats.stats.avgRating !== null ? stats.stats.avgRating.toFixed(2) : "—"}
+          unit="★"
+          foot={
+            stats.stats.reviewCount > 0
+              ? `${stats.stats.reviewCount} review${stats.stats.reviewCount === 1 ? "" : "s"}`
+              : "No reviews yet"
+          }
+        />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5">
@@ -48,19 +108,40 @@ export function AdminOverview() {
                 </tr>
               </thead>
               <tbody>
-                {ADMIN_TODAY.map((s, i) => {
+                {today.loading && (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                      Loading today…
+                    </td>
+                  </tr>
+                )}
+                {!today.loading && today.items.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                      Nothing scheduled today.
+                    </td>
+                  </tr>
+                )}
+                {today.items.map((s) => {
                   const isGroup = s.mode === "group";
                   return (
                     <tr
-                      key={i}
+                      key={s.sessionId}
                       className="border-b border-[--line-soft] last:border-0 hover:bg-muted/40 motion-safe:transition-colors motion-safe:duration-150"
                     >
                       <td className="py-3 tabular-nums">{s.time}</td>
                       <td className="py-3">
                         {isGroup ? (
-                          <AttendeeStack attendees={s.attendees} capacity={s.capacity} hue={s.hue} />
+                          <AttendeeStack
+                            attendees={s.attendees ?? []}
+                            capacity={s.capacity ?? 1}
+                            hue={s.hue}
+                          />
                         ) : (
-                          <PersonCell name={s.client} hue={s.hue} />
+                          <PersonCell
+                            name={s.client ?? "(open slot)"}
+                            hue={s.clientHue ?? s.hue}
+                          />
                         )}
                       </td>
                       <td className="py-3">
@@ -91,17 +172,25 @@ export function AdminOverview() {
 
         <div className="flex flex-col gap-5">
           <Card>
-            <CardHeader title="Weekly earnings" right={<CardLink href="/admin/earnings">Details</CardLink>} />
-            <EarningsBars height={140} />
+            <CardHeader title="This week" right={<CardLink href="/admin/calendar">Open calendar</CardLink>} />
+            <WeekSessionsBars data={week.data} height={140} />
           </Card>
 
           <Card>
             <CardHeader title="Messages" right={<CardLink href="/admin/messages">View all</CardLink>} />
             <div className="flex flex-col gap-1">
-              {ADMIN_THREADS.slice(0, 3).map((t) => (
+              {messages.loading && (
+                <div className="px-2 py-3 text-xs text-muted-foreground">Loading…</div>
+              )}
+              {!messages.loading && messages.threads.length === 0 && (
+                <div className="px-2 py-3 text-xs text-muted-foreground">
+                  No messages yet.
+                </div>
+              )}
+              {messages.threads.map((t) => (
                 <Link
-                  key={t.id}
-                  href={`/admin/messages?thread=${t.id}`}
+                  key={t.threadId}
+                  href={`/admin/messages?thread=${t.threadId}`}
                   className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-muted/50 motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <HueAvatar name={t.name} hue={t.hue} />
@@ -130,6 +219,76 @@ export function AdminOverview() {
         </Card>
       </div>
     </div>
+  );
+}
+
+// ─────────── Helpers ───────────
+
+function formatTodayLabel(d: Date): string {
+  return d.toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function completedFoot(items: AdminTodaySession[]): string {
+  const done = items.filter((s) => s.status === "done").length;
+  return `${done} completed`;
+}
+
+function monthFoot(d: Date): string {
+  return d.toLocaleDateString(undefined, { month: "long" });
+}
+
+// ─────────── Subcomponents ───────────
+
+function WeekSessionsBars({
+  data,
+  height = 140,
+}: {
+  data: { day: string; sessions: number }[];
+  height?: number;
+}) {
+  return (
+    <div style={{ height }} className="-mx-1 mt-2">
+      <ResponsiveContainer>
+        <BarChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <XAxis
+            dataKey="day"
+            axisLine={false}
+            tickLine={false}
+            tick={axisTick}
+            interval={0}
+          />
+          <Tooltip
+            cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+            content={(props) => <SessionsTooltip {...props} />}
+          />
+          <Bar
+            dataKey="sessions"
+            fill={chartTokens.primary}
+            radius={[4, 4, 0, 0]}
+            animationDuration={400}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function SessionsTooltip({ active, payload, label }: RechartsTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null;
+  const sessions = (payload[0]?.value as number | undefined) ?? 0;
+  return (
+    <ChartTooltipFrame label={label != null ? String(label) : undefined}>
+      <ChartTooltipRow
+        color={chartTokens.primary}
+        label="Sessions"
+        value={String(sessions)}
+      />
+    </ChartTooltipFrame>
   );
 }
 
@@ -199,6 +358,9 @@ function AttendeeStack({
           >
             +{extra}
           </div>
+        )}
+        {attendees.length === 0 && (
+          <span className="text-xs text-muted-foreground">No signups yet</span>
         )}
       </div>
       <span

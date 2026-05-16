@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { Users, Check, Sparkles, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,11 +11,12 @@ import {
   useUpcomingClasses,
   useMyCredits,
   useSoloServices,
-  useFreeSoloSlots,
+  useSoloSlotGrid,
   enrollInClass,
   cancelMyBooking,
   bookSolo,
   type UpcomingClass,
+  type SlotStatus,
 } from "@/lib/client-bookings";
 
 type Tab = "session" | "class";
@@ -96,29 +98,42 @@ function SoloFlow() {
   const selectedDate = dates[dateIdx];
   const dateKey = selectedDate?.iso;
 
+  // Slot step matches the service's duration so each slot is a clean,
+  // non-overlapping window. Admins control this implicitly via the service's
+  // duration_min in the Services panel.
+  const stepMinutes = service?.durationMin;
   const {
-    slots,
+    cells,
     loading: slotsLoading,
     error: slotsError,
-  } = useFreeSoloSlots(effectiveServiceId ?? undefined, dateKey);
+    refetch: refetchSlots,
+  } = useSoloSlotGrid(effectiveServiceId ?? undefined, dateKey, stepMinutes);
 
-  // Drop the picked slot if it's no longer in the fresh list (date changed, slot taken).
-  const pickedIsValid = pickedSlot && slots.includes(pickedSlot);
-  const effectivePicked = pickedIsValid ? pickedSlot : null;
+  // Drop the picked slot if it's no longer available (date changed, slot taken,
+  // turned into a 'booked'/'blocked'/'past' cell after a refetch).
+  const pickedCell = cells.find(
+    (c) => c.startsAt === pickedSlot && c.status === "available"
+  );
+  const effectivePicked = pickedCell ? pickedCell.startsAt : null;
 
   async function handleConfirm() {
     if (!service || !effectivePicked || submitting) return;
     setSubmitting(true);
     setSubmitError(null);
+    const slotIso = effectivePicked;
     try {
-      await bookSolo(service.id, new Date(effectivePicked));
-      await refetchBalance();
+      await bookSolo(service.id, new Date(slotIso));
+      toast.success(
+        `Booked ${service.name} at ${formatTime(slotIso)} on ${selectedDate.fullLabel}`
+      );
       setPickedSlot(null);
-      // Trigger a slots refetch by bumping date selection then restoring.
-      // The hook re-runs on (serviceId, date) change; simplest is to leave
-      // the user on the same date and refetch happens on next view.
+      // Refetch in parallel so the grid + remaining-credit display update
+      // immediately instead of waiting for the user to change dates.
+      await Promise.all([refetchSlots(), refetchBalance()]);
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setSubmitError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -229,7 +244,8 @@ function SoloFlow() {
             </div>
 
             <div className="text-[11px] text-muted-foreground mb-2 px-1">
-              Slots from {service.adminName.split(" ")[0]}&rsquo;s working hours · 30 min steps
+              Slots from {service.adminName.split(" ")[0]}&rsquo;s working hours
+              {stepMinutes ? ` · ${stepMinutes} min slots` : ""}
             </div>
 
             {slotsError && (
@@ -241,38 +257,46 @@ function SoloFlow() {
               </div>
             )}
 
-            {slotsLoading ? (
+            {slotsLoading && cells.length === 0 ? (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="h-10 rounded-lg bg-muted/40 animate-pulse" />
                 ))}
               </div>
-            ) : slots.length === 0 ? (
-              <div className="text-[12px] text-muted-foreground border border-dashed border-border rounded-lg py-6 text-center">
-                No free slots that day. Try another date.
+            ) : cells.length === 0 ? (
+              <div className="text-[12px] text-muted-foreground border border-dashed border-border rounded-lg py-6 px-4 text-center space-y-1.5">
+                <div className="font-medium text-foreground text-[13px]">
+                  No slots that day
+                </div>
+                <p>
+                  Either {service.adminName.split(" ")[0]} isn&rsquo;t working
+                  that day or the studio is closed.
+                </p>
+                <p>
+                  If this happens on every date,{" "}
+                  {service.adminName.split(" ")[0]} probably hasn&rsquo;t set
+                  their working hours yet — ask them to open Settings &rarr;
+                  Working hours.
+                </p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {slots.map((iso) => {
-                  const on = effectivePicked === iso;
-                  return (
-                    <button
-                      key={iso}
-                      type="button"
-                      onClick={() => setPickedSlot(iso)}
-                      aria-pressed={on}
-                      className={cn(
-                        "h-10 rounded-lg text-[13px] font-medium tabular-nums motion-safe:transition-all motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        on
-                          ? "bg-primary text-primary-foreground shadow-card"
-                          : "border border-border hover:border-primary hover:bg-primary/10"
-                      )}
-                    >
-                      {formatTime(iso)}
-                    </button>
-                  );
-                })}
-              </div>
+              <>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {cells.map((cell) => {
+                    const on = effectivePicked === cell.startsAt;
+                    return (
+                      <SlotButton
+                        key={cell.startsAt}
+                        iso={cell.startsAt}
+                        status={cell.status}
+                        active={on}
+                        onPick={() => setPickedSlot(cell.startsAt)}
+                      />
+                    );
+                  })}
+                </div>
+                <SlotLegend />
+              </>
             )}
           </Section>
         )}
@@ -350,6 +374,81 @@ function SoloFlow() {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ────────── slot grid cell ────────── */
+
+const STATUS_LABEL: Record<SlotStatus, string> = {
+  available: "Open",
+  booked: "Booked",
+  blocked: "Unavailable",
+  past: "Past",
+};
+
+function SlotButton({
+  iso,
+  status,
+  active,
+  onPick,
+}: {
+  iso: string;
+  status: SlotStatus;
+  active: boolean;
+  onPick: () => void;
+}) {
+  const disabled = status !== "available";
+  return (
+    <button
+      type="button"
+      onClick={disabled ? undefined : onPick}
+      disabled={disabled}
+      aria-pressed={active}
+      aria-label={`${formatTime(iso)} — ${STATUS_LABEL[status]}`}
+      className={cn(
+        "h-10 rounded-lg text-[13px] font-medium tabular-nums motion-safe:transition-all motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring relative",
+        active && "bg-primary text-primary-foreground shadow-card",
+        !active && status === "available" &&
+          "border border-border hover:border-primary hover:bg-primary/10",
+        !active && status === "booked" &&
+          "border border-[--neg]/30 bg-[--neg]/10 text-[--neg] cursor-not-allowed line-through opacity-80",
+        !active && status === "blocked" &&
+          "border border-border bg-muted text-muted-foreground cursor-not-allowed line-through opacity-60",
+        !active && status === "past" &&
+          "border border-dashed border-border bg-transparent text-muted-foreground cursor-not-allowed opacity-50"
+      )}
+    >
+      {formatTime(iso)}
+    </button>
+  );
+}
+
+function SlotLegend() {
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+      <LegendDot className="border border-border bg-card" label="Open" />
+      <LegendDot
+        className="border border-[--neg]/30 bg-[--neg]/10"
+        label="Booked"
+      />
+      <LegendDot
+        className="border border-border bg-muted"
+        label="Unavailable"
+      />
+      <LegendDot
+        className="border border-dashed border-border bg-transparent"
+        label="Past"
+      />
+    </div>
+  );
+}
+
+function LegendDot({ className, label }: { className: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={cn("inline-block w-3 h-3 rounded", className)} aria-hidden />
+      {label}
+    </span>
   );
 }
 
@@ -461,10 +560,12 @@ function ClassFlow() {
             ))}
           </div>
         ) : classes.length === 0 ? (
-          <div className="border border-dashed border-border rounded-xl p-10 text-center">
-            <div className="text-[13px] font-medium mb-1">No upcoming classes</div>
-            <p className="text-[12px] text-muted-foreground">
-              Your studio hasn&rsquo;t scheduled any group classes yet. Check back soon!
+          <div className="border border-dashed border-border rounded-xl p-10 text-center space-y-2">
+            <div className="text-[13px] font-medium">No upcoming classes</div>
+            <p className="text-[12px] text-muted-foreground max-w-sm mx-auto">
+              Your studio hasn&rsquo;t scheduled any group classes yet. Creating
+              a group <em>service</em> isn&rsquo;t enough — admins need to
+              schedule each class on their calendar before clients can enroll.
             </p>
           </div>
         ) : (

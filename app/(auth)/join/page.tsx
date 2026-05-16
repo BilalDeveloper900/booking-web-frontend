@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -38,6 +38,21 @@ type Status =
   | "ok";
 
 export default function JoinPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="inline-flex items-center gap-2 text-[14px] text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Loading…
+        </div>
+      }
+    >
+      <JoinPageInner />
+    </Suspense>
+  );
+}
+
+function JoinPageInner() {
   const router = useRouter();
   const search = useSearchParams();
   const inviteToken = search.get("invite");
@@ -133,10 +148,18 @@ function JoinForm({
     setError(null);
 
     const supabase = createClient();
+    // Persist the invite token in user_metadata so it survives email
+    // confirmation across browsers. /login reads it back to accept the invite.
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: invite.email,
       password,
-      options: { data: { name: name.trim() } },
+      options: {
+        data: {
+          name: name.trim(),
+          intended_role: invite.role,
+          invite_token: inviteToken,
+        },
+      },
     });
 
     if (signUpError) {
@@ -145,20 +168,14 @@ function JoinForm({
       return;
     }
 
-    // Email confirmation flow — no immediate session. Stash the token so
-    // /login picks it up after they confirm + sign in.
     if (!data.session) {
-      try {
-        sessionStorage.setItem("maison.pending_invite_token", inviteToken);
-      } catch {
-        /* sessionStorage unavailable */
-      }
+      // Email confirmation required — metadata is persisted on the user
+      // record, so /login will accept the invite after confirmation.
       setNeedsConfirm(true);
       setSubmitting(false);
       return;
     }
 
-    // Have a session — accept the invite now.
     const { error: rpcError } = await supabase.rpc("accept_invitation", {
       p_token: inviteToken,
     });

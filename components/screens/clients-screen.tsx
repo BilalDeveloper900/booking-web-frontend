@@ -14,6 +14,7 @@ import {
   X,
   Copy,
   Check,
+  Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatBlock, PersonCell, Pill, HueAvatar } from "@/components/shared";
@@ -25,6 +26,7 @@ import {
   inviteUrl,
 } from "@/lib/members";
 import { InviteSheet } from "@/components/invite-sheet";
+import { GiftCreditsSheet } from "@/components/gift-credits-sheet";
 import { cn } from "@/lib/utils";
 
 const FILTERS = ["All", "Subscribers", "Pay-as-you-go", "Lapsed"] as const;
@@ -33,6 +35,10 @@ type FilterT = (typeof FILTERS)[number];
 export function ClientsScreen() {
   const [filter, setFilter] = useState<FilterT>("All");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [giftTarget, setGiftTarget] = useState<
+    | { memberId: string; name: string; hue: number; email?: string }
+    | null
+  >(null);
 
   const { member } = useCurrentMember();
   const studioId = member?.studio.id;
@@ -230,13 +236,30 @@ export function ClientsScreen() {
                     </Pill>
                   </td>
                   <td className="pr-4">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`More actions for ${c.user.name}`}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Gift credits to ${c.user.name}`}
+                        onClick={() =>
+                          setGiftTarget({
+                            memberId: c.id,
+                            name: c.user.name,
+                            hue: c.user.avatar_hue,
+                            email: c.user.email,
+                          })
+                        }
+                      >
+                        <Gift className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`More actions for ${c.user.name}`}
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -270,6 +293,15 @@ export function ClientsScreen() {
           refetchInvites();
           refetchClients();
         }}
+      />
+
+      <GiftCreditsSheet
+        open={giftTarget !== null}
+        onOpenChange={(o) => {
+          if (!o) setGiftTarget(null);
+        }}
+        client={giftTarget}
+        onGifted={refetchClients}
       />
     </div>
   );

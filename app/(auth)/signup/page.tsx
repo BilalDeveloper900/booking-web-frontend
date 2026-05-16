@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Check, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowRight, Check, Eye, EyeOff, Loader2, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Divider, Field, Input } from "../_form";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,21 @@ import { createClient } from "@/lib/supabase/client";
  * acceptance lives. If someone lands here with `?invite=...`, we redirect.
  */
 export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="inline-flex items-center gap-2 text-[14px] text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Loading…
+        </div>
+      }
+    >
+      <SignupPageInner />
+    </Suspense>
+  );
+}
+
+function SignupPageInner() {
   const router = useRouter();
   const search = useSearchParams();
   const inviteToken = search.get("invite");
@@ -52,11 +67,21 @@ export default function SignupPage() {
     setError(null);
 
     const supabase = createClient();
+    const studioName = studio.trim() || `${name.trim()}'s Studio`;
 
+    // Persist intent in user_metadata so it survives email confirmation
+    // across tabs/browsers. /login reads this to know whether to
+    // create_studio_for_owner (owner) or accept_invitation (invitee).
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name: name.trim() } },
+      options: {
+        data: {
+          name: name.trim(),
+          intended_role: "owner",
+          studio_name: studioName,
+        },
+      },
     });
 
     if (signUpError) {
@@ -65,24 +90,14 @@ export default function SignupPage() {
       return;
     }
 
-    // Email confirmation flow — stash the studio name so /login can pick it
-    // up after confirmation + sign-in.
     if (!signUpData.session) {
-      try {
-        sessionStorage.setItem(
-          "maison.pending_studio_name",
-          studio.trim() || `${name.trim()}'s Studio`
-        );
-      } catch {
-        /* sessionStorage unavailable */
-      }
+      // Email confirmation required — metadata stays on the user record, so
+      // /login will pick the right path after they confirm + sign in.
       setNeedsConfirm(true);
       setSubmitting(false);
       return;
     }
 
-    // Session present — provision the studio now.
-    const studioName = studio.trim() || `${name.trim()}'s Studio`;
     const { error: rpcError } = await supabase.rpc("create_studio_for_owner", {
       p_studio_name: studioName,
     });
@@ -133,6 +148,10 @@ export default function SignupPage() {
 
   return (
     <div>
+      <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium mb-4 bg-[--role-accent-light] text-[--role-accent-dark]">
+        <Store className="w-3 h-3" />
+        Studio owner signup
+      </div>
       <h1 className="font-serif text-[36px] leading-tight tracking-tight mb-2">
         Start your studio
       </h1>
@@ -142,6 +161,14 @@ export default function SignupPage() {
           Setup takes under 60 seconds.
         </span>
       </p>
+      <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-[12px] text-muted-foreground mb-4 leading-relaxed">
+        This page creates a new studio with you as the owner. If you were
+        invited as a stylist or client, use your invite link instead —{" "}
+        <Link href="/join" className="text-foreground font-medium hover:underline">
+          open invite
+        </Link>
+        .
+      </div>
       <Perks />
 
       <form onSubmit={onSubmit} className="space-y-4">

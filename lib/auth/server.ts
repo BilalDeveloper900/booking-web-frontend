@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { CurrentMember, Role } from "./types";
 
@@ -68,3 +69,41 @@ export const getCurrentMember = cache(async (): Promise<CurrentMember | null> =>
 // Internal alias to keep the cast above readable.
 type Database_StudioMemberRow =
   import("@/lib/supabase/types").Database["public"]["Tables"]["studio_members"]["Row"];
+
+/**
+ * Server-side role guard. Use at the top of role-scoped layouts.
+ *
+ * - No session at all → /login?next=<currentPath>
+ * - Session but no active membership → /login?orphan=1 (handled there)
+ * - Wrong role → redirect to their actual dashboard (e.g. admin trying /owner)
+ *
+ * On match, returns the member so the layout can pass info downward without
+ * a second round-trip.
+ */
+export async function requireRole(
+  expected: Role,
+  currentPath: string
+): Promise<CurrentMember> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(currentPath)}`);
+  }
+
+  const member = await getCurrentMember();
+  if (!member) {
+    // Authenticated but no membership row. Could be: (a) signup email not yet
+    // confirmed + provisioned, (b) invitee whose accept_invitation call
+    // never ran. Either way, /login knows how to recover via user_metadata.
+    redirect(`/login?orphan=1&next=${encodeURIComponent(currentPath)}`);
+  }
+
+  if (member.role !== expected) {
+    redirect(`/${member.role}`);
+  }
+
+  return member;
+}
+

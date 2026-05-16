@@ -506,6 +506,99 @@ export function useFreeSoloSlots(
   return state;
 }
 
+/* ────────── useSoloSlotGrid ────────── */
+
+export type SlotStatus = "available" | "booked" | "blocked" | "past";
+export type SlotCell = { startsAt: string; status: SlotStatus };
+
+type GridState = {
+  cells: SlotCell[];
+  loading: boolean;
+  error: string | null;
+};
+
+/**
+ * Reads the full slot grid for (serviceId, date) via `solo_slot_grid`. Unlike
+ * `useFreeSoloSlots`, this returns every candidate slot in the studio's hours
+ * window with a status flag so the UI can render blocked/booked/past slots
+ * (disabled) alongside available ones — that way the user sees the full day
+ * and understands what's already taken.
+ */
+export function useSoloSlotGrid(
+  serviceId: string | undefined,
+  date: string | undefined,
+  /** Slot step in minutes. Use the service's duration_min so a 60-min
+   * service produces non-overlapping 60-min slots. */
+  stepMinutes: number | undefined
+) {
+  const [state, setState] = useState<GridState>(() => ({
+    cells: [],
+    loading: Boolean(serviceId && date && stepMinutes),
+    error: null,
+  }));
+
+  const runQuery = useCallback(async (): Promise<GridState> => {
+    if (!serviceId || !date || !stepMinutes) {
+      return { cells: [], loading: false, error: null };
+    }
+    try {
+      const supabase = createClient();
+      // Generated supabase types don't yet include `solo_slot_grid` (would
+      // come from `npm run gen:types` after migration push). Use the
+      // untyped overload; runtime is unchanged.
+      const { data, error } = await (
+        supabase.rpc as unknown as (
+          fn: string,
+          args: Record<string, unknown>
+        ) => PromiseLike<{
+          data: unknown;
+          error: { message: string } | null;
+        }>
+      )("solo_slot_grid", {
+        p_service_id: serviceId,
+        p_date: date,
+        p_step_minutes: stepMinutes,
+      });
+      if (error) return { cells: [], loading: false, error: error.message };
+      const rows = Array.isArray(data) ? (data as Array<Record<string, unknown>>) : [];
+      const cells: SlotCell[] = rows.map((r) => ({
+        startsAt: String(r.slot_at),
+        status: r.slot_status as SlotStatus,
+      }));
+      return { cells, loading: false, error: null };
+    } catch (e) {
+      return {
+        cells: [],
+        loading: false,
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  }, [serviceId, date, stepMinutes]);
+
+  const refetch = useCallback(async () => {
+    const next = await runQuery();
+    setState(next);
+  }, [runQuery]);
+
+  useEffect(() => {
+    if (!serviceId || !date || !stepMinutes) {
+      setState({ cells: [], loading: false, error: null });
+      return;
+    }
+    let cancelled = false;
+    setState((s) => ({ ...s, loading: true, error: null }));
+    runQuery().then((next) => {
+      if (cancelled) return;
+      setState(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceId, date, stepMinutes, runQuery]);
+
+  return { ...state, refetch };
+}
+
 export async function bookSolo(
   serviceId: string,
   startsAt: Date

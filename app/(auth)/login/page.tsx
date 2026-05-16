@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
@@ -9,9 +9,25 @@ import { Divider, Field, Input } from "../_form";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="inline-flex items-center gap-2 text-[14px] text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Loading…
+        </div>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
   const search = useSearchParams();
   const next = search.get("next");
+  const orphan = search.get("orphan") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -39,17 +55,22 @@ export default function LoginPage() {
       return;
     }
 
-    // First-login auto-provision: if this user has no active membership, they
-    // came from a confirmed-email signup and we still need to create their
-    // studio. The RPC is idempotent so this is safe to call.
-    const provisionedTarget = await ensureProvisioned(supabase);
+    const result = await ensureProvisioned(supabase);
 
-    // Resolve where to send them: ?next=<path>, else the resolved dashboard.
-    if (next && /^\/(owner|admin|client)(\/|$)/.test(next)) {
-      router.replace(next);
-    } else {
-      router.replace(provisionedTarget);
+    if (result.kind === "error") {
+      setError(result.message);
+      setSubmitting(false);
+      return;
     }
+
+    const resolvedRole = result.role;
+    const resolvedHome = `/${resolvedRole}`;
+
+    // Only honor ?next= if it matches the user's actual role. Prevents an
+    // admin from being deep-linked to /owner.
+    const nextMatchesRole =
+      next && new RegExp(`^/${resolvedRole}(/|$)`).test(next);
+    router.replace(nextMatchesRole ? next : resolvedHome);
     // Don't unset submitting — we're navigating away.
   }
 
@@ -59,6 +80,13 @@ export default function LoginPage() {
       <p className="text-[14px] text-muted-foreground mb-8">
         Sign in to keep running your studio.
       </p>
+
+      {orphan && !error && (
+        <div className="rounded-lg border border-[--warn]/30 bg-[--warn]/10 px-3 py-2.5 text-[12px] text-[--warn] mb-5">
+          Sign in to finish setting up your account. If you were invited but
+          the link expired, ask whoever invited you for a fresh one.
+        </div>
+      )}
 
       <form onSubmit={onSubmit} className="space-y-4">
         <Field label="Email">
@@ -156,20 +184,33 @@ function humanizeAuthError(msg: string): string {
   return msg;
 }
 
+type ProvisionResult =
+  | { kind: "ok"; role: "owner" | "admin" | "client" }
+  | { kind: "error"; message: string };
+
 /**
- * After a successful sign-in: figure out where to send the user, and if they
- * have no membership yet (post-email-confirmation signup), create one now.
- * Pending state from /signup is stashed in sessionStorage:
- *   - "maison.pending_invite_token" -> accept invitation (admin/client signup)
- *   - "maison.pending_studio_name"  -> create studio (owner signup)
+ * After a successful sign-in, resolve the user's role and complete any
+ * pending provisioning step.
+ *
+ * Source of truth for intent is `auth.users.user_metadata` (set during
+ * signup), NOT sessionStorage — that prior implementation broke whenever a
+ * user confirmed their email in a different tab/browser, silently turning
+ * invitees into owners.
+ *
+ *   - Has owner membership      -> /owner
+ *   - Has admin membership      -> /admin
+ *   - Has client membership     -> /client
+ *   - No membership + invite_token in metadata -> accept_invitation
+ *   - No membership + intended_role='owner'    -> create_studio_for_owner
+ *   - No membership + no metadata              -> error ("orphan" account)
  */
 async function ensureProvisioned(
   supabase: ReturnType<typeof createClient>
-): Promise<string> {
+): Promise<ProvisionResult> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return "/login";
+  if (!user) return { kind: "error", message: "Sign-in failed unexpectedly." };
 
   const { data: rows } = await supabase
     .from("studio_members")
@@ -178,48 +219,59 @@ async function ensureProvisioned(
     .eq("status", "active");
 
   const roles = (rows ?? []).map((r) => r.role as string);
-  if (roles.includes("owner")) return "/owner";
-  if (roles.includes("admin")) return "/admin";
-  if (roles.includes("client")) return "/client";
+  if (roles.includes("owner")) return { kind: "ok", role: "owner" };
+  if (roles.includes("admin")) return { kind: "ok", role: "admin" };
+  if (roles.includes("client")) return { kind: "ok", role: "client" };
 
-  // Pending invite (admin / client confirmation flow)
-  let pendingInvite: string | null = null;
-  let pendingName: string | null = null;
-  try {
-    pendingInvite = sessionStorage.getItem("maison.pending_invite_token");
-    pendingName = sessionStorage.getItem("maison.pending_studio_name");
-    sessionStorage.removeItem("maison.pending_invite_token");
-    sessionStorage.removeItem("maison.pending_studio_name");
-  } catch {
-    /* sessionStorage unavailable */
-  }
+  const meta = (user.user_metadata ?? {}) as {
+    invite_token?: string;
+    intended_role?: string;
+    studio_name?: string;
+  };
 
-  if (pendingInvite) {
+  if (meta.invite_token) {
     const { error } = await supabase.rpc("accept_invitation", {
-      p_token: pendingInvite,
+      p_token: meta.invite_token,
     });
     if (error) {
       console.error("[login] accept_invitation failed:", error.message);
-      return "/owner"; // dead-end; UI will show empty state, user can re-invite
+      return {
+        kind: "error",
+        message:
+          "We couldn't accept your invite. It may have been cancelled or expired — ask whoever invited you for a fresh link.",
+      };
     }
-    // Re-read role to know where to send them.
     const { data: postRows } = await supabase
       .from("studio_members")
       .select("role")
       .eq("user_id", user.id)
       .eq("status", "active");
     const postRoles = (postRows ?? []).map((r) => r.role as string);
-    if (postRoles.includes("admin")) return "/admin";
-    if (postRoles.includes("client")) return "/client";
-    return "/owner";
+    if (postRoles.includes("admin")) return { kind: "ok", role: "admin" };
+    if (postRoles.includes("client")) return { kind: "ok", role: "client" };
+    return {
+      kind: "error",
+      message: "Invite accepted but membership wasn't created. Try again.",
+    };
   }
 
-  // No invite -> fresh owner signup. Auto-provision a studio.
-  const { error } = await supabase.rpc("create_studio_for_owner", {
-    p_studio_name: pendingName ?? "",
-  });
-  if (error) {
-    console.error("[login] create_studio_for_owner failed:", error.message);
+  if (meta.intended_role === "owner") {
+    const { error } = await supabase.rpc("create_studio_for_owner", {
+      p_studio_name: meta.studio_name ?? "",
+    });
+    if (error) {
+      return {
+        kind: "error",
+        message: `Studio setup failed: ${error.message}. Try signing in again.`,
+      };
+    }
+    return { kind: "ok", role: "owner" };
   }
-  return "/owner";
+
+  // Authenticated but unknown intent — refuse to silently make them an owner.
+  return {
+    kind: "error",
+    message:
+      "Your account isn't attached to any studio. If you were invited, open your invite link again. Otherwise, create a new studio at /signup.",
+  };
 }

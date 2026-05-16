@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Poppins, Geist_Mono } from "next/font/google";
+import { Toaster } from "react-hot-toast";
 import { ThemeProvider, themeBootScript } from "@/components/theme-provider";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
@@ -68,6 +69,23 @@ export default function RootLayout({
           {children}
           <OfflineIndicator />
           <PWAInstallPrompt />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3500,
+              style: {
+                background: "var(--card)",
+                color: "var(--foreground)",
+                border: "1px solid var(--border)",
+                fontSize: "13px",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              },
+              success: { iconTheme: { primary: "var(--pos)", secondary: "var(--card)" } },
+              error: { iconTheme: { primary: "var(--neg)", secondary: "var(--card)" } },
+            }}
+          />
         </ThemeProvider>
         <Script id="register-sw" strategy="afterInteractive">
           {`if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); }`}

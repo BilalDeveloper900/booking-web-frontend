@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -1200,7 +1200,22 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_client_summary: {
+        Row: {
+          admin_member_id: string | null
+          client_hue: number | null
+          client_member_id: string | null
+          client_name: string | null
+          favourite_service: string | null
+          favourite_service_hue: number | null
+          last_visit_at: string | null
+          next_visit_at: string | null
+          studio_id: string | null
+          total_credits_charged: number | null
+          visits: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string }
@@ -1250,8 +1265,27 @@ export type Database = {
         Args: { p_date: string; p_service_id: string; p_step_minutes?: number }
         Returns: string[]
       }
+      gift_credits: {
+        Args: { p_amount: number; p_member_id: string; p_reason: string }
+        Returns: number
+      }
       is_member_of: { Args: { target_studio: string }; Returns: boolean }
       my_role_in: { Args: { target_studio: string }; Returns: string }
+      my_threads_overview: {
+        Args: never
+        Returns: {
+          last_message_at: string
+          last_message_body: string
+          last_message_sender_member_id: string
+          my_member_id: string
+          other_hue: number
+          other_member_id: string
+          other_name: string
+          studio_id: string
+          thread_id: string
+          unread_count: number
+        }[]
+      }
       peek_invitation: {
         Args: { p_token: string }
         Returns: {
@@ -1269,6 +1303,7 @@ export type Database = {
         Args: { p_duration: number; p_starts: string }
         Returns: unknown
       }
+      start_thread: { Args: { p_other_member_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

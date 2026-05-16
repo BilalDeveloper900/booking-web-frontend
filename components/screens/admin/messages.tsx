@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, Send, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HueAvatar, PersonCell } from "@/components/shared";
+import { useCurrentMember } from "@/lib/auth/use-current-member";
 import {
-  ADMIN_THREADS,
-  ADMIN_CHAT_MESSAGES,
-  type ChatMessage,
-  type MessageThread,
-} from "@/lib/data";
+  useChatThreads,
+  useChatMessages,
+  sendChatMessage,
+  markThreadRead,
+  type ChatThreadRow,
+} from "@/lib/chat";
 import { cn } from "@/lib/utils";
 
 const QUICK_REPLIES = [
@@ -19,62 +22,88 @@ const QUICK_REPLIES = [
   "Send booking link",
 ];
 
-function nowStamp() {
-  return new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function newId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `m-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export function AdminMessages() {
-  const [activeId, setActiveId] = useState<string>(ADMIN_THREADS[0].id);
-  const [showConvo, setShowConvo] = useState(false);
+  const { member } = useCurrentMember();
+  const myMemberId = member?.member.id;
+  const searchParams = useSearchParams();
+  const requestedThreadId = searchParams.get("thread") ?? undefined;
+
+  const { threads, loading: threadsLoading, refetch: refetchThreads } =
+    useChatThreads({ myMemberId });
+
+  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  // Initial mobile state: if we deep-linked to a thread, show it; otherwise
+  // show the inbox.
+  const [showConvo, setShowConvo] = useState(() => Boolean(requestedThreadId));
   const [inputValue, setInputValue] = useState("");
-  const [messagesByThread, setMessagesByThread] = useState<Record<string, ChatMessage[]>>(
-    () => ({ [ADMIN_THREADS[0].id]: [...ADMIN_CHAT_MESSAGES] })
+  const [sending, setSending] = useState(false);
+
+  // Effective active thread is derived: user pick > URL param > first thread.
+  // We derive instead of writing to state so we don't violate
+  // react-hooks/set-state-in-effect.
+  const activeId = useMemo<string | undefined>(() => {
+    if (selectedId && threads.some((t) => t.threadId === selectedId)) {
+      return selectedId;
+    }
+    if (
+      requestedThreadId &&
+      threads.some((t) => t.threadId === requestedThreadId)
+    ) {
+      return requestedThreadId;
+    }
+    return threads[0]?.threadId;
+  }, [selectedId, requestedThreadId, threads]);
+
+  const activeThread = useMemo(
+    () => threads.find((t) => t.threadId === activeId),
+    [threads, activeId]
   );
 
-  const activeThread = ADMIN_THREADS.find((t) => t.id === activeId)!;
-  const messages = messagesByThread[activeId] ?? [];
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const { messages, loading: messagesLoading } = useChatMessages({
+    threadId: activeId,
+    myMemberId,
+  });
 
-  // Auto-scroll to bottom on new message or thread switch
+  // Mark as read when opening / receiving in the active thread.
+  useEffect(() => {
+    if (!activeId || !myMemberId) return;
+    if (messages.length === 0 && messagesLoading) return;
+    markThreadRead({ threadId: activeId, myMemberId })
+      .then(() => refetchThreads())
+      .catch((e) => console.error("[admin/messages] markThreadRead:", e));
+  }, [activeId, myMemberId, messages.length, messagesLoading, refetchThreads]);
+
+  // Auto-scroll on new message or thread switch.
+  const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [activeId, messages.length]);
 
-  function selectThread(t: MessageThread) {
-    setActiveId(t.id);
+  function selectThread(t: ChatThreadRow) {
+    setSelectedId(t.threadId);
     setShowConvo(true);
     setInputValue("");
-    // Lazy-init each thread with the demo log the first time it's opened
-    setMessagesByThread((prev) =>
-      prev[t.id] ? prev : { ...prev, [t.id]: [...ADMIN_CHAT_MESSAGES] }
-    );
   }
 
-  function send(text: string) {
+  async function send(text: string) {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    const msg: ChatMessage = {
-      id: newId(),
-      sender: "me",
-      text: trimmed,
-      time: nowStamp(),
-    };
-    setMessagesByThread((prev) => ({
-      ...prev,
-      [activeId]: [...(prev[activeId] ?? ADMIN_CHAT_MESSAGES), msg],
-    }));
+    if (!trimmed || !activeId || !myMemberId || sending) return;
+    setSending(true);
     setInputValue("");
+    try {
+      await sendChatMessage({
+        threadId: activeId,
+        senderMemberId: myMemberId,
+        body: trimmed,
+      });
+    } catch (e) {
+      console.error("[admin/messages] sendChatMessage:", e);
+      setInputValue(trimmed); // restore on failure
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -97,43 +126,43 @@ export function AdminMessages() {
         </div>
 
         <div className="flex-1 overflow-auto">
-          {ADMIN_THREADS.map((t) => {
-            const last = messagesByThread[t.id]?.at(-1);
-            return (
-              <button
-                key={t.id}
-                onClick={() => selectThread(t)}
-                aria-pressed={t.id === activeId}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 text-left motion-safe:transition-colors motion-safe:duration-150 hover:bg-muted/50 focus-visible:outline-none focus-visible:bg-muted",
-                  t.id === activeId && "bg-muted"
-                )}
-              >
-                <div className="relative shrink-0">
-                  <HueAvatar name={t.name} hue={t.hue} size={36} />
-                  {t.online && (
-                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[--pos] border-2 border-card" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between mb-0.5 gap-2">
-                    <span className="text-[13px] font-medium truncate">{t.name}</span>
-                    <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">
-                      {last?.time ?? t.time}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {last?.text ?? t.lastMsg}
-                  </div>
-                </div>
-                {t.unread > 0 && t.id !== activeId && (
-                  <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-medium grid place-items-center shrink-0 tabular-nums">
-                    {t.unread}
+          {threadsLoading && (
+            <div className="px-4 py-6 text-sm text-muted-foreground">Loading…</div>
+          )}
+          {!threadsLoading && threads.length === 0 && (
+            <div className="px-4 py-6 text-sm text-muted-foreground">
+              No conversations yet. Start one from your clients list.
+            </div>
+          )}
+          {threads.map((t) => (
+            <button
+              key={t.threadId}
+              onClick={() => selectThread(t)}
+              aria-pressed={t.threadId === activeId}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 text-left motion-safe:transition-colors motion-safe:duration-150 hover:bg-muted/50 focus-visible:outline-none focus-visible:bg-muted",
+                t.threadId === activeId && "bg-muted"
+              )}
+            >
+              <HueAvatar name={t.otherName} hue={t.otherHue} size={36} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between mb-0.5 gap-2">
+                  <span className="text-[13px] font-medium truncate">{t.otherName}</span>
+                  <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">
+                    {t.lastMessageAt ? relativeTime(t.lastMessageAt) : ""}
                   </span>
-                )}
-              </button>
-            );
-          })}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {t.lastMessageBody ?? "Conversation started"}
+                </div>
+              </div>
+              {t.unreadCount > 0 && t.threadId !== activeId && (
+                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-medium grid place-items-center shrink-0 tabular-nums">
+                  {t.unreadCount}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -143,95 +172,129 @@ export function AdminMessages() {
           showConvo ? "flex" : "hidden lg:flex"
         )}
       >
-        <div className="flex items-center gap-3 px-4 lg:px-6 py-3 border-b border-border bg-card">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Back to messages"
-            onClick={() => setShowConvo(false)}
-            className="lg:hidden"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <PersonCell
-            name={activeThread.name}
-            meta={activeThread.online ? "Online" : "Offline"}
-            hue={activeThread.hue}
-          />
-          <div className="flex-1" />
-          <Button variant="outline" size="sm">View bookings</Button>
-        </div>
-
-        <div ref={scrollRef} className="flex-1 overflow-auto p-4 lg:p-6 flex flex-col gap-3">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={cn(
-                "max-w-[75%] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-200",
-                m.sender === "me" ? "ml-auto" : "mr-auto"
-              )}
-            >
-              <div
-                className={cn(
-                  "px-4 py-2.5 text-[13px] leading-relaxed",
-                  m.sender === "me"
-                    ? "bg-primary text-primary-foreground rounded-2xl rounded-br-md"
-                    : "bg-muted rounded-2xl rounded-bl-md"
-                )}
+        {activeThread ? (
+          <>
+            <div className="flex items-center gap-3 px-4 lg:px-6 py-3 border-b border-border bg-card">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Back to messages"
+                onClick={() => setShowConvo(false)}
+                className="lg:hidden"
               >
-                {m.text}
-              </div>
-              <div
-                className={cn(
-                  "text-[10px] text-muted-foreground mt-1 tabular-nums",
-                  m.sender === "me" ? "text-right" : "text-left"
-                )}
-              >
-                {m.time}
-              </div>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <PersonCell name={activeThread.otherName} hue={activeThread.otherHue} />
             </div>
-          ))}
-        </div>
 
-        <div className="flex items-center gap-2 px-4 lg:px-6 pb-2 flex-wrap">
-          {QUICK_REPLIES.map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => send(r)}
-              className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:bg-muted hover:border-[--role-accent] motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <div ref={scrollRef} className="flex-1 overflow-auto p-4 lg:p-6 flex flex-col gap-3">
+              {messagesLoading && messages.length === 0 && (
+                <div className="text-center text-sm text-muted-foreground py-8">
+                  Loading messages…
+                </div>
+              )}
+              {!messagesLoading && messages.length === 0 && (
+                <div className="text-center text-sm text-muted-foreground py-8">
+                  No messages yet — say hi.
+                </div>
+              )}
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={cn(
+                    "max-w-[75%] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-200",
+                    m.fromMe ? "ml-auto" : "mr-auto"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "px-4 py-2.5 text-[13px] leading-relaxed",
+                      m.fromMe
+                        ? "bg-primary text-primary-foreground rounded-2xl rounded-br-md"
+                        : "bg-muted rounded-2xl rounded-bl-md"
+                    )}
+                  >
+                    {m.body}
+                  </div>
+                  <div
+                    className={cn(
+                      "text-[10px] text-muted-foreground mt-1 tabular-nums",
+                      m.fromMe ? "text-right" : "text-left"
+                    )}
+                  >
+                    {timeStamp(m.createdAt)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 px-4 lg:px-6 pb-2 flex-wrap">
+              {QUICK_REPLIES.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => send(r)}
+                  disabled={sending}
+                  className="text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:bg-muted hover:border-[--role-accent] motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                send(inputValue);
+              }}
+              className="flex items-center gap-3 px-4 lg:px-6 py-3 border-t border-border bg-card"
             >
-              {r}
-            </button>
-          ))}
-        </div>
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send(inputValue);
-          }}
-          className="flex items-center gap-3 px-4 lg:px-6 py-3 border-t border-border bg-card"
-        >
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type a message…"
-            className="flex-1 bg-muted/70 hover:bg-muted focus:bg-muted rounded-lg px-4 py-2.5 text-[13px] outline-none border border-transparent focus:border-ring motion-safe:transition-colors motion-safe:duration-150"
-            aria-label="Message"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            aria-label="Send message"
-            className="shrink-0"
-            disabled={inputValue.trim().length === 0}
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </form>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Type a message…"
+                className="flex-1 bg-muted/70 hover:bg-muted focus:bg-muted rounded-lg px-4 py-2.5 text-[13px] outline-none border border-transparent focus:border-ring motion-safe:transition-colors motion-safe:duration-150"
+                aria-label="Message"
+                disabled={sending}
+              />
+              <Button
+                type="submit"
+                size="icon"
+                aria-label="Send message"
+                className="shrink-0"
+                disabled={inputValue.trim().length === 0 || sending}
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </form>
+          </>
+        ) : (
+          <div className="flex-1 grid place-items-center text-sm text-muted-foreground">
+            {threadsLoading ? "Loading…" : "Select a conversation"}
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function timeStamp(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function relativeTime(iso: string): string {
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return "now";
+  if (diffMin < 60) return `${diffMin}m`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d`;
+  return d.toLocaleDateString([], { day: "numeric", month: "short" });
 }
