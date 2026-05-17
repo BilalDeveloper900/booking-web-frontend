@@ -17,7 +17,9 @@ interface AppBottomTabsProps {
  * source of truth feeds desktop sidebar + mobile tabs.
  */
 export function AppBottomTabs({ config, currentPath }: AppBottomTabsProps) {
-  const { navItems } = config;
+  // Messages is reachable from the topbar icon (with live unread badge), so
+  // we drop it from the mobile bottom bar to save a slot.
+  const navItems = config.navItems.filter((i) => i.id !== "messages");
 
   function isActive(href: string) {
     const isRootNav = navItems[0]?.href === href;
@@ -53,7 +55,7 @@ export function AppBottomTabs({ config, currentPath }: AppBottomTabsProps) {
                   {badge && (
                     <span
                       aria-hidden
-                      className="absolute -top-1.5 -right-2.5 min-w-4 h-4 px-1 rounded-full bg-[--role-accent] text-white text-[9px] font-bold tabular-nums grid place-items-center"
+                      className="notif-badge absolute -top-1.5 -right-2.5 min-w-4 h-4 px-1 rounded-full text-[9px] font-bold tabular-nums grid place-items-center"
                     >
                       {badge}
                     </span>

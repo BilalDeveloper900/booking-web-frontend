@@ -180,25 +180,81 @@
   --role-accent: var(--teal-700);
   --role-accent-light: var(--teal-100);
   --role-accent-dark: var(--teal-900);
+  --role-accent-foreground: oklch(0.985 0 0);
   --ring: var(--teal-700);
 }
 [data-role="admin"] {
   --role-accent: oklch(0.55 0.10 260);
   --role-accent-light: oklch(0.94 0.03 260);
   --role-accent-dark: oklch(0.30 0.06 260);
+  --role-accent-foreground: oklch(0.985 0 0);
   --ring: oklch(0.55 0.10 260);
 }
 [data-role="client"] {
   --role-accent: oklch(0.55 0.12 155);
   --role-accent-light: oklch(0.94 0.03 155);
   --role-accent-dark: oklch(0.30 0.06 155);
+  --role-accent-foreground: oklch(0.985 0 0);
   --ring: oklch(0.55 0.12 155);
+}
+
+/* Notification badge — used on the topbar chat icon, sidebar Messages,
+ * Bell dot. Pairs the role accent with a guaranteed-contrast foreground
+ * and a halo that adapts to light/dark so the badge always reads as
+ * elevated above the surface beneath it. */
+@layer utilities {
+  .notif-badge {
+    background: var(--role-accent);
+    color: var(--role-accent-foreground);
+    box-shadow:
+      0 0 0 2px var(--card),
+      0 1px 2px rgba(15, 23, 42, 0.18);
+  }
+  .dark .notif-badge {
+    box-shadow:
+      0 0 0 2px var(--card),
+      0 0 0 3px rgba(255, 255, 255, 0.04),
+      0 1px 2px rgba(0, 0, 0, 0.45);
+  }
+  .notif-dot {
+    background: var(--role-accent);
+    box-shadow: 0 0 0 2px var(--card);
+  }
+  .dark .notif-dot {
+    box-shadow:
+      0 0 0 2px var(--card),
+      0 0 0 3px rgba(255, 255, 255, 0.04);
+  }
 }
 
 /* Elevation utilities — use via the design-system MASTER §4 ladder. */
 @layer utilities {
   .shadow-card {
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  /* react-hot-toast container theming.
+   * react-hot-toast applies inline default styles (white bg, dark text) so
+   * we need !important to override. CSS vars in this class adapt to light
+   * vs. dark automatically via the :root / .dark scopes. */
+  .toast-themed {
+    background: var(--card) !important;
+    color: var(--foreground) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+    line-height: 1.35 !important;
+    padding: 12px 14px !important;
+    max-width: 380px !important;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.06),
+      0 8px 24px -6px rgba(15, 23, 42, 0.12) !important;
+  }
+  .dark .toast-themed {
+    /* Black shadows are invisible on dark surfaces — use a wider, slightly
+     * lighter halo so the toast still reads as elevated. */
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 8px 24px -6px rgba(0, 0, 0, 0.55) !important;
   }
   .shadow-hero {
     box-shadow:

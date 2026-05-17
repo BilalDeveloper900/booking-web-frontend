@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { Bell, Menu, MessageSquare, Search } from "lucide-react";
 import { ProfileMenu } from "@/components/profile-menu";
 import { HueAvatar } from "@/components/shared";
+import { useUnread } from "@/components/chat-notifications";
 import type { RoleConfig } from "@/lib/roles";
 
 interface AppTopbarProps {
@@ -13,6 +15,11 @@ interface AppTopbarProps {
 
 export function AppTopbar({ title, config, onMenuClick }: AppTopbarProps) {
   const { user, role } = config;
+  const messagesHref = `/${role}/messages`;
+
+  const unread = useUnread();
+  const unreadLabel =
+    unread > 0 ? `Messages — ${unread} unread` : "Messages";
 
   return (
     <div className="h-16 shrink-0 border-b border-border flex items-center px-4 md:px-8 gap-5 bg-card/80 backdrop-blur supports-backdrop-filter:bg-card/70">
@@ -44,15 +51,24 @@ export function AppTopbar({ title, config, onMenuClick }: AppTopbarProps) {
         <Bell className="w-4 h-4" aria-hidden />
         <span
           aria-hidden
-          className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[--role-accent]"
+          className="notif-dot absolute top-2 right-2 w-1.5 h-1.5 rounded-full"
         />
       </button>
-      <button
-        aria-label="Messages"
-        className="w-9 h-9 grid place-items-center rounded-lg hover:bg-muted text-muted-foreground motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+      <Link
+        href={messagesHref}
+        aria-label={unreadLabel}
+        className="relative ml-auto md:ml-0 first:ml-auto w-9 h-9 grid place-items-center rounded-lg hover:bg-muted text-muted-foreground motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
       >
         <MessageSquare className="w-4 h-4" aria-hidden />
-      </button>
+        {unread > 0 && (
+          <span
+            aria-hidden
+            className="bg-muted text-muted-foreground absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 rounded-full text-[10px] font-semibold tabular-nums grid place-items-center"
+          >
+            {unread > 99 ? "99+" : unread}
+          </span>
+        )}
+      </Link>
       <ProfileMenu
         user={user}
         role={role}

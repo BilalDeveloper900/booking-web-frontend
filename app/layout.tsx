@@ -73,17 +73,22 @@ export default function RootLayout({
             position="top-right"
             toastOptions={{
               duration: 3500,
-              style: {
-                background: "var(--card)",
-                color: "var(--foreground)",
-                border: "1px solid var(--border)",
-                fontSize: "13px",
-                padding: "10px 14px",
-                borderRadius: "10px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              // .toast-themed (defined in globals.css) uses CSS variables +
+              // !important so it overrides react-hot-toast's inline white
+              // background and adapts to light/dark via :root and .dark.
+              className: "toast-themed",
+              success: {
+                iconTheme: {
+                  primary: "var(--pos)",
+                  secondary: "var(--card)",
+                },
               },
-              success: { iconTheme: { primary: "var(--pos)", secondary: "var(--card)" } },
-              error: { iconTheme: { primary: "var(--neg)", secondary: "var(--card)" } },
+              error: {
+                iconTheme: {
+                  primary: "var(--neg)",
+                  secondary: "var(--card)",
+                },
+              },
             }}
           />
         </ThemeProvider>

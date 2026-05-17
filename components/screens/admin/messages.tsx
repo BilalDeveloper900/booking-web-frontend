@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Search, Send, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HueAvatar, PersonCell } from "@/components/shared";
+import { ChatMessage } from "@/components/chat-message";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import {
   useChatThreads,
@@ -199,32 +200,7 @@ export function AdminMessages() {
                 </div>
               )}
               {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={cn(
-                    "max-w-[75%] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-200",
-                    m.fromMe ? "ml-auto" : "mr-auto"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "px-4 py-2.5 text-[13px] leading-relaxed",
-                      m.fromMe
-                        ? "bg-primary text-primary-foreground rounded-2xl rounded-br-md"
-                        : "bg-muted rounded-2xl rounded-bl-md"
-                    )}
-                  >
-                    {m.body}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-[10px] text-muted-foreground mt-1 tabular-nums",
-                      m.fromMe ? "text-right" : "text-left"
-                    )}
-                  >
-                    {timeStamp(m.createdAt)}
-                  </div>
-                </div>
+                <ChatMessage key={m.id} message={m} />
               ))}
             </div>
 
@@ -277,13 +253,6 @@ export function AdminMessages() {
       </div>
     </div>
   );
-}
-
-function timeStamp(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 function relativeTime(iso: string): string {

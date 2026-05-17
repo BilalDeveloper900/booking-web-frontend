@@ -17,10 +17,13 @@
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 // ─────────── Types ───────────
+
+export type SenderRole = "owner" | "admin" | "client" | null;
+export type MessageKind = "text" | "booking_event";
 
 export type ChatThreadRow = {
   threadId: string;
@@ -32,6 +35,7 @@ export type ChatThreadRow = {
   lastMessageAt: string | null;
   lastMessageBody: string | null;
   lastMessageSenderMemberId: string | null;
+  lastMessageSenderRole: SenderRole;
   unreadCount: number;
 };
 
@@ -39,10 +43,31 @@ export type ChatMessageRow = {
   id: string;
   threadId: string;
   senderMemberId: string;
+  senderRole: SenderRole;
   body: string;
+  kind: MessageKind;
+  attachedBookingId: string | null;
   createdAt: string;
   fromMe: boolean;
 };
+
+export type StudioThreadRow = {
+  threadId: string;
+  studioId: string;
+  clientMemberId: string | null;
+  clientName: string | null;
+  clientHue: number | null;
+  adminMemberId: string | null;
+  adminName: string | null;
+  adminHue: number | null;
+  lastMessageAt: string | null;
+  lastMessageBody: string | null;
+  lastMessageRole: SenderRole;
+  lastMessageSenderId: string | null;
+  unreadAny: boolean;
+};
+
+export type StudioThreadFilter = "all" | "today" | "unread";
 
 // ─────────── useChatThreads ───────────
 
@@ -54,6 +79,11 @@ type ThreadsState = {
 
 export function useChatThreads(args: { myMemberId: string | undefined }) {
   const { myMemberId } = args;
+  // useId gives us a stable-per-component-instance suffix so multiple
+  // components on the same page (e.g. topbar badge + messages screen) don't
+  // try to reuse the same realtime channel name — which fails with
+  // "cannot add `postgres_changes` callbacks after `subscribe()`".
+  const instanceId = useId();
   const [state, setState] = useState<ThreadsState>(() => ({
     threads: [],
     loading: Boolean(myMemberId),
@@ -63,7 +93,7 @@ export function useChatThreads(args: { myMemberId: string | undefined }) {
   const refetch = useCallback(async () => {
     if (!myMemberId) return;
     const supabase = createClient();
-    const { data, error } = await supabase.rpc("my_threads_overview");
+    const { data, error } = await callMyThreadsOverview(supabase);
     if (error) {
       setState({ threads: [], loading: false, error: error.message });
       return;
@@ -80,7 +110,7 @@ export function useChatThreads(args: { myMemberId: string | undefined }) {
     let cancelled = false;
     const supabase = createClient();
 
-    supabase.rpc("my_threads_overview").then(({ data, error }) => {
+    callMyThreadsOverview(supabase).then(({ data, error }) => {
       if (cancelled) return;
       if (error) {
         setState({ threads: [], loading: false, error: error.message });
@@ -97,12 +127,12 @@ export function useChatThreads(args: { myMemberId: string | undefined }) {
     // RLS filters the subscription server-side; we only see messages in
     // threads we participate in.
     const channel = supabase
-      .channel(`chat:inbox:${myMemberId}`)
+      .channel(`chat:inbox:${myMemberId}:${instanceId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         () => {
-          supabase.rpc("my_threads_overview").then(({ data, error }) => {
+          callMyThreadsOverview(supabase).then(({ data, error }) => {
             if (cancelled || error) return;
             setState({
               threads: (data ?? []).map(mapThreadRow),
@@ -118,9 +148,22 @@ export function useChatThreads(args: { myMemberId: string | undefined }) {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [myMemberId]);
+  }, [myMemberId, instanceId]);
 
   return { ...state, refetch };
+}
+
+/** Generated supabase types may lag on the new last_message_sender_role
+ * column. This wrapper casts the rpc call to a stable local shape. */
+function callMyThreadsOverview(supabase: ReturnType<typeof createClient>) {
+  return (
+    supabase.rpc as unknown as (
+      fn: string
+    ) => PromiseLike<{
+      data: MyThreadsOverviewRow[] | null;
+      error: { message: string } | null;
+    }>
+  )("my_threads_overview");
 }
 
 function mapThreadRow(
@@ -136,6 +179,7 @@ function mapThreadRow(
     lastMessageAt: r.last_message_at,
     lastMessageBody: r.last_message_body,
     lastMessageSenderMemberId: r.last_message_sender_member_id,
+    lastMessageSenderRole: (r.last_message_sender_role as SenderRole) ?? null,
     unreadCount: Number(r.unread_count ?? 0),
   };
 }
@@ -153,6 +197,7 @@ export function useChatMessages(args: {
   myMemberId: string | undefined;
 }) {
   const { threadId, myMemberId } = args;
+  const instanceId = useId();
   const [state, setState] = useState<MessagesState>(() => ({
     messages: [],
     loading: Boolean(threadId && myMemberId),
@@ -170,7 +215,11 @@ export function useChatMessages(args: {
 
     supabase
       .from("messages")
-      .select("id, thread_id, sender_member_id, body, created_at")
+      // Cast: generated types haven't been regenerated with the new
+      // sender_role / kind / attached_booking_id columns yet.
+      .select(
+        "id, thread_id, sender_member_id, sender_role, body, kind, attached_booking_id, created_at" as "*"
+      )
       .eq("thread_id", threadId)
       .order("created_at", { ascending: true })
       .then(({ data, error }) => {
@@ -180,14 +229,16 @@ export function useChatMessages(args: {
           return;
         }
         setState({
-          messages: (data ?? []).map((m) => mapMessageRow(m, myMemberId)),
+          messages: ((data ?? []) as unknown as MessageInsertPayload[]).map(
+            (m) => mapMessageRow(m, myMemberId)
+          ),
           loading: false,
           error: null,
         });
       });
 
     const channel = supabase
-      .channel(`chat:thread:${threadId}`)
+      .channel(`chat:thread:${threadId}:${instanceId}`)
       .on(
         "postgres_changes",
         {
@@ -215,7 +266,7 @@ export function useChatMessages(args: {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [threadId, myMemberId]);
+  }, [threadId, myMemberId, instanceId]);
 
   return state;
 }
@@ -228,7 +279,10 @@ function mapMessageRow(
     id: r.id,
     threadId: r.thread_id,
     senderMemberId: r.sender_member_id,
+    senderRole: (r.sender_role as SenderRole) ?? null,
     body: r.body,
+    kind: ((r.kind as MessageKind) ?? "text"),
+    attachedBookingId: r.attached_booking_id ?? null,
     createdAt: r.created_at,
     fromMe: r.sender_member_id === myMemberId,
   };
@@ -275,6 +329,127 @@ export async function startThreadWith(otherMemberId: string): Promise<string> {
   return data;
 }
 
+// ─────────── useUnreadTotal — single number for the topbar badge ───────────
+
+/**
+ * Returns the total unread "thing" for the current user, role-aware:
+ *   - owner   → number of studio threads with any participant unread
+ *   - admin   → sum of unread messages across all of admin's threads
+ *   - client  → sum of unread messages across all of client's threads
+ *
+ * Live-updates via the same realtime channels the inbox hooks use.
+ */
+export function useUnreadTotal(args: {
+  role: "owner" | "admin" | "client" | undefined;
+  studioId: string | undefined;
+  myMemberId: string | undefined;
+}) {
+  const { role } = args;
+  const personal = useChatThreads({
+    myMemberId: role === "owner" ? undefined : args.myMemberId,
+  });
+  const studio = useStudioThreads({
+    studioId: role === "owner" ? args.studioId : undefined,
+    filter: "unread",
+  });
+
+  if (role === "owner") return studio.threads.length;
+  return personal.threads.reduce((sum, t) => sum + t.unreadCount, 0);
+}
+
+// ─────────── useStudioThreads (owner inbox) ───────────
+
+type StudioThreadsState = {
+  threads: StudioThreadRow[];
+  loading: boolean;
+  error: string | null;
+};
+
+export function useStudioThreads(args: {
+  studioId: string | undefined;
+  filter: StudioThreadFilter;
+}) {
+  const { studioId, filter } = args;
+  const instanceId = useId();
+  const [state, setState] = useState<StudioThreadsState>(() => ({
+    threads: [],
+    loading: Boolean(studioId),
+    error: null,
+  }));
+
+  const refetch = useCallback(async () => {
+    if (!studioId) return;
+    const supabase = createClient();
+    const { data, error } = await (
+      supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => PromiseLike<{
+        data: StudioThreadsOverviewRow[] | null;
+        error: { message: string } | null;
+      }>
+    )("studio_threads_overview", { p_filter: filter });
+    if (error) {
+      setState({ threads: [], loading: false, error: error.message });
+      return;
+    }
+    setState({
+      threads: (data ?? []).map(mapStudioThreadRow),
+      loading: false,
+      error: null,
+    });
+  }, [studioId, filter]);
+
+  useEffect(() => {
+    if (!studioId) return;
+    let cancelled = false;
+    setState((s) => ({ ...s, loading: true }));
+
+    refetch().catch(() => {
+      /* refetch captures error into state */
+    });
+
+    // Realtime: any message insert in this studio's threads → refetch overview.
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`chat:owner-inbox:${studioId}:${instanceId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        () => {
+          if (cancelled) return;
+          refetch().catch(() => {});
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [studioId, filter, instanceId, refetch]);
+
+  return { ...state, refetch };
+}
+
+function mapStudioThreadRow(r: StudioThreadsOverviewRow): StudioThreadRow {
+  return {
+    threadId: r.thread_id,
+    studioId: r.studio_id,
+    clientMemberId: r.client_member_id,
+    clientName: r.client_name,
+    clientHue: r.client_hue,
+    adminMemberId: r.admin_member_id,
+    adminName: r.admin_name,
+    adminHue: r.admin_hue,
+    lastMessageAt: r.last_message_at,
+    lastMessageBody: r.last_message_body,
+    lastMessageRole: (r.last_message_role as SenderRole) ?? null,
+    lastMessageSenderId: r.last_message_sender_id,
+    unreadAny: Boolean(r.unread_any),
+  };
+}
+
 // ─────────── Local-shape types ───────────
 
 type MyThreadsOverviewRow = {
@@ -287,13 +462,33 @@ type MyThreadsOverviewRow = {
   last_message_at: string | null;
   last_message_body: string | null;
   last_message_sender_member_id: string | null;
+  last_message_sender_role: string | null;
   unread_count: number | null;
+};
+
+type StudioThreadsOverviewRow = {
+  thread_id: string;
+  studio_id: string;
+  client_member_id: string | null;
+  client_name: string | null;
+  client_hue: number | null;
+  admin_member_id: string | null;
+  admin_name: string | null;
+  admin_hue: number | null;
+  last_message_at: string | null;
+  last_message_body: string | null;
+  last_message_role: string | null;
+  last_message_sender_id: string | null;
+  unread_any: boolean | null;
 };
 
 type MessageInsertPayload = {
   id: string;
   thread_id: string;
   sender_member_id: string;
+  sender_role: string | null;
   body: string;
+  kind: string | null;
+  attached_booking_id: string | null;
   created_at: string;
 };

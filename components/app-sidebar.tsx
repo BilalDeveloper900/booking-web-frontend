@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { HueAvatar } from "@/components/shared";
 import { Star, Settings, ChevronUp } from "lucide-react";
 import { ProfileMenu } from "@/components/profile-menu";
+import { useUnread } from "@/components/chat-notifications";
 import type { RoleConfig } from "@/lib/roles";
 
 interface AppSidebarProps {
@@ -17,11 +18,22 @@ export function AppSidebar({ config, currentPath, className }: AppSidebarProps) 
   const { navItems, user } = config;
   const settingsHref = `/${config.role}/settings`;
   const isSettingsActive = currentPath.startsWith(settingsHref);
+  const unread = useUnread();
 
   function isActive(href: string) {
     const isRootNav = navItems[0]?.href === href;
     if (isRootNav) return currentPath === href;
     return currentPath.startsWith(href);
+  }
+
+  /** Live override of the static `badge` in nav config — currently just the
+   * Messages item, driven by the global unread count. */
+  function badgeFor(itemId: string, staticBadge: string | undefined): string | undefined {
+    if (itemId === "messages") {
+      if (unread <= 0) return undefined;
+      return unread > 99 ? "99+" : String(unread);
+    }
+    return staticBadge;
   }
 
   return (
@@ -51,6 +63,7 @@ export function AppSidebar({ config, currentPath, className }: AppSidebarProps) 
       <nav className="flex flex-col gap-0.5">
         {navItems.map(({ id, label, icon: Icon, href, badge }) => {
           const active = isActive(href);
+          const liveBadge = badgeFor(id, badge);
           return (
             <Link
               key={id}
@@ -65,16 +78,18 @@ export function AppSidebar({ config, currentPath, className }: AppSidebarProps) 
             >
               <Icon className="w-4 h-4 shrink-0" aria-hidden />
               <span>{label}</span>
-              {badge && (
+              {liveBadge && (
                 <span
                   className={cn(
                     "ml-auto text-[11px] px-1.5 py-px rounded-full tabular-nums motion-safe:transition-colors motion-safe:duration-150",
-                    active
-                      ? "bg-white/20 text-background"
-                      : "bg-muted text-muted-foreground"
+                    id === "messages" && !active
+                      ? "bg-muted text-muted-foreground"
+                      : active
+                        ? "bg-muted text-muted-foreground"
+                        : "bg-muted text-muted-foreground"
                   )}
                 >
-                  {badge}
+                  {liveBadge}
                 </span>
               )}
             </Link>

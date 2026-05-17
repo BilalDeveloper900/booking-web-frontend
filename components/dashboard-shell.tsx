@@ -10,6 +10,7 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { ChatNotificationsProvider } from "@/components/chat-notifications";
 import { ROLE_CONFIGS, type Role, type RoleConfig } from "@/lib/roles";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 
@@ -49,28 +50,30 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
     : staticConfig;
 
   return (
-    <div data-role={role} className="flex h-dvh overflow-hidden bg-background">
-      <AppSidebar config={config} currentPath={pathname} />
+    <ChatNotificationsProvider>
+      <div data-role={role} className="flex h-dvh overflow-hidden bg-background">
+        <AppSidebar config={config} currentPath={pathname} />
 
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-60 p-0" showCloseButton={false}>
-          <SheetTitle className="sr-only">Account &amp; settings</SheetTitle>
-          <AppSidebar config={config} currentPath={pathname} className="flex w-full border-r-0" />
-        </SheetContent>
-      </Sheet>
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="w-60 p-0" showCloseButton={false}>
+            <SheetTitle className="sr-only">Account &amp; settings</SheetTitle>
+            <AppSidebar config={config} currentPath={pathname} className="flex w-full border-r-0" />
+          </SheetContent>
+        </Sheet>
 
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <AppTopbar
-          title={deriveTitle(pathname, config)}
-          config={config}
-          onMenuClick={() => setMobileOpen(true)}
-        />
-        <main className="flex-1 overflow-hidden flex flex-col min-h-0 pb-[calc(env(safe-area-inset-bottom)+64px)] lg:pb-0">
-          {children}
-        </main>
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <AppTopbar
+            title={deriveTitle(pathname, config)}
+            config={config}
+            onMenuClick={() => setMobileOpen(true)}
+          />
+          <main className="flex-1 overflow-hidden flex flex-col min-h-0 pb-[calc(env(safe-area-inset-bottom)+64px)] lg:pb-0">
+            {children}
+          </main>
+        </div>
+
+        <AppBottomTabs config={config} currentPath={pathname} />
       </div>
-
-      <AppBottomTabs config={config} currentPath={pathname} />
-    </div>
+    </ChatNotificationsProvider>
   );
 }

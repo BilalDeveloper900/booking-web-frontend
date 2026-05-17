@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Send, ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HueAvatar } from "@/components/shared";
+import { ChatMessage } from "@/components/chat-message";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import {
   useChatThreads,
@@ -117,7 +118,8 @@ export function ClientMessages() {
           )}
           {!threadsLoading && threads.length === 0 && (
             <div className="px-4 py-6 text-sm text-muted-foreground">
-              No conversations yet.
+              No conversations yet. Book a session — a thread will open
+              automatically with the admin who runs it.
             </div>
           )}
           {threads.map((t) => (
@@ -167,12 +169,7 @@ export function ClientMessages() {
                 </div>
               )}
               {messages.map((m) => (
-                <ChatBubble
-                  key={m.id}
-                  body={m.body}
-                  time={timeStamp(m.createdAt)}
-                  fromMe={m.fromMe}
-                />
+                <ChatMessage key={m.id} message={m} />
               ))}
             </div>
 
@@ -254,51 +251,6 @@ function ThreadRow({
       </div>
     </button>
   );
-}
-
-function ChatBubble({
-  body,
-  time,
-  fromMe,
-}: {
-  body: string;
-  time: string;
-  fromMe: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-200",
-        fromMe ? "justify-end" : "justify-start"
-      )}
-    >
-      <div
-        className={cn(
-          "max-w-[75%] rounded-2xl px-3.5 py-2.5",
-          fromMe
-            ? "bg-primary text-primary-foreground rounded-br-md"
-            : "bg-muted rounded-bl-md"
-        )}
-      >
-        <p className="text-[13px] leading-relaxed">{body}</p>
-        <p
-          className={cn(
-            "text-[10px] mt-1 tabular-nums",
-            fromMe ? "text-primary-foreground/60" : "text-muted-foreground"
-          )}
-        >
-          {time}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function timeStamp(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 function relativeTime(iso: string): string {
