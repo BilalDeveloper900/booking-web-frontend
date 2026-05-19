@@ -60,11 +60,15 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        {/* Sync — runs before paint to avoid a light->dark flash on cold loads. */}
-        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
-      </head>
       <body className="min-h-full flex flex-col">
+        {/* Runs before any Next.js code + before hydration to set the
+         * .dark class so cold loads don't flash from light to dark.
+         * Inline body MUST be passed as children (not via
+         * dangerouslySetInnerHTML) — React 19 flags the latter as an
+         * inert <script> tag, the children form is the supported path. */}
+        <Script id="theme-boot" strategy="beforeInteractive">
+          {themeBootScript}
+        </Script>
         <ThemeProvider>
           {children}
           <OfflineIndicator />

@@ -13,6 +13,7 @@ import {
   Bell,
   Loader2,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { HueAvatar } from "@/components/shared";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -23,6 +24,7 @@ import {
 import { useTheme } from "@/components/theme-provider";
 import type { RoleConfig } from "@/lib/roles";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
+import { useDesktopNotifications } from "@/lib/desktop-notifications";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -54,12 +56,42 @@ export function ProfileMenu({
   sideOffset = 8,
 }: ProfileMenuProps) {
   const router = useRouter();
-  const [notifications, setNotifications] = React.useState(true);
+  const { permission: notifPermission, request: requestNotifPermission } =
+    useDesktopNotifications();
   const [signingOut, setSigningOut] = React.useState(false);
   const { resolvedTheme, setTheme } = useTheme();
   const { member } = useCurrentMember();
   // Real email from Supabase, with a placeholder until the hook resolves.
   const email = member?.user.email ?? "Loading...";
+
+  const notificationsOn = notifPermission === "granted";
+  async function toggleNotifications(next: boolean) {
+    if (notifPermission === "unsupported") {
+      toast.error("This browser doesn't support desktop notifications.");
+      return;
+    }
+    if (!next) {
+      // Browsers don't expose a programmatic "revoke" — we can only ask the
+      // user to disable it manually from the site settings.
+      toast(
+        "To turn off browser notifications, open this site's permissions in your browser and set Notifications to Block.",
+        { duration: 6000, icon: "ℹ️" }
+      );
+      return;
+    }
+    if (notifPermission === "denied") {
+      toast.error(
+        "Notifications are blocked. Open the site settings in your browser and allow notifications, then try again."
+      );
+      return;
+    }
+    const result = await requestNotifPermission();
+    if (result === "granted") {
+      toast.success("Browser notifications enabled");
+    } else if (result === "denied") {
+      toast.error("Notifications were blocked.");
+    }
+  }
 
   async function signOut() {
     if (signingOut) return;
@@ -112,9 +144,9 @@ export function ProfileMenu({
         <MenuGroup>
           <MenuToggleRow
             icon={Bell}
-            label="Notifications"
-            checked={notifications}
-            onCheckedChange={setNotifications}
+            label="Browser notifications"
+            checked={notificationsOn}
+            onCheckedChange={toggleNotifications}
           />
           <MenuToggleRow
             icon={Moon}

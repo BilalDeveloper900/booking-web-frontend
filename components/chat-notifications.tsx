@@ -1,14 +1,17 @@
 /**
  * Global chat notifications:
  *   - Owns the single source of truth for the unread total (context).
- *   - Subscribes to realtime INSERT on `messages` and fires a toast for any
- *     message that is NOT mine, NOT a booking auto-post, and NOT on the
- *     messages page I'm currently viewing.
+ *   - Subscribes to realtime INSERT on `messages` and fires an OS-level
+ *     desktop notification (via the Web Notification API) for any message
+ *     that is NOT mine, NOT a booking auto-post, and NOT on the messages
+ *     page I'm currently viewing. No in-app toast — the topbar / sidebar
+ *     unread badges are the in-app indicator.
  *   - Reflects the unread count in `document.title` so the count is visible
  *     when the tab is in the background.
  *
  * Mount once at the top of the dashboard tree (in DashboardShell) and read
- * the count anywhere via `useUnread()`.
+ * the count anywhere via `useUnread()`. The user opts in to OS notifications
+ * via the profile menu → "Browser notifications".
  */
 "use client";
 
@@ -20,10 +23,10 @@ import {
   useRef,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import { useUnreadTotal } from "@/lib/chat";
+import { fireDesktopNotification } from "@/lib/desktop-notifications";
 
 const UnreadContext = createContext<number>(0);
 
@@ -46,10 +49,7 @@ export function ChatNotificationsProvider({
   return (
     <UnreadContext.Provider value={unread}>
       {children}
-      <ChatToastListener
-        myMemberId={myMemberId}
-        role={role}
-      />
+      <ChatPushListener myMemberId={myMemberId} role={role} />
       <TitleUnreadBadge unread={unread} />
     </UnreadContext.Provider>
   );
@@ -67,9 +67,9 @@ function TitleUnreadBadge({ unread }: { unread: number }) {
   return null;
 }
 
-/* ────────── Toast on new message ────────── */
+/* ────────── Desktop push on new message ────────── */
 
-function ChatToastListener({
+function ChatPushListener({
   myMemberId,
   role,
 }: {
@@ -101,14 +101,14 @@ function ChatToastListener({
             kind: string;
           };
 
-          // Don't toast my own messages.
+          // Don't notify on my own messages.
           if (row.sender_member_id === myMemberId) return;
 
-          // Don't toast booking auto-posts — they're not human chat.
+          // Don't notify on booking auto-posts — they're not human chat.
           if (row.kind === "booking_event") return;
 
-          // If I'm already on the messages page, the inbox will update
-          // on its own and a toast would be noisy.
+          // If I'm already on the messages page, the inbox updates on
+          // its own — no point pinging me about a message I can already see.
           if (pathRef.current.startsWith(`/${role}/messages`)) return;
 
           // Resolve the sender's name. The realtime payload only includes
@@ -128,30 +128,20 @@ function ChatToastListener({
 
           const preview =
             row.body.length > 80 ? row.body.slice(0, 80) + "…" : row.body;
+          const threadHref = `/${role}/messages?thread=${row.thread_id}`;
 
-          toast(
-            (t) => (
-              <button
-                type="button"
-                onClick={() => {
-                  toast.dismiss(t.id);
-                  router.push(`/${role}/messages?thread=${row.thread_id}`);
-                }}
-                className="flex flex-col items-start text-left -my-1 -mx-1 px-1 py-1 rounded-md cursor-pointer motion-safe:transition-colors motion-safe:duration-150 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <span className="text-[12px] font-semibold text-foreground mb-0.5">
-                  {senderName}
-                </span>
-                <span className="text-[12px] text-muted-foreground line-clamp-2">
-                  {preview}
-                </span>
-              </button>
-            ),
-            {
-              duration: 5000,
-              icon: "💬",
-            }
-          );
+          // Fire OS-level desktop notification only — no in-app toast.
+          // The unread badges on the topbar + sidebar are the in-app
+          // indicators; toasts on top would be redundant noise.
+          //
+          // If browser permission isn't granted yet, this is a no-op.
+          // The user opts in from profile menu → "Browser notifications".
+          fireDesktopNotification({
+            title: senderName,
+            body: preview,
+            tag: `thread-${row.thread_id}`,
+            onClick: () => router.push(threadHref),
+          });
         }
       )
       .subscribe();

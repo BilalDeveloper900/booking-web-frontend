@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import {
   Plus,
   Trash2,
@@ -10,6 +11,7 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  CalendarPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -29,6 +31,7 @@ import {
   setServiceActive,
   type ServiceRow,
 } from "@/lib/services";
+import { createGroupSession } from "@/lib/sessions";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +86,7 @@ export function ServicesPanel() {
 
   const [editing, setEditing] = useState<Draft | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [scheduling, setScheduling] = useState<ServiceRow | null>(null);
 
   const { soloList, groupList } = useMemo(() => {
     const soloList = services.filter((s) => s.mode === "solo");
@@ -229,6 +233,7 @@ export function ServicesPanel() {
                 service={s}
                 onEdit={() => setEditing(rowToDraft(s))}
                 onToggle={(next) => toggle(s.id, next)}
+                onSchedule={() => setScheduling(s)}
               />
             ))}
           </ServiceSection>
@@ -244,6 +249,12 @@ export function ServicesPanel() {
         }}
         onSave={save}
         onDelete={remove}
+      />
+
+      <ScheduleClassSheet
+        service={scheduling}
+        onClose={() => setScheduling(null)}
+        onScheduled={refetch}
       />
     </>
   );
@@ -346,10 +357,12 @@ function ServiceRowItem({
   service,
   onEdit,
   onToggle,
+  onSchedule,
 }: {
   service: ServiceRow;
   onEdit: () => void;
   onToggle: (next: boolean) => void;
+  onSchedule?: () => void;
 }) {
   const isGroup = service.mode === "group";
   const stripe = `oklch(0.6 0.10 ${service.hue})`;
@@ -411,6 +424,23 @@ function ServiceRowItem({
 
         <ChevronRight className="hidden sm:block w-4 h-4 text-muted-foreground/40 shrink-0 motion-safe:transition-transform motion-safe:duration-150 group-hover/row:translate-x-0.5 group-hover/row:text-muted-foreground" />
       </button>
+
+      {isGroup && onSchedule && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSchedule();
+          }}
+          disabled={!service.active}
+          aria-label={`Schedule a session of ${service.name}`}
+          title="Schedule a session"
+          className="flex items-center gap-1.5 px-3 border-l border-border bg-card text-[12px] text-muted-foreground hover:text-foreground hover:bg-muted/40 motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:bg-muted/40 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <CalendarPlus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Schedule</span>
+        </button>
+      )}
 
       <div
         className="flex items-center px-3 border-l border-border bg-card"
@@ -800,4 +830,195 @@ function NumberInput({
       )}
     </div>
   );
+}
+
+/* ───────── Schedule-a-class sheet (group services only) ───────── */
+
+function ScheduleClassSheet({
+  service,
+  onClose,
+  onScheduled,
+}: {
+  service: ServiceRow | null;
+  onClose: () => void;
+  onScheduled?: () => void | Promise<void>;
+}) {
+  return (
+    <Sheet open={service !== null} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-md p-0">
+        {service && (
+          <ScheduleForm
+            service={service}
+            onClose={onClose}
+            onScheduled={onScheduled}
+          />
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function ScheduleForm({
+  service,
+  onClose,
+  onScheduled,
+}: {
+  service: ServiceRow;
+  onClose: () => void;
+  onScheduled?: () => void | Promise<void>;
+}) {
+  // Default to the next half-hour boundary, 1 hour from now.
+  const [startsAt, setStartsAt] = useState<string>(() => nextHalfHourIso());
+  const [capacity, setCapacity] = useState<number>(service.default_capacity);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (submitting) return;
+    if (!service.admin_member_id) {
+      setError("This class has no admin assigned. Edit the service first.");
+      return;
+    }
+    const date = new Date(startsAt);
+    if (Number.isNaN(date.getTime())) {
+      setError("Pick a valid date and time.");
+      return;
+    }
+    if (date.getTime() <= Date.now()) {
+      setError("Pick a future date and time.");
+      return;
+    }
+    if (capacity < 1) {
+      setError("Capacity must be at least 1.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      await createGroupSession({
+        studioId: service.studio_id,
+        serviceId: service.id,
+        adminMemberId: service.admin_member_id,
+        startsAt: date,
+        durationMin: service.duration_min,
+        capacity,
+      });
+      toast.success(
+        `Scheduled ${service.name} for ${date.toLocaleString([], {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })}`
+      );
+      await onScheduled?.();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <SheetHeader className="p-6 pb-4">
+        <div className="inline-flex items-center gap-2 self-start px-2 py-1 rounded-md text-[11px] font-medium mb-3 bg-[--role-accent-light] text-[--role-accent-dark]">
+          <CalendarPlus className="w-3 h-3" />
+          New session
+        </div>
+        <SheetTitle className="text-[20px] font-semibold tracking-tight">
+          Schedule {service.name}
+        </SheetTitle>
+        <SheetDescription>
+          Place an instance of this class on the calendar so clients can
+          enroll. Duration ({service.duration_min}m) and credits cost (
+          {service.credits_cost}) come from the service.
+        </SheetDescription>
+      </SheetHeader>
+
+      <div className="px-6 pb-4 space-y-4">
+        <div>
+          <label
+            htmlFor="schedule-starts-at"
+            className="block text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-1.5"
+          >
+            Starts at
+          </label>
+          <input
+            id="schedule-starts-at"
+            type="datetime-local"
+            value={startsAt}
+            onChange={(e) => setStartsAt(e.target.value)}
+            className="w-full h-10 px-3 border border-border rounded-lg text-[13px] bg-card tabular-nums focus:outline-none focus:ring-2 focus:ring-ring motion-safe:transition-colors"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="schedule-capacity"
+            className="block text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-1.5"
+          >
+            Capacity
+          </label>
+          <input
+            id="schedule-capacity"
+            type="number"
+            min={1}
+            value={capacity}
+            onChange={(e) => setCapacity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+            className="w-full h-10 px-3 border border-border rounded-lg text-[13px] bg-card tabular-nums focus:outline-none focus:ring-2 focus:ring-ring motion-safe:transition-colors"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            Defaults to {service.default_capacity} seat
+            {service.default_capacity === 1 ? "" : "s"} from the service.
+          </p>
+        </div>
+
+        {error && (
+          <div
+            role="alert"
+            className="rounded-lg border border-[--neg]/30 bg-[--neg]/10 px-3 py-2 text-[12px] text-[--neg]"
+          >
+            {error}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-auto p-6 pt-4 border-t border-border flex flex-col gap-2">
+        <Button className="w-full gap-2" onClick={submit} disabled={submitting}>
+          {submitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" /> Scheduling
+            </>
+          ) : (
+            <>
+              <CalendarPlus className="w-4 h-4" /> Schedule session
+            </>
+          )}
+        </Button>
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={onClose}
+          disabled={submitting}
+        >
+          Cancel
+        </Button>
+      </div>
+    </>
+  );
+}
+
+/** Returns an ISO-local string (no timezone) like "2026-05-19T15:00",
+ * rounded up to the next half-hour at least an hour from now. Used as the
+ * default value of the datetime-local input. */
+function nextHalfHourIso(): string {
+  const d = new Date(Date.now() + 60 * 60 * 1000);
+  d.setSeconds(0, 0);
+  d.setMinutes(d.getMinutes() < 30 ? 30 : 60);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
