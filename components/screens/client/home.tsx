@@ -5,6 +5,12 @@ import Link from "next/link";
 import { ArrowRight, AlertCircle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { PersonCell, Pill } from "@/components/shared";
+import {
+  Skeleton,
+  SkeletonLine,
+  CardSkeleton,
+  TableSkeletonRows,
+} from "@/components/skeletons";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import { useMyBookings, useMyCredits } from "@/lib/client-bookings";
 import type { MyBookingItem } from "@/lib/client-bookings";
@@ -20,24 +26,33 @@ export function ClientHome() {
     [bookings]
   );
 
-  const greetingName = member?.user.name.split(" ")[0] ?? "there";
+  const greetingName = member?.user.name.split(" ")[0];
   const nextBooking = upcoming[0];
+  const memberLoaded = Boolean(member);
 
   return (
     <div className="flex-1 overflow-auto p-6 lg:p-8">
       <div className="mb-6">
-        <h2 className="text-[24px] font-semibold tracking-tight leading-tight">
-          Welcome back, {greetingName}
-        </h2>
-        <p className="text-[13px] text-muted-foreground mt-1">
-          {bookingsLoading
-            ? "Loading your schedule…"
-            : nextBooking
-              ? `Your next visit is ${formatDay(nextBooking.startsAt)} at ${formatTime(
-                  nextBooking.startsAt
-                )}`
-              : "No upcoming visits yet — head to Book a Session to schedule one."}
-        </p>
+        {memberLoaded ? (
+          <h2 className="text-[24px] font-semibold tracking-tight leading-tight">
+            Welcome back, {greetingName}
+          </h2>
+        ) : (
+          <SkeletonLine w="w-72" h="h-7" />
+        )}
+        <div className="mt-2">
+          {bookingsLoading ? (
+            <SkeletonLine w="w-80" h="h-3" />
+          ) : (
+            <p className="text-[13px] text-muted-foreground">
+              {nextBooking
+                ? `Your next visit is ${formatDay(nextBooking.startsAt)} at ${formatTime(
+                    nextBooking.startsAt
+                  )}`
+                : "No upcoming visits yet — head to Book a Session to schedule one."}
+            </p>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -54,21 +69,26 @@ export function ClientHome() {
         <CreditsHero balance={balance} loading={balanceLoading} />
         <SmallStat
           label="Upcoming"
-          value={bookingsLoading ? "—" : String(upcoming.length)}
+          value={String(upcoming.length)}
           unit={upcoming.length === 1 ? "booking" : "bookings"}
           foot={upcoming.length === 0 ? "Nothing scheduled" : "Sessions + classes"}
+          loading={bookingsLoading}
         />
         <SmallStat
           label="Visits"
-          value={bookingsLoading ? "—" : String(past.length)}
+          value={String(past.length)}
           unit="lifetime"
           foot={past.length === 0 ? "Your first visit awaits" : "Across all services"}
+          loading={bookingsLoading}
         />
       </div>
 
       <Section title="Upcoming appointments" right={<SectionLink href="/client/bookings">View all</SectionLink>}>
         {bookingsLoading && upcoming.length === 0 ? (
-          <ListSkeleton rows={2} />
+          <div className="grid grid-cols-1 gap-3">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
         ) : upcoming.length === 0 ? (
           <EmptyHint text="No upcoming bookings — go book a session or class." href="/client/book" />
         ) : (
@@ -82,7 +102,11 @@ export function ClientHome() {
 
       <Section title="Book again" right={<SectionLink href="/client/book">Browse all</SectionLink>}>
         {bookingsLoading && bookAgain.length === 0 ? (
-          <ListSkeleton rows={1} />
+          <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+            <CardSkeleton className="min-w-50 shrink-0" />
+            <CardSkeleton className="min-w-50 shrink-0" />
+            <CardSkeleton className="min-w-50 shrink-0" />
+          </div>
         ) : bookAgain.length === 0 ? (
           <EmptyHint text="No history yet. Once you take a class or session, we'll surface quick rebook here." href="/client/book" />
         ) : (
@@ -96,7 +120,22 @@ export function ClientHome() {
 
       <Section title="Recent visits">
         {bookingsLoading && past.length === 0 ? (
-          <ListSkeleton rows={2} />
+          <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-border">
+                  <Th>Date</Th>
+                  <Th>Service</Th>
+                  <Th>Admin</Th>
+                  <Th align="right">Credits</Th>
+                  <Th>Status</Th>
+                </tr>
+              </thead>
+              <tbody>
+                <TableSkeletonRows rows={4} cols={5} />
+              </tbody>
+            </table>
+          </div>
         ) : past.length === 0 ? (
           <EmptyHint text="No past visits to show." href="/client/book" />
         ) : (
@@ -150,7 +189,9 @@ function CreditsHero({ balance, loading }: { balance: number; loading: boolean }
         Credits balance
       </div>
       {loading ? (
-        <div className="h-12 bg-background/10 rounded-lg animate-pulse mb-3" />
+        // bg-background/10 mimics shadcn skeleton against the dark hero
+        // surface — primitives default to bg-muted which would be too light.
+        <div className="h-12 w-40 bg-background/15 rounded-lg motion-safe:animate-pulse mb-3" />
       ) : (
         <div className="flex items-baseline gap-2 mb-3">
           <span className="text-[42px] font-bold tracking-tight leading-none tabular-nums">
@@ -240,37 +281,35 @@ function SmallStat({
   value,
   unit,
   foot,
+  loading,
 }: {
   label: string;
   value: string | number;
   unit?: string;
   foot: string;
+  loading?: boolean;
 }) {
   return (
     <div className="bg-card border border-border rounded-xl shadow-card p-4.5 motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-hero">
       <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-3.5">
         {label}
       </div>
-      <div className="text-[28px] font-semibold tracking-tight leading-none tabular-nums">
-        {value}
-        {unit && (
-          <span className="text-sm text-muted-foreground ml-1 font-normal">{unit}</span>
-        )}
-      </div>
-      <div className="text-xs text-muted-foreground mt-3">{foot}</div>
-    </div>
-  );
-}
-
-function ListSkeleton({ rows }: { rows: number }) {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          className="h-22 rounded-xl border border-border bg-muted/30 animate-pulse"
-        />
-      ))}
+      {loading ? (
+        <>
+          <Skeleton className="h-7 w-16 rounded" />
+          <SkeletonLine w="w-24" h="h-2.5" className="mt-3" />
+        </>
+      ) : (
+        <>
+          <div className="text-[28px] font-semibold tracking-tight leading-none tabular-nums">
+            {value}
+            {unit && (
+              <span className="text-sm text-muted-foreground ml-1 font-normal">{unit}</span>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground mt-3">{foot}</div>
+        </>
+      )}
     </div>
   );
 }

@@ -39,6 +39,7 @@ import {
 } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 import { HueAvatar, Pill } from "@/components/shared";
+import { CalendarEventSkeleton } from "@/components/skeletons";
 import { useTheme } from "@/components/theme-provider";
 
 /** Local alias so existing render code reads the same. */
@@ -60,6 +61,19 @@ function eventColors(hue: number, isDark: boolean) {
 
 const ROW_H = 56;
 const VIEWS = ["Day", "Week", "Month"] as const;
+
+/** Fixed positions for the calendar's loading-state placeholder events.
+ * One small array per day-of-week column; deterministic so the skeleton
+ * doesn't shimmy on re-renders. start = hours from HOURS_START, len = hours. */
+const SKELETON_EVENT_LAYOUT: { start: number; len: number; hue: number }[][] = [
+  [{ start: 1, len: 1, hue: 195 }, { start: 4, len: 1.5, hue: 280 }],
+  [{ start: 0.5, len: 1, hue: 220 }, { start: 3, len: 1, hue: 165 }, { start: 6, len: 1.5, hue: 330 }],
+  [{ start: 2, len: 1.5, hue: 130 }, { start: 5, len: 1, hue: 60 }],
+  [{ start: 1.5, len: 1, hue: 25 }, { start: 4.5, len: 2, hue: 280 }],
+  [{ start: 0.5, len: 1, hue: 195 }, { start: 3, len: 1.5, hue: 165 }, { start: 7, len: 1, hue: 130 }],
+  [{ start: 2, len: 1, hue: 220 }, { start: 5, len: 1.5, hue: 60 }],
+  [{ start: 1, len: 1, hue: 330 }],
+];
 type View = (typeof VIEWS)[number];
 
 /** Each live event carries its admin info inline — no lookups needed. */
@@ -318,6 +332,7 @@ export function CalendarScreen() {
           <WeekView
             days={days}
             eventsByDay={eventsByDay}
+            loading={eventsLoading && totalEvents === 0}
             nowTop={nowTop}
             nowVisible={nowVisible}
             nowLabel={nowLabel}
@@ -331,6 +346,7 @@ export function CalendarScreen() {
             dayIdx={selectedDayIdx}
             onDayChange={setSelectedDayIdx}
             events={eventsByDay.get(selectedDayIdx) ?? []}
+            loading={eventsLoading && totalEvents === 0}
             nowTop={nowTop}
             nowVisible={nowVisible && days[selectedDayIdx]?.today === true}
             nowLabel={nowLabel}
@@ -542,6 +558,7 @@ function AdminLegend({
 function WeekView({
   days,
   eventsByDay,
+  loading,
   nowTop,
   nowVisible,
   nowLabel,
@@ -550,6 +567,7 @@ function WeekView({
 }: {
   days: CalendarDay[];
   eventsByDay: Map<number, CalendarEvent[]>;
+  loading?: boolean;
   nowTop: number;
   nowVisible: boolean;
   nowLabel: string;
@@ -624,6 +642,15 @@ function WeekView({
               {(eventsByDay.get(di) ?? []).map((e, ei) => (
                 <CalendarEventBlock key={ei} event={e} onClick={onEventClick} />
               ))}
+              {loading &&
+                SKELETON_EVENT_LAYOUT[di]?.map((blk, ei) => (
+                  <CalendarEventSkeleton
+                    key={`s${ei}`}
+                    top={blk.start * ROW_H + 1}
+                    height={blk.len * ROW_H - 4}
+                    hue={blk.hue}
+                  />
+                ))}
               {d.today && nowVisible && <NowLine top={nowTop} label={nowLabel} />}
             </div>
           ))}
@@ -640,6 +667,7 @@ function DayView({
   dayIdx,
   onDayChange,
   events,
+  loading,
   nowTop,
   nowVisible,
   nowLabel,
@@ -650,6 +678,7 @@ function DayView({
   dayIdx: number;
   onDayChange: (i: number) => void;
   events: CalendarEvent[];
+  loading?: boolean;
   nowTop: number;
   nowVisible: boolean;
   nowLabel: string;
@@ -724,6 +753,15 @@ function DayView({
             {events.map((e, ei) => (
               <CalendarEventBlock key={ei} event={e} onClick={onEventClick} expanded />
             ))}
+            {loading &&
+              SKELETON_EVENT_LAYOUT[dayIdx]?.map((blk, ei) => (
+                <CalendarEventSkeleton
+                  key={`s${ei}`}
+                  top={blk.start * ROW_H + 1}
+                  height={blk.len * ROW_H - 4}
+                  hue={blk.hue}
+                />
+              ))}
             {nowVisible && <NowLine top={nowTop} label={nowLabel} />}
           </div>
         </div>

@@ -70,6 +70,7 @@ export function StatBlock({
   deltaKind = "pos",
   foot,
   hero = false,
+  loading = false,
 }: {
   label: string;
   value: string;
@@ -78,6 +79,9 @@ export function StatBlock({
   deltaKind?: "pos" | "neg";
   foot: string;
   hero?: boolean;
+  /** When true, render skeleton bars in place of value + footer text.
+   * The label stays visible so the user knows which stat is loading. */
+  loading?: boolean;
 }) {
   const TrendIcon = deltaKind === "pos" ? TrendingUp : TrendingDown;
   return (
@@ -90,29 +94,51 @@ export function StatBlock({
       <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-3.5">
         {label}
       </div>
-      <div
-        className={cn(
-          "font-semibold tracking-tight leading-none tabular-nums",
-          hero ? "text-[32px]" : "text-[28px]"
-        )}
-      >
-        {value}
-        {unit && <span className="text-sm text-muted-foreground ml-0.5 font-normal">{unit}</span>}
-      </div>
-      <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
-        {delta && (
-          <span
+      {loading ? (
+        <>
+          <div
             className={cn(
-              "inline-flex items-center gap-0.5 font-medium tabular-nums",
-              deltaKind === "pos" ? "text-[--pos]" : "text-[--neg]"
+              "rounded bg-muted motion-safe:animate-pulse motion-safe:duration-1000",
+              hero ? "h-8 w-24" : "h-7 w-20"
+            )}
+            aria-hidden
+          />
+          <div
+            className="mt-3 h-2.5 w-28 rounded-full bg-muted motion-safe:animate-pulse motion-safe:duration-1000"
+            aria-hidden
+          />
+        </>
+      ) : (
+        <>
+          <div
+            className={cn(
+              "font-semibold tracking-tight leading-none tabular-nums",
+              hero ? "text-[32px]" : "text-[28px]"
             )}
           >
-            <TrendIcon className="w-3 h-3" aria-hidden />
-            {delta}
-          </span>
-        )}
-        <span>{foot}</span>
-      </div>
+            {value}
+            {unit && (
+              <span className="text-sm text-muted-foreground ml-0.5 font-normal">
+                {unit}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
+            {delta && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-0.5 font-medium tabular-nums",
+                  deltaKind === "pos" ? "text-[--pos]" : "text-[--neg]"
+                )}
+              >
+                <TrendIcon className="w-3 h-3" aria-hidden />
+                {delta}
+              </span>
+            )}
+            <span>{foot}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }

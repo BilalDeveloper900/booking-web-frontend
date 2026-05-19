@@ -3,6 +3,7 @@
 import { MoreHorizontal, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatBlock, PersonCell, Pill } from "@/components/shared";
+import { TableSkeletonRows } from "@/components/skeletons";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import {
@@ -104,12 +105,8 @@ function BookingsTable({
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
-                  Loading bookings…
-                </td>
-              </tr>
+            {loading && rows.length === 0 && (
+              <TableSkeletonRows rows={6} cols={8} />
             )}
             {!loading &&
               rows.map((b) => (

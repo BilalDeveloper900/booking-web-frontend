@@ -27,6 +27,7 @@ import {
 } from "@/lib/members";
 import { InviteSheet } from "@/components/invite-sheet";
 import { GiftCreditsSheet } from "@/components/gift-credits-sheet";
+import { TableSkeletonRows, AvatarLineSkeleton } from "@/components/skeletons";
 import { cn } from "@/lib/utils";
 
 const FILTERS = ["All", "Subscribers", "Pay-as-you-go", "Lapsed"] as const;
@@ -110,10 +111,26 @@ export function ClientsScreen() {
           value={String(stats.total)}
           foot={`${stats.pending} pending invite${stats.pending === 1 ? "" : "s"}`}
           hero
+          loading={clientsLoading && clients.length === 0}
         />
-        <StatBlock label="Active subscribers" value="—" foot="needs plans data" />
-        <StatBlock label="Low credits" value="—" foot="needs bookings data" />
-        <StatBlock label="Avg LTV" value="—" foot="needs bookings data" />
+        <StatBlock
+          label="Active subscribers"
+          value="—"
+          foot="needs plans data"
+          loading={clientsLoading && clients.length === 0}
+        />
+        <StatBlock
+          label="Low credits"
+          value="—"
+          foot="needs bookings data"
+          loading={clientsLoading && clients.length === 0}
+        />
+        <StatBlock
+          label="Avg LTV"
+          value="—"
+          foot="needs bookings data"
+          loading={clientsLoading && clients.length === 0}
+        />
       </div>
 
       {invitations.length > 0 && (
@@ -124,9 +141,9 @@ export function ClientsScreen() {
             </div>
           </div>
           <div className="divide-y divide-[--line-soft]">
-            {invitesLoading
+            {invitesLoading && invitations.length === 0
               ? Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-12 m-2 rounded-md bg-muted/40 animate-pulse" />
+                  <AvatarLineSkeleton key={i} />
                 ))
               : invitations.map((inv) => (
                   <PendingInviteRow
@@ -190,12 +207,7 @@ export function ClientsScreen() {
           </thead>
           <tbody>
             {clientsLoading && clients.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-12 text-center">
-                  <Loader2 className="w-4 h-4 animate-spin inline mr-2 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Loading clients…</span>
-                </td>
-              </tr>
+              <TableSkeletonRows rows={6} cols={7} />
             ) : clients.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-12 text-center text-sm text-muted-foreground">

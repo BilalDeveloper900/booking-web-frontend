@@ -6,6 +6,7 @@ import { Search, Send, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HueAvatar, PersonCell } from "@/components/shared";
 import { ChatMessage } from "@/components/chat-message";
+import { ThreadListSkeleton, ConversationSkeleton } from "@/components/skeletons";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import {
   useChatThreads,
@@ -127,8 +128,8 @@ export function AdminMessages() {
         </div>
 
         <div className="flex-1 overflow-auto">
-          {threadsLoading && (
-            <div className="px-4 py-6 text-sm text-muted-foreground">Loading…</div>
+          {threadsLoading && threads.length === 0 && (
+            <ThreadListSkeleton count={5} />
           )}
           {!threadsLoading && threads.length === 0 && (
             <div className="px-4 py-6 text-sm text-muted-foreground">
@@ -190,9 +191,7 @@ export function AdminMessages() {
 
             <div ref={scrollRef} className="flex-1 overflow-auto p-4 lg:p-6 flex flex-col gap-3">
               {messagesLoading && messages.length === 0 && (
-                <div className="text-center text-sm text-muted-foreground py-8">
-                  Loading messages…
-                </div>
+                <ConversationSkeleton count={5} />
               )}
               {!messagesLoading && messages.length === 0 && (
                 <div className="text-center text-sm text-muted-foreground py-8">

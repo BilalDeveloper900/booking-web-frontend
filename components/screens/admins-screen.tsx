@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PersonCell, UtilBar, HueAvatar, Pill } from "@/components/shared";
+import { TableSkeletonRows } from "@/components/skeletons";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import {
   useStudioMembers,
@@ -176,12 +177,7 @@ export function AdminsScreen() {
           </thead>
           <tbody>
             {adminsLoading && admins.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-12 text-center">
-                  <Loader2 className="w-4 h-4 animate-spin inline mr-2 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Loading admins…</span>
-                </td>
-              </tr>
+              <TableSkeletonRows rows={5} cols={5} />
             ) : admins.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-12 text-center text-sm text-muted-foreground">

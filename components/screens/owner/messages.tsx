@@ -13,6 +13,7 @@ import {
   type StudioThreadRow,
   type StudioThreadFilter,
 } from "@/lib/chat";
+import { ThreadListSkeleton, ConversationSkeleton } from "@/components/skeletons";
 import { cn } from "@/lib/utils";
 
 const FILTERS: { id: StudioThreadFilter; label: string }[] = [
@@ -153,9 +154,7 @@ export function OwnerMessages() {
             </div>
           )}
           {threadsLoading && threads.length === 0 && (
-            <div className="px-4 py-6 text-sm text-muted-foreground">
-              Loading…
-            </div>
+            <ThreadListSkeleton count={5} />
           )}
           {!threadsLoading && threads.length === 0 && (
             <div className="px-4 py-8 text-sm text-muted-foreground text-center">
@@ -215,9 +214,7 @@ export function OwnerMessages() {
               className="flex-1 overflow-auto p-4 lg:p-6 space-y-3"
             >
               {messagesLoading && messages.length === 0 && (
-                <div className="text-center text-sm text-muted-foreground py-8">
-                  Loading…
-                </div>
+                <ConversationSkeleton count={5} />
               )}
               {!messagesLoading && messages.length === 0 && (
                 <div className="text-center text-sm text-muted-foreground py-8">

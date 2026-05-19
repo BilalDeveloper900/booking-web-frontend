@@ -23,6 +23,7 @@ import {
 } from "@/lib/members";
 import { startThreadWith } from "@/lib/chat";
 import { InviteSheet } from "@/components/invite-sheet";
+import { TableSkeletonRows } from "@/components/skeletons";
 
 export function AdminMyClients() {
   const { member } = useCurrentMember();
@@ -134,12 +135,8 @@ export function AdminMyClients() {
               </tr>
             </thead>
             <tbody>
-              {loading && (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
-                    Loading clients…
-                  </td>
-                </tr>
+              {loading && clients.length === 0 && (
+                <TableSkeletonRows rows={6} cols={7} />
               )}
               {!loading &&
                 clients.map((c) => <ClientRow key={c.clientMemberId} client={c} />)}

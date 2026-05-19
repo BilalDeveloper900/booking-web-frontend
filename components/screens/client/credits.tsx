@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, AlertCircle, Loader2 } from "lucide-react";
+import { TableSkeletonRows } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/shared";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
@@ -164,24 +165,28 @@ export function ClientCredits() {
 
         <SmallStat
           label="Credit balance"
-          value={heroLoading ? "—" : String(balance)}
+          value={String(balance)}
           unit="credits"
           foot={
             mySub
               ? `${mySub.creditsPerMonth} added each period`
               : "Top up to add more"
           }
+          loading={heroLoading}
         />
         <SmallStat
           label="Member since"
-          value={member?.member.member_since
-            ? new Date(member.member.member_since).toLocaleDateString("en-US", {
-                month: "short",
-                year: "numeric",
-              })
-            : "—"}
+          value={
+            member?.member.member_since
+              ? new Date(member.member.member_since).toLocaleDateString("en-US", {
+                  month: "short",
+                  year: "numeric",
+                })
+              : "—"
+          }
           unit=""
           foot="Your studio journey"
+          loading={!member}
         />
       </div>
 
@@ -252,14 +257,7 @@ export function ClientCredits() {
               </thead>
               <tbody>
                 {txLoading && ledger.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-12 text-center">
-                      <Loader2 className="w-4 h-4 animate-spin inline mr-2 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Loading transactions…
-                      </span>
-                    </td>
-                  </tr>
+                  <TableSkeletonRows rows={5} cols={4} />
                 ) : txError ? (
                   <tr>
                     <td colSpan={4} className="py-6 text-center">
@@ -415,24 +413,41 @@ function SmallStat({
   value,
   unit,
   foot,
+  loading,
 }: {
   label: string;
   value: string | number;
   unit?: string;
   foot: string;
+  loading?: boolean;
 }) {
   return (
     <div className="bg-card border border-border rounded-xl shadow-card p-4.5 motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-hero">
       <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-3.5">
         {label}
       </div>
-      <div className="text-[28px] font-semibold tracking-tight leading-none tabular-nums">
-        {value}
-        {unit && (
-          <span className="text-sm text-muted-foreground ml-1 font-normal">{unit}</span>
-        )}
-      </div>
-      <div className="text-xs text-muted-foreground mt-3 tabular-nums">{foot}</div>
+      {loading ? (
+        <>
+          <div
+            className="h-7 w-20 rounded bg-muted motion-safe:animate-pulse motion-safe:duration-1000"
+            aria-hidden
+          />
+          <div
+            className="h-2.5 w-28 rounded-full bg-muted motion-safe:animate-pulse motion-safe:duration-1000 mt-3"
+            aria-hidden
+          />
+        </>
+      ) : (
+        <>
+          <div className="text-[28px] font-semibold tracking-tight leading-none tabular-nums">
+            {value}
+            {unit && (
+              <span className="text-sm text-muted-foreground ml-1 font-normal">{unit}</span>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground mt-3 tabular-nums">{foot}</div>
+        </>
+      )}
     </div>
   );
 }

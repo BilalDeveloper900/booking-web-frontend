@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { StatBlock, PersonCell, Pill, HueAvatar } from "@/components/shared";
+import { TableSkeletonRows } from "@/components/skeletons";
 import {
   useAdminToday,
   useAdminOverviewStats,
@@ -67,18 +68,21 @@ export function AdminOverview() {
           unit="sessions"
           foot={completedFoot(today.items)}
           hero
+          loading={stats.loading}
         />
         <StatBlock
           label="This week"
           value={String(stats.stats.weekCount)}
           unit="sessions"
           foot="Mon–Sun"
+          loading={stats.loading}
         />
         <StatBlock
           label="Sessions MTD"
           value={String(stats.stats.sessionsMTD)}
           unit="sessions"
           foot={monthFoot(new Date())}
+          loading={stats.loading}
         />
         <StatBlock
           label="Avg rating"
@@ -89,6 +93,7 @@ export function AdminOverview() {
               ? `${stats.stats.reviewCount} review${stats.stats.reviewCount === 1 ? "" : "s"}`
               : "No reviews yet"
           }
+          loading={stats.loading}
         />
       </div>
 
@@ -108,12 +113,8 @@ export function AdminOverview() {
                 </tr>
               </thead>
               <tbody>
-                {today.loading && (
-                  <tr>
-                    <td colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
-                      Loading today…
-                    </td>
-                  </tr>
+                {today.loading && today.items.length === 0 && (
+                  <TableSkeletonRows rows={4} cols={6} />
                 )}
                 {!today.loading && today.items.length === 0 && (
                   <tr>

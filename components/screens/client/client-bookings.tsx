@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
+import { CardSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PersonCell, Pill } from "@/components/shared";
@@ -132,12 +133,8 @@ function BookingList({
   if (loading && items.length === 0) {
     return (
       <div className="space-y-3">
-        {[0, 1].map((i) => (
-          <div
-            key={i}
-            className="h-22 rounded-xl border border-border bg-muted/30 animate-pulse"
-          />
-        ))}
+        <CardSkeleton />
+        <CardSkeleton />
       </div>
     );
   }
