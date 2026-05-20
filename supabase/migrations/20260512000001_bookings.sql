@@ -1,5 +1,5 @@
 -- =============================================================================
--- Maison & Co. -- client booking RPCs
+-- Book It Daily -- client booking RPCs
 --
 -- These run as security definer so they bypass RLS (still authorize via
 -- auth.uid()). Both flows are atomic transactions:

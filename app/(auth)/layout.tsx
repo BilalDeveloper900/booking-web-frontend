@@ -9,9 +9,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <header className="px-6 md:px-10 py-6 flex items-center">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-md bg-foreground grid place-items-center text-background font-serif text-lg leading-none motion-safe:transition-transform motion-safe:duration-200 group-hover:rotate-[-4deg]">
-              M
+              B
             </div>
-            <span className="text-[15px] font-semibold tracking-tight">Maison &amp; Co.</span>
+            <span className="text-[15px] font-semibold tracking-tight">Book It Daily</span>
           </Link>
         </header>
 
@@ -20,7 +20,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </main>
 
         <footer className="px-6 md:px-10 py-5 text-[12px] text-muted-foreground flex items-center gap-4 flex-wrap">
-          <span>© 2026 Maison &amp; Co.</span>
+          <span>© 2026 Book It Daily</span>
           <span className="hidden sm:inline">·</span>
           <Link href="/" className="hover:text-foreground motion-safe:transition-colors">
             Home
@@ -53,7 +53,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div>
             <Quote className="w-8 h-8 text-[--teal-500] mb-6" aria-hidden />
             <blockquote className="font-serif text-[28px] xl:text-[34px] leading-[1.25] tracking-tight">
-              &ldquo;We dropped Vagaro a week into Maison. The credit packs alone earned us back
+              &ldquo;We dropped Vagaro a week into Book It Daily. The credit packs alone earned us back
               the subscription in three days.&rdquo;
             </blockquote>
             <div className="mt-6 flex items-center gap-3">

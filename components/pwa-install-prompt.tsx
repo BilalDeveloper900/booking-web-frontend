@@ -5,7 +5,7 @@ import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const DISMISSED_KEY = "maison.pwa.dismissed";
+const DISMISSED_KEY = "bookitdaily.pwa.dismissed";
 const DISMISSED_TTL_DAYS = 30;
 
 /**
@@ -110,7 +110,7 @@ export function PWAInstallPrompt() {
   return (
     <div
       role="dialog"
-      aria-label="Install Maison & Co."
+      aria-label="Install Book It Daily"
       className={cn(
         "fixed left-1/2 -translate-x-1/2 z-50 w-[min(92vw,380px)] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-300",
         // Mobile: above the bottom tab bar. Desktop: bottom-right.
@@ -119,10 +119,10 @@ export function PWAInstallPrompt() {
     >
       <div className="bg-card border border-border rounded-xl shadow-overlay p-4 flex items-start gap-3">
         <span className="w-10 h-10 rounded-lg bg-foreground text-background grid place-items-center shrink-0 font-serif text-lg leading-none">
-          M
+          B
         </span>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-semibold mb-0.5">Install Maison & Co.</div>
+          <div className="text-[13px] font-semibold mb-0.5">Install Book It Daily</div>
           {showIosHint && !event ? (
             <p className="text-[11px] text-muted-foreground leading-relaxed">
               Tap <span aria-hidden>⎙</span> Share, then{" "}

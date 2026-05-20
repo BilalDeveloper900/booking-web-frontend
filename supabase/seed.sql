@@ -1,5 +1,5 @@
 -- =============================================================================
--- Maison & Co. -- seed data for local dev
+-- Book It Daily -- seed data for local dev
 -- Re-runnable: clears public data first, then inserts fresh seed.
 -- DOES NOT touch auth.users -- that's owned by Supabase Auth.
 -- =============================================================================
@@ -48,14 +48,14 @@ begin
   -- Users (mirror what the auth trigger would create; emails must match real
   -- auth.users when wired up).
   insert into public.users (id, email, name, avatar_hue) values
-    (v_owner,  'elena@maisonandco.test',   'Elena Marchetti', 195),
-    (v_admin,  'camille@maisonandco.test', 'Camille Roux',    195),
-    (v_admin2, 'yuki@maisonandco.test',    'Yuki Tanaka',     165),
-    (v_client, 'olivia@maisonandco.test',  'Olivia Wren',     195);
+    (v_owner,  'elena@bookitdaily.test',   'Elena Marchetti', 195),
+    (v_admin,  'camille@bookitdaily.test', 'Camille Roux',    195),
+    (v_admin2, 'yuki@bookitdaily.test',    'Yuki Tanaka',     165),
+    (v_client, 'olivia@bookitdaily.test',  'Olivia Wren',     195);
 
   -- Studio
   insert into public.studios (id, name, slug, owner_id, country, timezone, currency)
-  values (v_studio, 'Maison and Co.', 'maison-and-co', v_owner, 'FR', 'Europe/Paris', 'EUR');
+  values (v_studio, 'Book It Daily', 'book-it-daily', v_owner, 'FR', 'Europe/Paris', 'EUR');
 
   -- Memberships
   insert into public.studio_members (id, studio_id, user_id, role, status, specialty, commission_pct)
@@ -141,7 +141,7 @@ begin
     (v_client_member, 8,  'monthly_grant', 'Monthly Studio plan credits'),
     (v_client_member, -2, 'spend',         'Cut + gloss with Camille R.');
 
-  -- Studio's own SaaS subscription (Maison and Co. trial)
+  -- Studio's own SaaS subscription (Book It Daily trial)
   insert into public.studio_subscriptions (studio_id, plan, status, trial_ends_at, current_period_end)
   values (v_studio, 'studio', 'trialing', now() + interval '14 days', now() + interval '14 days');
 

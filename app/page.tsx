@@ -33,7 +33,7 @@ const TIERS = [
       "Client + admin messages",
       "Mobile PWA — installable",
     ],
-    limits: 'Includes "Powered by Maison" footer.',
+    limits: 'Includes "Powered by Book It Daily" footer.',
   },
   {
     id: "solo",
@@ -181,9 +181,9 @@ function TopNav() {
       <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-md bg-foreground grid place-items-center text-background font-serif text-lg leading-none motion-safe:transition-transform motion-safe:duration-200 group-hover:rotate-[-4deg]">
-            M
+            B
           </div>
-          <span className="text-[15px] font-semibold tracking-tight">Maison &amp; Co.</span>
+          <span className="text-[15px] font-semibold tracking-tight">Book It Daily</span>
         </Link>
         <nav className="hidden md:flex items-center gap-5 text-sm text-muted-foreground">
           <a href="#features" className="hover:text-foreground motion-safe:transition-colors">Features</a>
@@ -536,7 +536,7 @@ function Footer() {
   return (
     <footer className="border-t border-border py-8 bg-card">
       <div className="max-w-6xl mx-auto px-4 md:px-6 flex items-center gap-4 flex-wrap text-[12px] text-muted-foreground">
-        <span>© 2026 Maison &amp; Co.</span>
+        <span>© 2026 Book It Daily</span>
         <span className="hidden md:inline">·</span>
         <Link href="/owner" className="hover:text-foreground">Owner demo</Link>
         <Link href="/admin" className="hover:text-foreground">Admin demo</Link>

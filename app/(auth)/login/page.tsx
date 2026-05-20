@@ -167,7 +167,7 @@ function LoginPageInner() {
       <Divider>or</Divider>
 
       <p className="text-[13px] text-muted-foreground text-center">
-        New to Maison?{" "}
+        New to Book It Daily?{" "}
         <Link href="/signup" className="text-foreground font-medium hover:underline">
           Create an account
         </Link>

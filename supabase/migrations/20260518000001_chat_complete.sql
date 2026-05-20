@@ -1,5 +1,5 @@
 -- =============================================================================
--- Maison & Co. -- chat completeness pass
+-- Book It Daily -- chat completeness pass
 --
 -- 1. messages columns
 --    - sender_role text       (denormalized from studio_members; trigger-filled)

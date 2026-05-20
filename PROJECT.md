@@ -1,4 +1,4 @@
-# Maison & Co. — Project handover
+# Book It Daily — Project handover
 
 **Read this before doing anything in this codebase.** It's the project's
 architecture in one place. Each section links to the file or folder where the
@@ -138,7 +138,7 @@ web/
 
 ### Theme system
 - [`theme-provider.tsx`](components/theme-provider.tsx) — `useTheme()` returns `{ theme: "light"|"dark"|"system", resolvedTheme: "light"|"dark", setTheme }`.
-- An inline boot script in `<head>` (in [layout.tsx](app/layout.tsx)) applies the saved theme **before paint** to avoid FOUC. Storage key: `maison.theme`.
+- An inline boot script in `<head>` (in [layout.tsx](app/layout.tsx)) applies the saved theme **before paint** to avoid FOUC. Storage key: `bookitdaily.theme`.
 - `<html suppressHydrationWarning>` is required on the `html` element so React doesn't complain about the boot-script class change.
 
 ### Responsive
@@ -168,10 +168,10 @@ web/
 | File | What it does |
 |---|---|
 | [`public/manifest.webmanifest`](public/manifest.webmanifest) | Standalone display, shortcuts to Calendar/Book/Messages, maskable icon |
-| [`public/sw.js`](public/sw.js) | Network-first navigation + cache-first static + offline fallback. Versioned cache keys (`maison-precache-v1`, `maison-runtime-v1`) — bump when SW changes. |
+| [`public/sw.js`](public/sw.js) | Network-first navigation + cache-first static + offline fallback. Versioned cache keys (`bookitdaily-precache-v1`, `bookitdaily-runtime-v1`) — bump when SW changes. |
 | [`public/offline.html`](public/offline.html) | Static fallback when offline + auto-reload on `online` event |
 | [`app/layout.tsx`](app/layout.tsx) | Registers SW (`afterInteractive`), sets viewport `viewportFit: cover`, theme color per color-scheme, applewebapp meta |
-| [`components/pwa-install-prompt.tsx`](components/pwa-install-prompt.tsx) | `beforeinstallprompt` listener + iOS Safari hint after 4s. Dismissable for 30 days via `localStorage["maison.pwa.dismissed"]` |
+| [`components/pwa-install-prompt.tsx`](components/pwa-install-prompt.tsx) | `beforeinstallprompt` listener + iOS Safari hint after 4s. Dismissable for 30 days via `localStorage["bookitdaily.pwa.dismissed"]` |
 | [`components/offline-indicator.tsx`](components/offline-indicator.tsx) | Pill banner via `online`/`offline` window events |
 
 **Service workers don't activate in `next dev`.** Run `next build && next start` to test the SW for real.
@@ -238,7 +238,7 @@ This is the *most important section* if you're picking up to wire backend.
 - No notifications system (UI exists, no plumbing).
 - No file uploads (avatar upload button exists, doesn't upload).
 - No invite-acceptance flow (`/signup?invite=TOKEN` not yet implemented in [signup/page.tsx](app/(auth)/signup/page.tsx)).
-- No multi-tenancy. Currently every visitor sees the same Maison & Co. studio.
+- No multi-tenancy. Currently every visitor sees the same Book It Daily studio.
 
 ---
 
@@ -251,7 +251,7 @@ This is the *most important section* if you're picking up to wire backend.
 - **`mv` on Windows** with the dev server running can fail with `Permission denied`. Use `cp -r` then `rm -rf` — that's what I did to rename `stylist/` → `admin/`.
 - **`useTheme()` requires the `<ThemeProvider>` wrapper** in [layout.tsx](app/layout.tsx). Calling it from a server component throws.
 - **Bottom-tabs threshold is `lg:` not `md:`** — see §4. If you change it back, tablet UX gets cramped.
-- The PWA install prompt **stores dismissal in localStorage for 30 days** — clear `maison.pwa.dismissed` to test it again.
+- The PWA install prompt **stores dismissal in localStorage for 30 days** — clear `bookitdaily.pwa.dismissed` to test it again.
 
 ---
 

@@ -1,5 +1,5 @@
 -- =============================================================================
--- Maison & Co. -- safer create_studio_for_owner
+-- Book It Daily -- safer create_studio_for_owner
 --
 -- Replaces the v1 function which took p_user_id (allowed any UUID -- bug).
 -- New version reads auth.uid() internally, is idempotent, and falls back to

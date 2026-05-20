@@ -53,7 +53,7 @@ const NOTIFICATION_GROUPS: Record<
     { id: "cancellation", label: "Cancellations", sub: "When a booking is cancelled or rescheduled", defaultOn: true },
     { id: "payouts", label: "Payouts", sub: "Admin payout cycles + ledger summary" },
     { id: "subscription", label: "Subscription health", sub: "Churn, downgrades, low credits" },
-    { id: "marketing", label: "Product updates", sub: "Maison & Co. roadmap and tips" },
+    { id: "marketing", label: "Product updates", sub: "Book It Daily roadmap and tips" },
   ],
   admin: [
     { id: "new-booking", label: "New booking", sub: "When a client books with you", defaultOn: true },
@@ -282,7 +282,7 @@ function ProfileCard({
 
   return (
     <Card>
-      <CardHeader title="Profile" subtitle="How you appear to the rest of Maison & Co." />
+      <CardHeader title="Profile" subtitle="How you appear to the rest of Book It Daily." />
       <div className="flex items-start gap-4 mb-5">
         <button
           type="button"
@@ -463,7 +463,7 @@ function StudioCard({ studioId }: { studioId: string | undefined }) {
                 setName(e.target.value);
                 setDirty(true);
               }}
-              placeholder="Maison & Co."
+              placeholder="Book It Daily"
             />
           </Field>
           <Field label="Slug" hint="Changing the slug breaks existing links — coming later.">

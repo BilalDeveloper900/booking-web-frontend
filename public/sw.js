@@ -1,4 +1,4 @@
-/* Maison & Co. service worker.
+/* Book It Daily service worker.
  *
  * Strategy:
  *   - Precache the offline fallback page + manifest icons on install.
@@ -11,15 +11,15 @@
  */
 
 const VERSION = "v1";
-const PRECACHE = `maison-precache-${VERSION}`;
-const RUNTIME = `maison-runtime-${VERSION}`;
+const PRECACHE = `bookitdaily-precache-${VERSION}`;
+const RUNTIME = `bookitdaily-runtime-${VERSION}`;
 
 const PRECACHE_URLS = [
   "/offline.html",
   "/manifest.webmanifest",
-  "/icons/maison-192.svg",
-  "/icons/maison-512.svg",
-  "/icons/maison-maskable.svg",
+  "/icons/bookitdaily-192.svg",
+  "/icons/bookitdaily-512.svg",
+  "/icons/bookitdaily-maskable.svg",
 ];
 
 self.addEventListener("install", (event) => {

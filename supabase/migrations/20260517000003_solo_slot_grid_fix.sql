@@ -1,5 +1,5 @@
 -- =============================================================================
--- Maison & Co. -- solo_slot_grid fix: rename output columns
+-- Book It Daily -- solo_slot_grid fix: rename output columns
 --
 -- The previous version used `returns table(starts_at timestamptz, status text)`,
 -- but `status` shadowed `sessions.status` (and `availability_rules` columns)

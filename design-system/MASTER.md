@@ -1,4 +1,4 @@
-# Maison & Co. — Design System (MASTER)
+# Book It Daily — Design System (MASTER)
 
 > **Source of truth.** Read this before designing or modifying any UI in this
 > repo. Page-specific overrides may live in `design-system/pages/<page>.md`.
@@ -13,7 +13,7 @@ Rule references in this doc point to that skill's Quick Reference sections.
 
 | | |
 |---|---|
-| **Product** | SaaS booking application for an upmarket salon (Maison & Co.) |
+| **Product** | SaaS booking application for an upmarket salon (Book It Daily) |
 | **Roles** | Owner (operations), Stylist (provider), Client (customer) |
 | **Tone** | Sophisticated, calm, editorial. Atelier-luxury, not corporate. |
 | **Anti-tone** | Generic shadcn neutral, "AI-default flat", playful, cute |

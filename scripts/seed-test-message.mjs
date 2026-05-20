@@ -79,7 +79,7 @@ async function main() {
   console.log("  · Sidebar 'Messages' should show 1");
   console.log("  · Header chat icon should show 1");
   console.log("  · A toast should appear if NOT on /client/messages");
-  console.log("  · Tab title should read '(1) Maison & Co. — …'");
+  console.log("  · Tab title should read '(1) Book It Daily — …'");
 }
 
 main().catch((e) => {

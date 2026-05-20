@@ -1,5 +1,5 @@
 -- =============================================================================
--- Maison & Co. -- solo session booking
+-- Book It Daily -- solo session booking
 --
 -- free_solo_slots(service_id, date, step_minutes?) -> setof timestamptz
 --   Returns bookable start times for a solo service on a given date.

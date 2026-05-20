@@ -21,21 +21,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Maison & Co. — Salon Management",
+  title: "Book It Daily — Salon Management",
   description: "Manage your salon bookings, admins, and clients",
   manifest: "/manifest.webmanifest",
-  applicationName: "Maison & Co.",
+  applicationName: "Book It Daily",
   appleWebApp: {
     capable: true,
-    title: "Maison & Co.",
+    title: "Book It Daily",
     statusBarStyle: "default",
   },
   icons: {
     icon: [
-      { url: "/icons/maison-192.svg", sizes: "192x192", type: "image/svg+xml" },
-      { url: "/icons/maison-512.svg", sizes: "512x512", type: "image/svg+xml" },
+      { url: "/icons/bookitdaily-192.svg", sizes: "192x192", type: "image/svg+xml" },
+      { url: "/icons/bookitdaily-512.svg", sizes: "512x512", type: "image/svg+xml" },
     ],
-    apple: { url: "/icons/maison-512.svg", sizes: "512x512", type: "image/svg+xml" },
+    apple: { url: "/icons/bookitdaily-512.svg", sizes: "512x512", type: "image/svg+xml" },
   },
 };
 

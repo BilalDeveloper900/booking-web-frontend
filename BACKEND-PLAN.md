@@ -1,4 +1,4 @@
-# Backend plan — Maison & Co.
+# Backend plan — Book It Daily
 
 **Status:** design, not yet implemented. The frontend is fully built and runs on
 mock data ([lib/data.ts](lib/data.ts)). This doc is the blueprint for swapping
@@ -20,10 +20,10 @@ that for a real backend without rebuilding any UI.
   session with up to N bookings. One model handles both.
 - **Multi-tenant by `studio_id`.** Every row scopes by studio. RLS enforces
   isolation so two studios using the same database cannot read each other.
-- **Payments:** Lemon Squeezy for the SaaS subscription that owners pay Maison
-  & Co. Client-to-studio payments (credit packs, plans) are out-of-platform
-  for v1 and tracked manually; LS-via-owner-account or Stripe Connect can come
-  later.
+- **Payments:** Lemon Squeezy for the SaaS subscription that owners pay
+  Book It Daily. Client-to-studio payments (credit packs, plans) are
+  out-of-platform for v1 and tracked manually; LS-via-owner-account or Stripe
+  Connect can come later.
 - **No realtime in v1** except chat. Bookings refresh on focus + on mutation.
   Move to Supabase Realtime when load justifies it.
 
@@ -392,7 +392,7 @@ Indexes: `(member_id, created_at desc)`.
 
 #### `payments`
 Real money movements **into** the platform. Two streams:
-1. SaaS subscriptions (owner pays Maison & Co.)
+1. SaaS subscriptions (owner pays Book It Daily)
 2. Client purchases (top-ups, plan signups) — only present when integrated; v1 = manual ledger.
 
 ```
@@ -432,7 +432,7 @@ unique (admin_member_id, period_start, period_end)
 ### G. SaaS subscription tracking (1 table)
 
 #### `studio_subscriptions`
-The owner's subscription to Maison & Co. (the SaaS itself).
+The owner's subscription to Book It Daily (the SaaS itself).
 ```
 studio_id           uuid PK FK → studios.id
 plan                text not null check (plan in ('free','solo','studio','atelier'))
@@ -680,9 +680,9 @@ Skip realtime for everything else. It's not free of CPU and adds complexity.
 
 ### Two distinct money flows
 
-**Flow 1 — Owner pays Maison & Co. (the SaaS)**
-- LS Store: Maison & Co.'s account.
-- Product: "Maison & Co. Subscription" with variants per tier (`solo`, `studio`, `atelier`).
+**Flow 1 — Owner pays Book It Daily (the SaaS)**
+- LS Store: Book It Daily's account.
+- Product: "Book It Daily Subscription" with variants per tier (`solo`, `studio`, `atelier`).
 - Owner clicks "Upgrade" in `/owner/settings` → `POST /api/checkout/saas` → LS
   hosted checkout → on success, LS webhook fires → we write `studio_subscriptions`
   + `payments(type='saas_subscription')`.

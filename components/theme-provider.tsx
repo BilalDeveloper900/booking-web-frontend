@@ -15,7 +15,7 @@ interface ThemeContextValue {
 
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 
-export const THEME_STORAGE_KEY = "maison.theme";
+export const THEME_STORAGE_KEY = "bookitdaily.theme";
 
 /** Inline script used in <head> to apply the saved theme **before** React hydrates,
  *  so dark surfaces don't flash light on first paint. Kept in this file so the

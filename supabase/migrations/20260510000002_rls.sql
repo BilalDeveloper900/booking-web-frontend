@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Maison & Co. — Row-Level Security policies
+-- Book It Daily — Row-Level Security policies
 -- See web/BACKEND-PLAN.md §4 for the policy patterns.
 -- Money tables (payments, payouts, credit_transactions, studio_subscriptions,
 -- client_subscriptions) are write-only via service role from Route Handlers.

@@ -406,7 +406,7 @@ export const CLIENT_TRANSACTIONS = [
 export const CLIENT_THREADS: MessageThread[] = [
   { id: "ct1", name: "Camille Roux", hue: 195, lastMsg: "See you Thursday! Skip the hair wash 😊", time: "10:34 AM", unread: 0, online: true },
   { id: "ct2", name: "Asha Iyer", hue: 280, lastMsg: "Your nail art is ready to pick up!", time: "Yesterday", unread: 1 },
-  { id: "ct3", name: "Maison & Co.", hue: 200, lastMsg: "Your May credits have been added 🎉", time: "2 days ago", unread: 0 },
+  { id: "ct3", name: "Book It Daily", hue: 200, lastMsg: "Your May credits have been added 🎉", time: "2 days ago", unread: 0 },
 ];
 
 export const CLIENT_CHAT_MESSAGES: ChatMessage[] = [

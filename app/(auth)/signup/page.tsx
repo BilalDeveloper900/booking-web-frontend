@@ -186,7 +186,7 @@ function SignupPageInner() {
           <Input
             value={studio}
             onChange={(e) => setStudio(e.target.value)}
-            placeholder="Maison & Co."
+            placeholder="Book It Daily"
             autoComplete="organization"
           />
         </Field>

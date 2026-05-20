@@ -1,5 +1,5 @@
 -- =============================================================================
--- Maison & Co. -- invitations system
+-- Book It Daily -- invitations system
 --
 -- Owner creates an invitation row -> shareable link with the token ->
 -- recipient signs up with ?invite=TOKEN -> accept_invitation() RPC creates

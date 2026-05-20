@@ -1,5 +1,5 @@
 -- =============================================================================
--- Maison & Co. -- solo_slot_grid
+-- Book It Daily -- solo_slot_grid
 --
 -- Sibling to `free_solo_slots`, but returns EVERY candidate slot in the
 -- studio's hours window with a status flag, so the booking UI can render

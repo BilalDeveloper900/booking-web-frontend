@@ -1,5 +1,5 @@
 -- =============================================================================
--- Maison & Co. -- default availability seeding
+-- Book It Daily -- default availability seeding
 --
 -- Bug fix: New studios had no `studio_hours` rows, so `free_solo_slots`
 -- returned empty for every date. New admins (via invitation) had no

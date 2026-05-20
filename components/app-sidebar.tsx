@@ -45,11 +45,11 @@ export function AppSidebar({ config, currentPath, className }: AppSidebarProps) 
     >
       <Link href={navItems[0]?.href ?? "/"} className="flex items-center gap-2.5 px-2 mb-9 group">
         <div className="w-8 h-8 rounded-md bg-foreground grid place-items-center text-background font-serif text-lg leading-none motion-safe:transition-transform motion-safe:duration-200 group-hover:rotate-[-4deg]">
-          M
+          B
         </div>
         <div className="leading-tight">
           <div className="text-[15px] font-semibold tracking-tight">
-            Maison&nbsp;&amp;&nbsp;Co.
+            Book&nbsp;It&nbsp;Daily
           </div>
           <div className="text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground">
             {user.subtitle}

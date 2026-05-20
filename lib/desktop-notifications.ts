@@ -62,7 +62,7 @@ export function fireDesktopNotification(args: FireArgs): boolean {
   try {
     const notification = new Notification(args.title, {
       body: args.body,
-      icon: args.icon ?? "/icons/maison-192.svg",
+      icon: args.icon ?? "/icons/bookitdaily-192.svg",
       tag: args.tag,
     });
     notification.onclick = () => {

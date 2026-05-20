@@ -1,6 +1,6 @@
 {
-  "name": "Maison & Co. — Salon Booking",
-  "short_name": "Maison & Co.",
+  "name": "Book It Daily — Salon Booking",
+  "short_name": "Book It Daily",
   "description": "Manage your salon bookings, admins, and clients.",
   "id": "/?source=pwa",
   "start_url": "/?source=pwa",
@@ -16,19 +16,19 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/icons/maison-192.svg",
+      "src": "/icons/bookitdaily-192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/maison-512.svg",
+      "src": "/icons/bookitdaily-512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/maison-maskable.svg",
+      "src": "/icons/bookitdaily-maskable.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "maskable"
@@ -40,21 +40,21 @@
       "short_name": "Calendar",
       "description": "Today's schedule and upcoming bookings",
       "url": "/owner/calendar?source=shortcut",
-      "icons": [{ "src": "/icons/maison-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icons/bookitdaily-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
     },
     {
       "name": "Book a session",
       "short_name": "Book",
       "description": "Book a new session as a client",
       "url": "/client/book?source=shortcut",
-      "icons": [{ "src": "/icons/maison-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icons/bookitdaily-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
     },
     {
       "name": "Messages",
       "short_name": "Messages",
       "description": "Chat with your stylist or clients",
       "url": "/client/messages?source=shortcut",
-      "icons": [{ "src": "/icons/maison-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icons/bookitdaily-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
     }
   ]
 }

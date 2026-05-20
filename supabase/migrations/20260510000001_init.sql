@@ -1,5 +1,5 @@
 -- =============================================================================
--- Maison & Co. -- initial schema
+-- Book It Daily -- initial schema
 -- See web/BACKEND-PLAN.md section 3 for the full design rationale.
 -- =============================================================================
 
