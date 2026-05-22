@@ -1,5 +1,5 @@
-import { DashboardScreen } from "@/components/screens/dashboard";
+import { OwnerOverview } from "@/components/screens/owner/overview";
 
 export default function OwnerPage() {
-  return <DashboardScreen />;
+  return <OwnerOverview />;
 }
