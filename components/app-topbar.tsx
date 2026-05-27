@@ -5,6 +5,8 @@ import { Bell, Menu, MessageSquare, Search } from "lucide-react";
 import { ProfileMenu } from "@/components/profile-menu";
 import { HueAvatar } from "@/components/shared";
 import { useUnread } from "@/components/chat-notifications";
+import { NotificationsPopover } from "@/components/notifications-popover";
+import { useNotificationsContext } from "@/components/notifications-provider";
 import type { RoleConfig } from "@/lib/roles";
 
 interface AppTopbarProps {
@@ -20,6 +22,9 @@ export function AppTopbar({ title, config, onMenuClick }: AppTopbarProps) {
   const unread = useUnread();
   const unreadLabel =
     unread > 0 ? `Messages — ${unread} unread` : "Messages";
+  const { unread: notifUnread } = useNotificationsContext();
+  const notifLabel =
+    notifUnread > 0 ? `Notifications — ${notifUnread} unread` : "Notifications";
 
   return (
     <div className="h-16 shrink-0 border-b border-border flex items-center px-4 md:px-8 gap-5 bg-card/80 backdrop-blur supports-backdrop-filter:bg-card/70">
@@ -33,7 +38,7 @@ export function AppTopbar({ title, config, onMenuClick }: AppTopbarProps) {
         </button>
       )}
       <h1 className="text-[17px] font-semibold tracking-tight">{title}</h1>
-      <button
+      {/* <button
         type="button"
         className="ml-auto hidden md:flex items-center gap-2 bg-muted/70 hover:bg-muted px-3 py-1.5 rounded-lg md:w-56 lg:w-72 text-left motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
         aria-label="Search clients, bookings, services"
@@ -43,17 +48,31 @@ export function AppTopbar({ title, config, onMenuClick }: AppTopbarProps) {
         <kbd className="text-[11px] text-muted-foreground font-sans tabular-nums px-1.5 py-px rounded border border-border bg-card">
           ⌘K
         </kbd>
-      </button>
-      <button
-        aria-label="Notifications"
-        className="relative md:first:ml-auto w-9 h-9 grid place-items-center rounded-lg hover:bg-muted text-muted-foreground motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
-      >
-        <Bell className="w-4 h-4" aria-hidden />
-        <span
-          aria-hidden
-          className="notif-dot absolute top-2 right-2 w-1.5 h-1.5 rounded-full"
-        />
-      </button>
+      </button> */}
+      <div className="ml-auto md:hidden" />
+      <NotificationsPopover
+        side="bottom"
+        align="end"
+        sideOffset={10}
+        seeAllHref={`/${role}/notifications`}
+        trigger={
+          <button
+            type="button"
+            aria-label={notifLabel}
+            className="relative md:ml-auto w-9 h-9 grid place-items-center rounded-lg hover:bg-muted text-muted-foreground motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card data-popup-open:bg-muted data-popup-open:text-foreground"
+          >
+            <Bell className="w-4 h-4" aria-hidden />
+            {notifUnread > 0 && (
+              <span
+                aria-hidden
+                className="bg-muted text-muted-foreground absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 px-1 rounded-full text-[10px] font-semibold tabular-nums grid place-items-center"
+              >
+                {notifUnread > 99 ? "99+" : notifUnread}
+              </span>
+            )}
+          </button>
+        }
+      />
       <Link
         href={messagesHref}
         aria-label={unreadLabel}

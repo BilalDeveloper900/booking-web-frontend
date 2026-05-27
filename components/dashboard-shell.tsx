@@ -11,10 +11,14 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ChatNotificationsProvider } from "@/components/chat-notifications";
+import { NotificationsProvider } from "@/components/notifications-provider";
 import { ROLE_CONFIGS, type Role, type RoleConfig } from "@/lib/roles";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 
 function deriveTitle(pathname: string, config: { navItems: { href: string; label: string }[] }): string {
+  // Static routes that don't appear in the sidebar still need a title.
+  if (/\/notifications(\/|$)/.test(pathname)) return "Notifications";
+
   const match = config.navItems.find(
     (item) => pathname === item.href || (item.href !== config.navItems[0]?.href && pathname.startsWith(item.href))
   );
@@ -51,6 +55,7 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
 
   return (
     <ChatNotificationsProvider>
+      <NotificationsProvider>
       <div data-role={role} className="flex h-dvh overflow-hidden bg-background">
         <AppSidebar config={config} currentPath={pathname} />
 
@@ -74,6 +79,7 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
 
         <AppBottomTabs config={config} currentPath={pathname} />
       </div>
+      </NotificationsProvider>
     </ChatNotificationsProvider>
   );
 }
