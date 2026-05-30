@@ -11,10 +11,11 @@ import {
   Smartphone,
   Sparkles,
   Users,
-  Wallet,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SiteHeader } from "@/components/marketing/site-header";
+import { SiteFooter } from "@/components/marketing/site-footer";
 
 const TIERS = [
   {
@@ -70,23 +71,23 @@ const TIERS = [
       "Priority email support",
     ],
   },
-  {
-    id: "atelier",
-    name: "Atelier",
-    tagline: "Multi-location and chains",
-    monthly: 39,
-    yearly: 390,
-    cta: "Start 14-day trial",
-    ctaHref: "/signup",
-    features: [
-      "Unlimited admins",
-      "Unlimited clients",
-      "Multi-location",
-      "White-label everything",
-      "API access",
-      "Live chat support",
-    ],
-  },
+  // {
+  //   id: "atelier",
+  //   name: "Atelier",
+  //   tagline: "Multi-location and chains",
+  //   monthly: 39,
+  //   yearly: 390,
+  //   cta: "Start 14-day trial",
+  //   ctaHref: "/signup",
+  //   features: [
+  //     "Unlimited admins",
+  //     "Unlimited clients",
+  //     "Multi-location",
+  //     "White-label everything",
+  //     "API access",
+  //     "Live chat support",
+  //   ],
+  // },
 ] as const;
 
 const FEATURES = [
@@ -159,7 +160,7 @@ const FAQ = [
 export default function LandingPage() {
   return (
     <div className="min-h-dvh flex flex-col bg-background text-foreground">
-      <TopNav />
+      <SiteHeader />
       <Hero />
       <Trusted />
       <FeaturesSection />
@@ -168,41 +169,8 @@ export default function LandingPage() {
       <BuildOffers />
       <FaqSection />
       <FooterCta />
-      <Footer />
+      <SiteFooter />
     </div>
-  );
-}
-
-/* ---------------- top nav ---------------- */
-
-function TopNav() {
-  return (
-    <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-30">
-      <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center gap-6">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-md bg-foreground grid place-items-center text-background font-serif text-lg leading-none motion-safe:transition-transform motion-safe:duration-200 group-hover:rotate-[-4deg]">
-            B
-          </div>
-          <span className="text-[15px] font-semibold tracking-tight">Book It Daily</span>
-        </Link>
-        <nav className="hidden md:flex items-center gap-5 text-sm text-muted-foreground">
-          <a href="#features" className="hover:text-foreground motion-safe:transition-colors">Features</a>
-          <a href="#pricing" className="hover:text-foreground motion-safe:transition-colors">Pricing</a>
-          <a href="#offers" className="hover:text-foreground motion-safe:transition-colors">Offers</a>
-          <a href="#faq" className="hover:text-foreground motion-safe:transition-colors">FAQ</a>
-        </nav>
-        <div className="flex-1" />
-        <Link
-          href="/login"
-          className="text-sm text-muted-foreground hover:text-foreground motion-safe:transition-colors"
-        >
-          Sign in
-        </Link>
-        <Link href="/signup" className={buttonVariants({ size: "sm" })}>
-          Start free
-        </Link>
-      </div>
-    </header>
   );
 }
 
@@ -306,7 +274,7 @@ function PricingSection() {
           title="One flat fee. No transaction cuts."
           subtitle="Save 2 months when you pay yearly. All prices in USD."
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-12">
           {TIERS.map((t) => {
             const featured = "popular" in t && t.popular;
             return (
@@ -527,25 +495,6 @@ function FooterCta() {
         </div>
       </div>
     </section>
-  );
-}
-
-/* ---------------- footer ---------------- */
-
-function Footer() {
-  return (
-    <footer className="border-t border-border py-8 bg-card">
-      <div className="max-w-6xl mx-auto px-4 md:px-6 flex items-center gap-4 flex-wrap text-[12px] text-muted-foreground">
-        <span>© 2026 Book It Daily</span>
-        <span className="hidden md:inline">·</span>
-        <Link href="/owner" className="hover:text-foreground">Owner demo</Link>
-        <Link href="/admin" className="hover:text-foreground">Admin demo</Link>
-        <Link href="/client" className="hover:text-foreground">Client demo</Link>
-        <span className="flex-1" />
-        <Wallet className="w-3.5 h-3.5" aria-hidden />
-        <span>Billing powered by Lemon Squeezy</span>
-      </div>
-    </footer>
   );
 }
 
