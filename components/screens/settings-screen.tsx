@@ -27,6 +27,7 @@ import { ROLE_CONFIGS, type Role } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import { createClient } from "@/lib/supabase/client";
+import { uploadAvatar, removeAvatar, MAX_AVATAR_BYTES } from "@/lib/avatar";
 import {
   useStudio,
   useStudioHours,
@@ -43,31 +44,6 @@ import {
   type AvailabilityRuleRow,
   type AvailabilityExceptionRow,
 } from "@/lib/availability";
-
-const NOTIFICATION_GROUPS: Record<
-  Role,
-  { id: string; label: string; sub: string; defaultOn?: boolean }[]
-> = {
-  owner: [
-    { id: "new-booking", label: "New booking", sub: "When a client books a session", defaultOn: true },
-    { id: "cancellation", label: "Cancellations", sub: "When a booking is cancelled or rescheduled", defaultOn: true },
-    { id: "payouts", label: "Payouts", sub: "Admin payout cycles + ledger summary" },
-    { id: "subscription", label: "Subscription health", sub: "Churn, downgrades, low credits" },
-    { id: "marketing", label: "Product updates", sub: "Book It Daily roadmap and tips" },
-  ],
-  admin: [
-    { id: "new-booking", label: "New booking", sub: "When a client books with you", defaultOn: true },
-    { id: "reminder", label: "Daily reminder", sub: "Tomorrow's schedule, evening before", defaultOn: true },
-    { id: "messages", label: "Client messages", sub: "Push when a client sends a message" },
-    { id: "payouts", label: "Payouts", sub: "When earnings are released" },
-  ],
-  client: [
-    { id: "reminders", label: "Booking reminders", sub: "24h and 1h before your appointment", defaultOn: true },
-    { id: "messages", label: "Admin messages", sub: "Push when your admin replies", defaultOn: true },
-    { id: "low-credits", label: "Low credits", sub: "When you have ≤2 credits left" },
-    { id: "promotions", label: "Promotions", sub: "Top-up deals + new services" },
-  ],
-};
 
 /** Visible weekday order in the grid (Mon..Sun). */
 const WEEKDAY_GRID: { weekday: number; label: string }[] = [
@@ -94,11 +70,6 @@ export function SettingsScreen({ role }: SettingsScreenProps) {
   const myMemberId = member?.member.id;
 
   const [twoFA, setTwoFA] = useState(false);
-  const [notifications, setNotifications] = useState<Record<string, boolean>>(() => {
-    const out: Record<string, boolean> = {};
-    for (const n of NOTIFICATION_GROUPS[role]) out[n.id] = !!n.defaultOn;
-    return out;
-  });
 
   return (
     <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
@@ -113,12 +84,6 @@ export function SettingsScreen({ role }: SettingsScreenProps) {
         </div>
 
         <ProfileCard role={role} fallbackHue={config.user.hue} fallbackSubtitle={config.user.subtitle} />
-
-        <NotificationsCard
-          groups={NOTIFICATION_GROUPS[role]}
-          values={notifications}
-          onChange={setNotifications}
-        />
 
         {role === "owner" && (
           <>
@@ -150,12 +115,12 @@ export function SettingsScreen({ role }: SettingsScreenProps) {
                 </Button>
               }
             />
-            <SecurityRow
+            {/* <SecurityRow
               icon={Smartphone}
               title="Two-factor authentication"
               sub={twoFA ? "Authenticator app enabled" : "Off — coming in a later release"}
               action={<Switch checked={twoFA} onCheckedChange={setTwoFA} />}
-            />
+            /> */}
             <SecurityRow
               icon={Globe}
               title="Active sessions"
@@ -216,6 +181,52 @@ function ProfileCard({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+
+  // Avatar: `undefined` means "use the live value from the member query";
+  // a string / null is a local override applied after upload / remove.
+  const liveAvatarUrl = member?.user.avatar_url ?? null;
+  const [avatarOverride, setAvatarOverride] = useState<string | null | undefined>(undefined);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const displayAvatar = avatarOverride === undefined ? liveAvatarUrl : avatarOverride;
+
+  async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file || !userId || avatarBusy) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file (JPG, PNG, or WebP).");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setError("Image is too large — please choose one under 5 MB.");
+      return;
+    }
+    setAvatarBusy(true);
+    setError(null);
+    try {
+      const url = await uploadAvatar(userId, file);
+      setAvatarOverride(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function onRemoveAvatar() {
+    if (!userId || avatarBusy || !displayAvatar) return;
+    setAvatarBusy(true);
+    setError(null);
+    try {
+      await removeAvatar(userId);
+      setAvatarOverride(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
 
   // Sync local edit state when the live member resolves. We track "initialized"
   // via a ref so a server refetch doesn't overwrite in-flight edits.
@@ -284,30 +295,63 @@ function ProfileCard({
     <Card>
       <CardHeader title="Profile" subtitle="How you appear to the rest of Book It Daily." />
       <div className="flex items-start gap-4 mb-5">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          className="sr-only"
+          onChange={onPickAvatar}
+        />
         <button
           type="button"
           aria-label="Change profile photo"
-          className="relative group rounded-full motion-safe:transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={avatarBusy || !userId}
+          className="relative group rounded-full motion-safe:transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-default"
         >
-          <HueAvatar name={name || liveName || "?"} hue={liveHue} size={72} />
+          <HueAvatar name={name || liveName || "?"} hue={liveHue} size={72} src={displayAvatar} />
           <span
             aria-hidden
-            className="absolute inset-0 rounded-full bg-foreground/0 group-hover:bg-foreground/40 motion-safe:transition-colors motion-safe:duration-150 grid place-items-center"
+            className={cn(
+              "absolute inset-0 rounded-full motion-safe:transition-colors motion-safe:duration-150 grid place-items-center",
+              avatarBusy ? "bg-foreground/50" : "bg-foreground/0 group-hover:bg-foreground/40"
+            )}
           >
-            <Camera className="w-5 h-5 text-background opacity-0 group-hover:opacity-100 motion-safe:transition-opacity" />
+            {avatarBusy ? (
+              <Loader2 className="w-5 h-5 text-background animate-spin" />
+            ) : (
+              <Camera className="w-5 h-5 text-background opacity-0 group-hover:opacity-100 motion-safe:transition-opacity" />
+            )}
           </span>
         </button>
         <div className="flex-1 min-w-0">
           <div className="text-[15px] font-semibold truncate">{name || liveName || "—"}</div>
           <div className="text-[12px] text-muted-foreground truncate">{subtitle}</div>
           <div className="flex gap-2 mt-3 flex-wrap">
-            <Button variant="outline" size="sm" disabled>
-              Upload photo
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarBusy || !userId}
+            >
+              {avatarBusy ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading
+                </>
+              ) : (
+                "Upload photo"
+              )}
             </Button>
-            <Button variant="ghost" size="sm" disabled>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRemoveAvatar}
+              disabled={avatarBusy || !displayAvatar}
+            >
               Remove
             </Button>
           </div>
+          <p className="text-[11px] text-muted-foreground mt-2">JPG, PNG, or WebP — up to 5&nbsp;MB.</p>
         </div>
       </div>
 
@@ -347,46 +391,6 @@ function ProfileCard({
           )}
         </Button>
       </FormFooter>
-    </Card>
-  );
-}
-
-/* ───────────────────────── Notifications card ───────────────────────── */
-
-function NotificationsCard({
-  groups,
-  values,
-  onChange,
-}: {
-  groups: { id: string; label: string; sub: string; defaultOn?: boolean }[];
-  values: Record<string, boolean>;
-  onChange: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-}) {
-  return (
-    <Card>
-      <CardHeader
-        title="Notifications"
-        subtitle="Choose what you want to hear about. We'll always send transactional emails."
-      />
-      <div className="divide-y divide-[--line-soft]">
-        {groups.map((n) => (
-          <label key={n.id} className="flex items-start gap-3 py-3 cursor-pointer">
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-medium">{n.label}</div>
-              <div className="text-[11px] text-muted-foreground mt-0.5">{n.sub}</div>
-            </div>
-            <Switch
-              checked={values[n.id] ?? false}
-              onCheckedChange={(next: boolean) =>
-                onChange((prev) => ({ ...prev, [n.id]: next }))
-              }
-            />
-          </label>
-        ))}
-      </div>
-      <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
-        Local preferences for now — persistence lands in a later phase.
-      </p>
     </Card>
   );
 }
@@ -484,7 +488,7 @@ function StudioCard({ studioId }: { studioId: string | undefined }) {
               ))}
             </Select>
           </Field>
-          <Field label="Currency">
+          {/* <Field label="Currency">
             <Select
               value={currency}
               onChange={(e) => {
@@ -498,7 +502,7 @@ function StudioCard({ studioId }: { studioId: string | undefined }) {
                 </option>
               ))}
             </Select>
-          </Field>
+          </Field> */}
         </div>
       )}
 
@@ -555,13 +559,14 @@ function StudioHoursCard({ studioId }: { studioId: string | undefined }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
-  const initRef = useRef(false);
+  // Keep the editable grid in sync with the server data until the user starts
+  // editing. Seeding off the first (empty, still-loading) `hours` value and then
+  // locking would leave saved hours invisible after a reload — instead re-sync
+  // whenever `hours` changes while there are no unsaved edits.
   useEffect(() => {
-    if (initRef.current && hours.length === 0) return;
-    if (initRef.current) return;
+    if (dirty) return;
     setGrid(rowsFromStudioHours(hours));
-    initRef.current = true;
-  }, [hours]);
+  }, [hours, dirty]);
 
   function setDay(weekday: number, patch: Partial<DayGridRow>) {
     setGrid((prev) =>
@@ -678,12 +683,13 @@ function WorkingHoursCard({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
-  const initRef = useRef(false);
+  // Re-sync from the server whenever rules change while there are no unsaved
+  // edits. Seeding off the first (empty, still-loading) `rules` value and then
+  // locking would leave saved working hours invisible after a reload.
   useEffect(() => {
-    if (initRef.current) return;
+    if (dirty) return;
     setGrid(rowsFromAvailability(rules));
-    initRef.current = true;
-  }, [rules]);
+  }, [rules, dirty]);
 
   function setDay(weekday: number, patch: Partial<DayGridRow>) {
     setGrid((prev) =>

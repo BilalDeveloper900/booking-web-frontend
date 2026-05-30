@@ -100,7 +100,7 @@ export function AppTopbar({ title, config, onMenuClick }: AppTopbarProps) {
             aria-label={`Open profile for ${user.name}`}
             className="rounded-full motion-safe:transition-shadow motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card data-popup-open:ring-2 data-popup-open:ring-ring data-popup-open:ring-offset-2 data-popup-open:ring-offset-card"
           >
-            <HueAvatar name={user.name} hue={user.hue} size={32} />
+            <HueAvatar name={user.name} hue={user.hue} size={32} src={user.avatarUrl} />
           </button>
         }
       />

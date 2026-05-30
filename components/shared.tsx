@@ -1,10 +1,22 @@
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
 
-export function HueAvatar({ name, hue, size = 28 }: { name: string; hue: number; size?: number }) {
+export function HueAvatar({
+  name,
+  hue,
+  size = 28,
+  src,
+}: {
+  name: string;
+  hue: number;
+  size?: number;
+  /** When set, the uploaded photo is shown; the hue gradient + initials remain
+   * the fallback (used before the image loads or when no photo exists). */
+  src?: string | null;
+}) {
   return (
     <div
-      className="rounded-full grid place-items-center text-white font-semibold shrink-0"
+      className="relative rounded-full grid place-items-center text-white font-semibold shrink-0 overflow-hidden"
       style={{
         width: size,
         height: size,
@@ -14,6 +26,16 @@ export function HueAvatar({ name, hue, size = 28 }: { name: string; hue: number;
       }}
     >
       {getInitials(name)}
+      {src && (
+        // eslint-disable-next-line @next/next/no-img-element -- dynamic Supabase
+        // Storage URL; using next/image would require remotePatterns config.
+        <img
+          src={src}
+          alt={name}
+          className="absolute inset-0 h-full w-full object-cover"
+          draggable={false}
+        />
+      )}
     </div>
   );
 }

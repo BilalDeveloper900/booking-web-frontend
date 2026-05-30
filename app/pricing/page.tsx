@@ -34,8 +34,8 @@ const TIERS = [
     id: "solo",
     name: "Solo",
     tagline: "For 1-person studios going pro",
-    monthly: 7,
-    yearly: 70,
+    monthly: 9,
+    yearly: 90,
     cta: "Start 14-day trial",
     features: [
       "1 admin seat",
@@ -50,8 +50,8 @@ const TIERS = [
     id: "studio",
     name: "Studio",
     tagline: "Where most studios land",
-    monthly: 19,
-    yearly: 190,
+    monthly: 24,
+    yearly: 240,
     cta: "Start 14-day trial",
     popular: true,
     features: [

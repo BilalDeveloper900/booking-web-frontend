@@ -123,7 +123,7 @@ export function ProfileMenu({
         className="w-65 p-0"
       >
         <div className="flex items-center gap-3 px-3 py-3 border-b border-border">
-          <HueAvatar name={user.name} hue={user.hue} size={40} />
+          <HueAvatar name={user.name} hue={user.hue} size={40} src={user.avatarUrl} />
           <div className="min-w-0 leading-tight">
             <div className="text-[13px] font-semibold truncate">{user.name}</div>
             <div className="text-[11px] text-muted-foreground truncate">{email}</div>

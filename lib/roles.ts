@@ -27,7 +27,7 @@ export interface RoleConfig {
   role: Role;
   label: string;
   navItems: NavItem[];
-  user: { name: string; hue: number; subtitle: string };
+  user: { name: string; hue: number; subtitle: string; avatarUrl?: string | null };
 }
 
 export const ROLE_CONFIGS: Record<Role, RoleConfig> = {

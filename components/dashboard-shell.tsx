@@ -45,6 +45,7 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
         user: {
           name: member.user.name,
           hue: member.user.avatar_hue,
+          avatarUrl: member.user.avatar_url,
           subtitle:
             role === "admin" && member.member.specialty
               ? member.member.specialty
