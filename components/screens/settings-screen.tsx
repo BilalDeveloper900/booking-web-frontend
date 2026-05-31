@@ -565,6 +565,9 @@ function StudioHoursCard({ studioId }: { studioId: string | undefined }) {
   // whenever `hours` changes while there are no unsaved edits.
   useEffect(() => {
     if (dirty) return;
+    // Intentional external-store sync: mirror server hours into the editable
+    // grid while there are no unsaved edits.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGrid(rowsFromStudioHours(hours));
   }, [hours, dirty]);
 
@@ -678,6 +681,24 @@ function WorkingHoursCard({
   memberId: string | undefined;
 }) {
   const { rules, loading, error, refetch } = useAvailabilityRules(memberId);
+  // Studio hours gate the admin's hours — the admin can only work inside the
+  // studio's open/close window for each day, and "24h" is offered only on days
+  // the studio is itself open 24h.
+  const { hours: studioHours } = useStudioHours(studioId);
+  const studioWindowByWeekday = new Map<number, { open: string; close: string }>();
+  for (const h of studioHours) {
+    if (!h.closed && h.open_time && h.close_time) {
+      studioWindowByWeekday.set(h.weekday, {
+        open: h.open_time.slice(0, 5),
+        close: h.close_time.slice(0, 5),
+      });
+    }
+  }
+  const studio24hWeekdays = new Set(
+    [...studioWindowByWeekday.entries()]
+      .filter(([, w]) => w.open === "00:00" && w.close === "24:00")
+      .map(([weekday]) => weekday)
+  );
   const [grid, setGrid] = useState<DayGridRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -688,6 +709,9 @@ function WorkingHoursCard({
   // locking would leave saved working hours invisible after a reload.
   useEffect(() => {
     if (dirty) return;
+    // Intentional external-store sync: mirror server rules into the editable
+    // grid while there are no unsaved edits.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGrid(rowsFromAvailability(rules));
   }, [rules, dirty]);
 
@@ -738,9 +762,20 @@ function WorkingHoursCard({
         <CardSkeleton rows={4} />
       ) : (
         <div className="divide-y divide-[--line-soft]">
-          {grid.map((d) => (
-            <DayRow key={d.weekday} d={d} onChange={(p) => setDay(d.weekday, p)} />
-          ))}
+          {grid.map((d) => {
+            const win = studioWindowByWeekday.get(d.weekday);
+            const full = win?.open === "00:00" && win?.close === "24:00";
+            return (
+              <DayRow
+                key={d.weekday}
+                d={d}
+                onChange={(p) => setDay(d.weekday, p)}
+                allow24h={studio24hWeekdays.has(d.weekday)}
+                minTime={full ? undefined : win?.open}
+                maxTime={full ? undefined : win?.close}
+              />
+            );
+          })}
         </div>
       )}
 
@@ -1082,10 +1117,22 @@ function AppearanceCard({
 function DayRow({
   d,
   onChange,
+  allow24h = true,
+  minTime,
+  maxTime,
 }: {
   d: DayGridRow;
   onChange: (patch: Partial<DayGridRow>) => void;
+  /** Whether the "24h" quick-set is offered for this day. Working hours only
+   * allow it on days the studio itself is open 24h. */
+  allow24h?: boolean;
+  /** Restrict the selectable time range (HH:MM). Working hours are clamped to
+   * the studio's open/close window for that day. */
+  minTime?: string;
+  maxTime?: string;
 }) {
+  // 00:00 → 24:00 is a full-day window (Postgres accepts time '24:00:00').
+  const is24h = d.start === "00:00" && d.end === "24:00";
   return (
     <div className="flex items-center gap-3 py-3 flex-wrap">
       <div className="w-12 text-[13px] font-medium tabular-nums shrink-0">{d.label}</div>
@@ -1096,21 +1143,48 @@ function DayRow({
       />
       <div className="flex-1" />
       {d.open ? (
-        <div className="flex items-center gap-2 text-[12px]">
-          <Input
-            type="time"
-            value={d.start}
-            onChange={(e) => onChange({ start: e.target.value })}
-            className="w-27.5!"
-          />
-          <span className="text-muted-foreground">→</span>
-          <Input
-            type="time"
-            value={d.end}
-            onChange={(e) => onChange({ end: e.target.value })}
-            className="w-27.5!"
-          />
-        </div>
+        is24h ? (
+          <div className="flex items-center gap-2 text-[12px]">
+            <span className="font-medium">Open 24 hours</span>
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={() => onChange({ start: "09:00", end: "18:00" })}
+            >
+              Set hours
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-[12px]">
+            <Input
+              type="time"
+              value={d.start}
+              min={minTime}
+              max={maxTime}
+              onChange={(e) => onChange({ start: e.target.value })}
+              className="w-27.5!"
+            />
+            <span className="text-muted-foreground">→</span>
+            <Input
+              type="time"
+              value={d.end}
+              min={minTime}
+              max={maxTime}
+              onChange={(e) => onChange({ end: e.target.value })}
+              className="w-27.5!"
+            />
+            {allow24h && (
+              <Button
+                variant="ghost"
+                size="xs"
+                className="shrink-0"
+                onClick={() => onChange({ start: "00:00", end: "24:00" })}
+              >
+                24h
+              </Button>
+            )}
+          </div>
+        )
       ) : (
         <span className="text-[12px] text-muted-foreground">Closed</span>
       )}
