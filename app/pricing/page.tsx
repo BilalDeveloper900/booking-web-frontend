@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Check, Globe, MessageSquare, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Check, Sparkles, Users } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/marketing/site-header";
@@ -66,8 +66,6 @@ const TIERS = [
 ] as const;
 
 const ADDONS = [
-  { icon: Globe, label: "Custom email domain", price: "+$3 / mo", body: "Send from bookings@your-studio.com." },
-  { icon: MessageSquare, label: "SMS notifications", price: "+$5 / mo", body: "100 SMS included, then $0.04 each." },
   { icon: Users, label: "Extra admin seat", price: "+$3 / mo each", body: "Beyond your plan limit, add as you grow." },
   { icon: Sparkles, label: "Branded landing page", price: "+$5 / mo", body: "Public booking page with your logo and colors." },
 ] as const;
@@ -193,7 +191,7 @@ export default function PricingPage() {
                 Available on any paid plan. Add or remove anytime — billed alongside your subscription.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10 max-w-2xl mx-auto">
               {ADDONS.map((a) => (
                 <div key={a.label} className="bg-card border border-border rounded-xl p-5 shadow-card">
                   <span className="w-9 h-9 rounded-lg bg-muted text-foreground grid place-items-center mb-3">

@@ -1,21 +1,72 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
+  Building2,
   Calendar,
+  CalendarClock,
   Check,
   CreditCard,
-  Globe,
   LayoutDashboard,
   MessageSquare,
   Moon,
   Smartphone,
   Sparkles,
   Users,
+  Zap,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { JsonLd } from "@/components/marketing/json-ld";
+import { Reveal } from "@/components/marketing/reveal";
+
+/* ───────────────────────── SEO ───────────────────────── */
+
+// Set this to your production domain. Used for canonical + Open Graph URLs and
+// the structured data @id graph. (NEXT_PUBLIC_APP_URL is localhost in dev.)
+const SITE_URL = "https://www.bookitdaily.com";
+
+const SITE_DESCRIPTION =
+  "Book It Daily is booking and client-management software for salons, gyms, and studios. Manage bookings, staff, clients, credit packs, messages, and payouts in one installable app — with a free forever plan and no transaction fees.";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: "Book It Daily — Booking & client software for salons, gyms & studios",
+  description: SITE_DESCRIPTION,
+  keywords: [
+    "booking software",
+    "salon booking software",
+    "gym booking app",
+    "studio scheduling software",
+    "appointment scheduling software",
+    "client management software",
+    "booking app for salons",
+    "PWA booking app",
+    "credit packs",
+    "no transaction fees booking",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Book It Daily",
+    title: "Booking & client software for salons, gyms & studios",
+    description: SITE_DESCRIPTION,
+    images: [{ url: "/icons/bookitdaily-512.svg", width: 512, height: 512, alt: "Book It Daily" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Book It Daily — Booking software for salons, gyms & studios",
+    description:
+      "Manage bookings, staff, clients, credits, and payouts in one installable app. Free forever plan, no transaction fees.",
+    images: ["/icons/bookitdaily-512.svg"],
+  },
+  robots: { index: true, follow: true },
+};
+
+/* ───────────────────────── content ───────────────────────── */
 
 const TIERS = [
   {
@@ -71,23 +122,6 @@ const TIERS = [
       "Priority email support",
     ],
   },
-  // {
-  //   id: "atelier",
-  //   name: "Atelier",
-  //   tagline: "Multi-location and chains",
-  //   monthly: 39,
-  //   yearly: 390,
-  //   cta: "Start 14-day trial",
-  //   ctaHref: "/signup",
-  //   features: [
-  //     "Unlimited admins",
-  //     "Unlimited clients",
-  //     "Multi-location",
-  //     "White-label everything",
-  //     "API access",
-  //     "Live chat support",
-  //   ],
-  // },
 ] as const;
 
 const FEATURES = [
@@ -123,52 +157,128 @@ const FEATURES = [
   },
 ] as const;
 
+const HOW_IT_WORKS = [
+  {
+    icon: Building2,
+    title: "Set up your studio",
+    body: "Add your services, staff, and opening hours. Invite your team in a click — each gets their own role.",
+  },
+  {
+    icon: CalendarClock,
+    title: "Share your booking link",
+    body: "Clients book online or install your branded app on their phone. No app store, no download friction.",
+  },
+  {
+    icon: Zap,
+    title: "Run the day from one place",
+    body: "Bookings, credits, messages, payouts, and revenue — all in a single dashboard that fits in your pocket.",
+  },
+] as const;
+
 const ADDONS = [
-  { icon: Globe, label: "Custom email domain", price: "+$3/mo", body: "Send from bookings@your-studio.com" },
-  { icon: MessageSquare, label: "SMS notifications", price: "+$5/mo", body: "100 SMS included, then $0.04 each" },
   { icon: Users, label: "Extra admin seat", price: "+$3/mo each", body: "Beyond your tier limit, add as you grow" },
   { icon: Sparkles, label: "Branded landing page", price: "+$5/mo", body: "Public booking page with your logo and colors" },
 ] as const;
 
 const FAQ = [
   {
-    q: "How is this different from Calendly or Acuity?",
-    a: "Those are scheduling tools. We're a full booking + clients + admins + finance product built for studios that take credits/packages. Calendly can't do credit packs, commission splits, or client subscriptions natively.",
+    q: "What is Book It Daily?",
+    a: "Book It Daily is booking and client-management software for salons, gyms, and studios. It handles bookings, staff schedules, client records, credit packs and subscriptions, 1-to-1 messaging, and finance — in one installable web app (PWA) that works on both phones and desktops.",
   },
   {
-    q: "Can I migrate my existing bookings?",
-    a: "Yes — CSV import for clients and bookings is on the Studio tier. Atelier customers get a 1:1 migration session.",
+    q: "How is this different from Calendly or Acuity?",
+    a: "Those are scheduling tools. Book It Daily is a full booking + clients + admins + finance product built for studios that sell credits and packages. Calendly can't do credit packs, commission splits, or client subscriptions natively — Book It Daily treats them as first-class.",
   },
   {
     q: "Do you take a percentage of each booking?",
-    a: "No. We charge a flat monthly subscription. You keep 100% of what your clients pay you. (We don't process payments — you plug in your own gateway.)",
+    a: "No. Book It Daily charges a flat monthly subscription. You keep 100% of what your clients pay you — we don't process your clients' payments, so there are no transaction fees on your revenue.",
   },
   {
-    q: "What payment processor should I use?",
-    a: "We bill our own subscription via Lemon Squeezy. For your client payments, you can use Stripe, Lemon Squeezy, Paddle, Square, or take cash/bank transfers. Your call.",
+    q: "How are subscriptions billed?",
+    a: "Your Book It Daily subscription is billed through Paddle, our Merchant of Record, which handles VAT and sales tax globally. For the payments your own clients make to you, plug in whatever you already use — Stripe, Paddle, Square, cash, or bank transfer.",
+  },
+  {
+    q: "Can I migrate my existing bookings?",
+    a: "Yes — CSV import for clients and bookings is available on the Studio plan, so you can move your existing book of business over without re-keying everything.",
   },
   {
     q: "Can I cancel anytime?",
-    a: "Yes — monthly plans cancel at the next billing date. Annual plans pro-rate the unused months.",
+    a: "Yes. Monthly plans stop renewing at the next billing date and annual plans are handled per our refund policy. There are no long-term contracts.",
   },
   {
-    q: "Will my data be safe?",
-    a: "Daily backups, encrypted at rest, GDPR compliant. You can export everything as CSV at any time.",
+    q: "Is my data safe?",
+    a: "Yes. Data is encrypted at rest, backed up daily, and GDPR-compliant. You can export everything as CSV at any time — your data is always yours.",
   },
 ] as const;
+
+/* ───────────────────────── structured data ───────────────────────── */
+
+function structuredData() {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
+        name: "Book It Daily",
+        url: SITE_URL,
+        logo: `${SITE_URL}/icons/bookitdaily-512.svg`,
+        email: "bookitdaily@gmail.com",
+        description: SITE_DESCRIPTION,
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: "Book It Daily",
+        publisher: { "@id": `${SITE_URL}/#organization` },
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${SITE_URL}/#software`,
+        name: "Book It Daily",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web, iOS, Android (PWA)",
+        description: SITE_DESCRIPTION,
+        publisher: { "@id": `${SITE_URL}/#organization` },
+        offers: TIERS.map((t) => ({
+          "@type": "Offer",
+          name: `${t.name} plan`,
+          price: String(t.monthly),
+          priceCurrency: "USD",
+          url: `${SITE_URL}/pricing`,
+        })),
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${SITE_URL}/#faq`,
+        mainEntity: FAQ.map((item) => ({
+          "@type": "Question",
+          name: item.q,
+          acceptedAnswer: { "@type": "Answer", text: item.a },
+        })),
+      },
+    ],
+  };
+}
+
+/* ───────────────────────── page ───────────────────────── */
 
 export default function LandingPage() {
   return (
     <div className="min-h-dvh flex flex-col bg-background text-foreground">
+      <JsonLd data={structuredData()} />
       <SiteHeader />
-      <Hero />
-      <Trusted />
-      <FeaturesSection />
-      <PricingSection />
-      <AddonsSection />
-      <BuildOffers />
-      <FaqSection />
-      <FooterCta />
+      <main className="flex-1">
+        <Hero />
+        <FeaturesSection />
+        <HowItWorks />
+        <PricingSection />
+        <AddonsSection />
+        <BuildOffers />
+        <FaqSection />
+        <FooterCta />
+      </main>
       <SiteFooter />
     </div>
   );
@@ -178,56 +288,69 @@ export default function LandingPage() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-[--teal-100]/40 to-transparent pointer-events-none" aria-hidden />
-      <div className="max-w-5xl mx-auto px-4 md:px-6 py-16 md:py-24 text-center relative">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-[0.08em] uppercase text-[--role-accent-dark] bg-[--role-accent-light]/60 px-2.5 py-1 rounded-full mb-6">
-          <Sparkles className="w-3 h-3" /> Built for salons, gyms, studios
-        </span>
-        <h1 className="text-[40px] md:text-[64px] font-semibold tracking-tight leading-[1.05] mb-5">
-          The booking app your <br className="hidden sm:inline" />
-          studio actually wants.
-        </h1>
-        <p className="text-[16px] md:text-[18px] text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
-          Manage bookings, clients, admins, and earnings in one place. Bring your own payments,
-          design your own credit packs, and ship a real PWA your clients install on their phone.
-        </p>
-        <div className="flex items-center justify-center gap-3 flex-wrap">
-          <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "h-11 px-5 gap-2")}>
-            Start free <ArrowRight className="w-4 h-4" />
-          </Link>
-          <Link href="#pricing" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11 px-5")}>
-            See pricing
-          </Link>
-        </div>
-        <div className="text-[12px] text-muted-foreground mt-4">
-          No credit card · Cancel anytime · Free forever tier
-        </div>
-      </div>
-    </section>
-  );
-}
+    <section className="relative overflow-hidden border-b border-border ">
+      {/* layered background: soft teal aurora + faint grid */}
+      <div
+        className="absolute inset-0 -z-10 bg-gradient-to-b from-[--teal-100]/50 via-background to-background pointer-events-none"
+        aria-hidden
+      />
+      <div
+        className="absolute inset-x-0 top-0 -z-10 opacity-[0.18] pointer-events-none [mask-image:radial-gradient(60%_60%_at_50%_0%,#000,transparent)]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)",
+          backgroundSize: "44px 44px",
+        }}
+        aria-hidden
+      />
 
-/* ---------------- trusted ---------------- */
+      {/* soft animated teal glow behind the headline */}
+      <div
+        className="bid-hero-glow absolute left-1/2 top-24 -z-10 h-72 w-160 max-w-[90vw] -translate-x-1/2 rounded-full bg-[--teal-500]/45 blur-[90px] pointer-events-none"
+        aria-hidden
+      />
 
-function Trusted() {
-  const logos = ["Aurelia Salon", "Studio Twelve", "Atelier Noir", "Crown & Co.", "Le Coiffeur"];
-  return (
-    <section className="border-y border-border bg-card/40">
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
-        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground text-center mb-4">
-          Trusted by studios across Europe
-        </div>
-        <div className="flex items-center justify-center gap-8 md:gap-12 flex-wrap opacity-60">
-          {logos.map((l) => (
-            <span
-              key={l}
-              className="text-[13px] tracking-tight font-serif text-foreground/70"
+      <div className="max-w-5xl mx-auto px-4 md:px-6 pt-16 md:pt-24 pb-16 md:pb-24 text-center">
+        <Reveal delay={0}>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-[0.08em] uppercase text-[--role-accent-dark] bg-[--role-accent-light]/60 px-2.5 py-1 rounded-full mb-6">
+            <Sparkles className="w-3 h-3 motion-safe:animate-pulse" /> Built for salons, gyms &amp; studios
+          </span>
+        </Reveal>
+        <Reveal delay={80}>
+          <h1 className="text-[40px] md:text-[64px] font-semibold tracking-tight leading-[1.04] mb-5">
+            The booking app your{" "}
+            <span className="text-primary bid-gradient-text">studio</span> actually wants.
+          </h1>
+        </Reveal>
+        <Reveal delay={160}>
+          <p className="text-[16px] md:text-[18px] text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
+            Book It Daily is booking and client-management software for salons, gyms, and studios.
+            Manage bookings, staff, clients, and credit packs in one installable app — bring your
+            own payments and keep 100% of your revenue.
+          </p>
+        </Reveal>
+        <Reveal delay={240}>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <Link
+              href="/signup"
+              className={cn(buttonVariants({ size: "lg" }), "group h-11 px-5 gap-2")}
             >
-              {l}
-            </span>
-          ))}
-        </div>
+              Start free
+              <ArrowRight className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 group-hover:translate-x-0.5" />
+            </Link>
+            <Link
+              href="/pricing"
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11 px-5")}
+            >
+              See pricing
+            </Link>
+          </div>
+        </Reveal>
+        <Reveal delay={320}>
+          <div className="text-[12px] text-muted-foreground mt-4">
+            No credit card · Cancel anytime · Free forever tier
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -237,27 +360,69 @@ function Trusted() {
 
 function FeaturesSection() {
   return (
-    <section id="features" className="py-16 md:py-24">
+    <section id="features" aria-labelledby="features-heading" className="py-16 md:py-24 scroll-mt-20">
       <div className="max-w-6xl mx-auto px-4 md:px-6">
         <Heading
+          id="features-heading"
           eyebrow="Features"
           title="Everything a small studio needs."
           subtitle="No bloat, no enterprise lock-in. The pieces below are in every paid plan."
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
-          {FEATURES.map((f) => (
-            <div
-              key={f.title}
-              className="bg-card border border-border rounded-xl p-6 shadow-card motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-px hover:shadow-hero"
-            >
-              <span className="w-10 h-10 rounded-lg bg-[--role-accent-light]/60 text-[--role-accent-dark] grid place-items-center mb-4">
-                <f.icon className="w-5 h-5" aria-hidden />
-              </span>
-              <div className="text-[15px] font-semibold mb-1.5">{f.title}</div>
-              <p className="text-[13px] text-muted-foreground leading-relaxed">{f.body}</p>
-            </div>
+          {FEATURES.map((f, i) => (
+            <Reveal key={f.title} delay={(i % 3) * 90} className="h-full">
+              <div className="group h-full bg-card border border-border rounded-xl p-6 shadow-card motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-0.5 hover:shadow-hero">
+                <span className="w-10 h-10 rounded-lg bg-[--role-accent-light]/60 text-[--role-accent-dark] grid place-items-center mb-4 motion-safe:transition-transform motion-safe:duration-200 group-hover:scale-110 group-hover:-rotate-3">
+                  <f.icon className="w-5 h-5" aria-hidden />
+                </span>
+                <h3 className="text-[15px] font-semibold mb-1.5">{f.title}</h3>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">{f.body}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- how it works ---------------- */
+
+function HowItWorks() {
+  return (
+    <section
+      id="how-it-works"
+      aria-labelledby="how-heading"
+      className="py-16 md:py-24 bg-muted/30 border-y border-border scroll-mt-20"
+    >
+      <div className="max-w-6xl mx-auto px-4 md:px-6">
+        <Heading
+          id="how-heading"
+          eyebrow="How it works"
+          title="Live in an afternoon."
+          subtitle="No onboarding calls, no setup fees. Three steps from sign-up to your first booking."
+        />
+        <ol className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-12">
+          {HOW_IT_WORKS.map((s, i) => (
+            <Reveal
+              as="li"
+              key={s.title}
+              delay={i * 110}
+              className="group relative bg-card border border-border rounded-xl p-6 shadow-card"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <span className="w-9 h-9 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0 motion-safe:transition-transform motion-safe:duration-200 group-hover:scale-110">
+                  <s.icon className="w-5 h-5" aria-hidden />
+                </span>
+                <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-muted-foreground tabular-nums">
+                  Step {i + 1}
+                </span>
+              </div>
+              <h3 className="text-[15px] font-semibold mb-1.5">{s.title}</h3>
+              <p className="text-[13px] text-muted-foreground leading-relaxed">{s.body}</p>
+            </Reveal>
+          ))}
+        </ol>
       </div>
     </section>
   );
@@ -267,21 +432,22 @@ function FeaturesSection() {
 
 function PricingSection() {
   return (
-    <section id="pricing" className="py-16 md:py-24 bg-muted/30">
+    <section id="pricing" aria-labelledby="pricing-heading" className="py-16 md:py-24 scroll-mt-20">
       <div className="max-w-6xl mx-auto px-4 md:px-6">
         <Heading
+          id="pricing-heading"
           eyebrow="Pricing"
           title="One flat fee. No transaction cuts."
           subtitle="Save 2 months when you pay yearly. All prices in USD."
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-12">
-          {TIERS.map((t) => {
+          {TIERS.map((t, i) => {
             const featured = "popular" in t && t.popular;
             return (
+              <Reveal key={t.id} delay={i * 90} className="h-full">
               <div
-                key={t.id}
                 className={
-                  "bg-card border rounded-xl p-6 flex flex-col motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-px " +
+                  "h-full bg-card border rounded-xl p-6 flex flex-col motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-0.5 " +
                   (featured
                     ? "border-primary ring-1 ring-primary/30 shadow-hero"
                     : "border-border shadow-card hover:shadow-hero")
@@ -295,9 +461,7 @@ function PricingSection() {
                 <div className="text-[15px] font-semibold tracking-tight">{t.name}</div>
                 <div className="text-[12px] text-muted-foreground mb-5">{t.tagline}</div>
                 <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-[36px] font-semibold tracking-tight tabular-nums">
-                    ${t.monthly}
-                  </span>
+                  <span className="text-[36px] font-semibold tracking-tight tabular-nums">${t.monthly}</span>
                   <span className="text-[13px] text-muted-foreground">/mo</span>
                 </div>
                 <div className="text-[11px] text-muted-foreground mb-5 tabular-nums">
@@ -321,9 +485,17 @@ function PricingSection() {
                   {t.cta}
                 </Link>
               </div>
+              </Reveal>
             );
           })}
         </div>
+        <p className="text-[12px] text-muted-foreground text-center mt-6">
+          Looking for the full breakdown?{" "}
+          <Link href="/pricing" className="text-primary underline underline-offset-2 hover:opacity-80">
+            Compare all plans &amp; add-ons
+          </Link>
+          .
+        </p>
       </div>
     </section>
   );
@@ -333,26 +505,26 @@ function PricingSection() {
 
 function AddonsSection() {
   return (
-    <section className="py-16 md:py-20">
+    <section aria-labelledby="addons-heading" className="py-16 md:py-20 bg-muted/30 border-y border-border">
       <div className="max-w-6xl mx-auto px-4 md:px-6">
         <Heading
+          id="addons-heading"
           eyebrow="Add-ons"
           title="Bolt on what you actually need."
           subtitle="Available on any paid plan. Add or remove anytime."
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
-          {ADDONS.map((a) => (
-            <div
-              key={a.label}
-              className="bg-card border border-border rounded-xl p-5 shadow-card"
-            >
-              <span className="w-9 h-9 rounded-lg bg-muted text-foreground grid place-items-center mb-3">
-                <a.icon className="w-4 h-4" aria-hidden />
-              </span>
-              <div className="text-[14px] font-semibold mb-1">{a.label}</div>
-              <div className="text-[12px] text-[--pos] font-semibold tabular-nums mb-1.5">{a.price}</div>
-              <p className="text-[12px] text-muted-foreground leading-relaxed">{a.body}</p>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10 max-w-2xl mx-auto">
+          {ADDONS.map((a, i) => (
+            <Reveal key={a.label} delay={i * 90} className="h-full">
+              <div className="group h-full bg-card border border-border rounded-xl p-5 shadow-card motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-0.5 hover:shadow-hero">
+                <span className="w-9 h-9 rounded-lg bg-muted text-foreground grid place-items-center mb-3 motion-safe:transition-transform motion-safe:duration-200 group-hover:scale-110">
+                  <a.icon className="w-4 h-4" aria-hidden />
+                </span>
+                <div className="text-[14px] font-semibold mb-1">{a.label}</div>
+                <div className="text-[12px] text-[--pos] font-semibold tabular-nums mb-1.5">{a.price}</div>
+                <p className="text-[12px] text-muted-foreground leading-relaxed">{a.body}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -364,17 +536,17 @@ function AddonsSection() {
 
 function BuildOffers() {
   return (
-    <section id="offers" className="py-16 md:py-24 bg-muted/30">
+    <section id="offers" aria-labelledby="offers-heading" className="py-16 md:py-24 scroll-mt-20">
       <div className="max-w-5xl mx-auto px-4 md:px-6">
-        <div className="bg-card border border-border rounded-2xl shadow-hero overflow-hidden">
+        <Reveal className="bg-card border border-border rounded-2xl shadow-hero overflow-hidden block">
           <div className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr]">
             <div className="p-8 md:p-12">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-[0.08em] uppercase text-[--role-accent-dark] bg-[--role-accent-light]/60 px-2.5 py-1 rounded-full mb-4">
                 <CreditCard className="w-3 h-3" /> Credits + subscriptions
               </span>
-              <h3 className="text-[28px] md:text-[32px] font-semibold tracking-tight leading-tight mb-3">
+              <h2 id="offers-heading" className="text-[28px] md:text-[32px] font-semibold tracking-tight leading-tight mb-3">
                 Design your own client offers.
-              </h3>
+              </h2>
               <p className="text-[14px] text-muted-foreground leading-relaxed mb-5">
                 Build subscription plans + top-up credit packs that fit how your studio actually
                 sells. Edit the price, the credits, the perks, the name. Templates included.
@@ -404,26 +576,20 @@ function BuildOffers() {
                 <div className="text-[20px] font-semibold tabular-nums">$89/mo</div>
                 <div className="text-[12px] text-muted-foreground mb-4">8 credits / month</div>
                 <ul className="text-[12px] space-y-1.5 mb-4">
-                  <li className="flex gap-2 items-start">
-                    <Check className="w-3 h-3 text-[--pos] mt-0.5 shrink-0" />
-                    Priority booking
-                  </li>
-                  <li className="flex gap-2 items-start">
-                    <Check className="w-3 h-3 text-[--pos] mt-0.5 shrink-0" />
-                    Free reschedule
-                  </li>
-                  <li className="flex gap-2 items-start">
-                    <Check className="w-3 h-3 text-[--pos] mt-0.5 shrink-0" />
-                    €11.13 per credit
-                  </li>
+                  {["Priority booking", "Free reschedule", "€11.13 per credit"].map((p) => (
+                    <li key={p} className="flex gap-2 items-start">
+                      <Check className="w-3 h-3 text-[--pos] mt-0.5 shrink-0" />
+                      {p}
+                    </li>
+                  ))}
                 </ul>
-                <button type="button" className={cn(buttonVariants({ size: "sm" }), "w-full")}>
+                <span className={cn(buttonVariants({ size: "sm" }), "w-full pointer-events-none")}>
                   Subscribe
-                </button>
+                </span>
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -433,21 +599,14 @@ function BuildOffers() {
 
 function FaqSection() {
   return (
-    <section id="faq" className="py-16 md:py-24">
+    <section id="faq" aria-labelledby="faq-heading" className="py-16 md:py-24 bg-muted/30 border-t border-border scroll-mt-20">
       <div className="max-w-3xl mx-auto px-4 md:px-6">
-        <Heading
-          eyebrow="FAQ"
-          title="Things people ask."
-          align="left"
-        />
+        <Heading id="faq-heading" eyebrow="FAQ" title="Things people ask." align="left" />
         <div className="mt-10 divide-y divide-border border-y border-border">
           {FAQ.map((item) => (
-            <details
-              key={item.q}
-              className="group py-5"
-            >
+            <details key={item.q} className="group py-5">
               <summary className="flex justify-between items-start gap-4 cursor-pointer list-none">
-                <span className="text-[15px] font-medium">{item.q}</span>
+                <h3 className="text-[15px] font-medium">{item.q}</h3>
                 <span className="text-muted-foreground text-xl leading-none transition-transform group-open:rotate-45 mt-1">
                   +
                 </span>
@@ -466,7 +625,7 @@ function FaqSection() {
 function FooterCta() {
   return (
     <section className="py-16 md:py-20 bg-foreground text-background">
-      <div className="max-w-3xl mx-auto px-4 md:px-6 text-center">
+      <Reveal className="max-w-3xl mx-auto px-4 md:px-6 text-center block">
         <h2 className="text-[28px] md:text-[36px] font-semibold tracking-tight leading-tight mb-3">
           Run your studio from your pocket.
         </h2>
@@ -477,14 +636,15 @@ function FooterCta() {
           <Link
             href="/signup"
             className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "h-11 px-5 border-background/30 text-background hover:bg-background/10 gap-2"
+              buttonVariants({ size: "lg" }),
+              "group h-11 px-5 gap-2 bg-background text-foreground hover:bg-background/90"
             )}
           >
-            Start free <ArrowRight className="w-4 h-4" />
+            Start free
+            <ArrowRight className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 group-hover:translate-x-0.5" />
           </Link>
           <Link
-            href="#pricing"
+            href="/pricing"
             className={cn(
               buttonVariants({ variant: "ghost", size: "lg" }),
               "h-11 px-5 text-background hover:bg-background/10"
@@ -493,7 +653,7 @@ function FooterCta() {
             Compare plans
           </Link>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -501,22 +661,24 @@ function FooterCta() {
 /* ---------------- shared ---------------- */
 
 function Heading({
+  id,
   eyebrow,
   title,
   subtitle,
   align = "center",
 }: {
+  id?: string;
   eyebrow: string;
   title: string;
   subtitle?: string;
   align?: "center" | "left";
 }) {
   return (
-    <div className={align === "center" ? "text-center" : ""}>
+    <Reveal className={align === "center" ? "text-center" : ""}>
       <div className="text-[11px] font-medium tracking-[0.12em] uppercase text-[--role-accent-dark]">
         {eyebrow}
       </div>
-      <h2 className="text-[28px] md:text-[36px] font-semibold tracking-tight leading-tight mt-2">
+      <h2 id={id} className="text-[28px] md:text-[36px] font-semibold tracking-tight leading-tight mt-2">
         {title}
       </h2>
       {subtitle && (
@@ -529,6 +691,6 @@ function Heading({
           {subtitle}
         </p>
       )}
-    </div>
+    </Reveal>
   );
 }

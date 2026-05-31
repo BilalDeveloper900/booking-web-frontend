@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { SiteHeaderActions } from "@/components/marketing/site-header-actions";
 
 /**
  * Shared marketing top-nav used by the landing page and the public
@@ -23,15 +23,7 @@ export function SiteHeader() {
           <Link href="/#faq" className="hover:text-foreground motion-safe:transition-colors">FAQ</Link>
         </nav>
         <div className="flex-1" />
-        <Link
-          href="/login"
-          className="text-sm text-muted-foreground hover:text-foreground motion-safe:transition-colors"
-        >
-          Sign in
-        </Link>
-        <Link href="/signup" className={buttonVariants({ size: "sm" })}>
-          Start free
-        </Link>
+        <SiteHeaderActions />
       </div>
     </header>
   );

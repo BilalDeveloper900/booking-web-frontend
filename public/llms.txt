@@ -1,0 +1,25 @@
+# Book It Daily
+
+> Book It Daily is booking and client-management software for salons, gyms, and studios. It runs as an installable web app (PWA) and covers bookings, staff scheduling, client records, credit packs and subscriptions, 1-to-1 messaging, and finance/payouts — in one place.
+
+## What it is
+- Category: booking and client-management software (SaaS) for service studios (salons, gyms, fitness/yoga studios, coaches).
+- Roles: Owner (runs the business and pays the subscription), Admin (staff member who delivers services), Client (the end customer who books).
+- Delivery: progressive web app (PWA) installable on iOS and Android home screens; also works on desktop.
+
+## Key facts
+- Pricing is a flat monthly subscription in USD — there are no transaction fees on the studio's revenue. Owners keep 100% of what their clients pay them.
+- Plans: Free ($0/mo), Solo ($9/mo or $90/yr), Studio ($24/mo or $240/yr). Paid plans include a 14-day free trial.
+- The subscription is billed through Paddle (Merchant of Record), which handles VAT/sales tax globally.
+- Book It Daily does NOT process the payments a studio's own clients make — studios plug in their own gateway (Stripe, Paddle, Square, cash, bank transfer).
+- Differentiators vs. Calendly/Acuity: native credit packs, client subscriptions, per-admin commission splits, and a built-in finance dashboard.
+- Data: encrypted at rest, daily backups, GDPR-compliant, full CSV export at any time.
+
+## Links
+- Pricing: /pricing
+- Terms of Service: /terms
+- Privacy Policy: /privacy
+- Refund Policy: /refund-policy
+
+## Contact
+- Email: bookitdaily@gmail.com
