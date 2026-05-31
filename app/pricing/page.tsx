@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Check, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Sparkles, Users } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { PricingPlans } from "@/components/marketing/pricing-plans";
 
 export const metadata: Metadata = {
   title: "Pricing — Book It Daily",
@@ -118,58 +119,7 @@ export default function PricingPage() {
         {/* tiers */}
         <section className="py-12 md:py-16">
           <div className="max-w-6xl mx-auto px-4 md:px-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {TIERS.map((t) => {
-                const featured = "popular" in t && t.popular;
-                return (
-                  <div
-                    key={t.id}
-                    className={
-                      "bg-card border rounded-xl p-6 flex flex-col motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-px " +
-                      (featured
-                        ? "border-primary ring-1 ring-primary/30 shadow-hero"
-                        : "border-border shadow-card hover:shadow-hero")
-                    }
-                  >
-                    {featured && (
-                      <span className="self-start text-[10px] tracking-[0.08em] uppercase font-semibold text-primary-foreground bg-primary px-2 py-0.5 rounded-full mb-3">
-                        Most popular
-                      </span>
-                    )}
-                    <div className="text-[15px] font-semibold tracking-tight">{t.name}</div>
-                    <div className="text-[12px] text-muted-foreground mb-5">{t.tagline}</div>
-                    <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-[36px] font-semibold tracking-tight tabular-nums">
-                        ${t.monthly}
-                      </span>
-                      <span className="text-[13px] text-muted-foreground">USD / mo</span>
-                    </div>
-                    <div className="text-[11px] text-muted-foreground mb-5 tabular-nums">
-                      {t.yearly === 0
-                        ? "Free forever"
-                        : `or $${t.yearly} USD / yr (save $${t.monthly * 12 - t.yearly})`}
-                    </div>
-                    <ul className="text-[13px] space-y-2 mb-6 flex-1">
-                      {t.features.map((f) => (
-                        <li key={f} className="flex gap-2 items-start">
-                          <Check className="w-3.5 h-3.5 text-[--pos] mt-0.5 shrink-0" aria-hidden />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    {"limits" in t && t.limits && (
-                      <div className="text-[11px] text-muted-foreground mb-4">{t.limits}</div>
-                    )}
-                    <Link
-                      href="/signup"
-                      className={cn(buttonVariants({ variant: featured ? "default" : "outline" }), "w-full")}
-                    >
-                      {t.cta}
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
+            <PricingPlans tiers={TIERS} />
             <p className="text-[12px] text-muted-foreground text-center mt-6">
               Prices exclude applicable sales tax / VAT, which is calculated at checkout by our
               payment provider, Paddle.
@@ -261,7 +211,7 @@ export default function PricingPage() {
               href="/signup"
               className={cn(
                 buttonVariants({ variant: "outline", size: "lg" }),
-                "h-11 px-5 border-background/30 text-background hover:bg-background/10 gap-2"
+                "h-11 px-5 border-background/30 text-black hover:bg-background/10 gap-2"
               )}
             >
               Start free <ArrowRight className="w-4 h-4" />

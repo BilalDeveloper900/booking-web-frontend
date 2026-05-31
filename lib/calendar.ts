@@ -146,6 +146,132 @@ export function useCalendarSessions({ studioId, weekOffset, adminMemberId }: Arg
   return { ...state, refetch };
 }
 
+/* ────────── Time off (whole-day admin blocks) for the visible week ────────── */
+
+export type TimeOffItem = {
+  id: string;
+  /** 0..6 index into the visible Mon-first week. */
+  dayIndex: number;
+  date: string; // YYYY-MM-DD
+  adminMemberId: string;
+  adminName: string;
+  adminHue: number;
+  reason: string;
+};
+
+type TimeOffState = {
+  timeOff: TimeOffItem[];
+  loading: boolean;
+  error: string | null;
+};
+
+/**
+ * Whole-day time-off blocks for the visible week. Admin view passes
+ * `adminMemberId` to see only their own; owner passes `undefined` to see every
+ * admin's blocks (rendered separately, labelled per admin).
+ */
+export function useStudioTimeOff({ studioId, weekOffset, adminMemberId }: Args) {
+  const [state, setState] = useState<TimeOffState>(() => ({
+    timeOff: [],
+    loading: Boolean(studioId),
+    error: null,
+  }));
+
+  const refetch = useCallback(async () => {
+    if (!studioId) return;
+    const { start, end } = weekBounds(weekOffset);
+    const result = await runTimeOffQuery(studioId, start, end, adminMemberId);
+    setState({ ...result, loading: false });
+  }, [studioId, weekOffset, adminMemberId]);
+
+  useEffect(() => {
+    if (!studioId) return;
+    let cancelled = false;
+    const { start, end } = weekBounds(weekOffset);
+    runTimeOffQuery(studioId, start, end, adminMemberId).then((result) => {
+      if (cancelled) return;
+      setState({ ...result, loading: false });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [studioId, weekOffset, adminMemberId]);
+
+  return { ...state, refetch };
+}
+
+function isoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = (d.getMonth() + 1).toString().padStart(2, "0");
+  const day = d.getDate().toString().padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+async function runTimeOffQuery(
+  studioId: string,
+  weekStart: Date,
+  weekEnd: Date,
+  adminMemberId: string | undefined
+): Promise<{ timeOff: TimeOffItem[]; error: string | null }> {
+  const supabase = createClient();
+  let q = supabase
+    .from("availability_exceptions")
+    .select(
+      `
+        id,
+        date,
+        reason,
+        admin_member_id,
+        admin:studio_members!availability_exceptions_admin_member_id_fkey(
+          user:users!studio_members_user_id_fkey(name, avatar_hue)
+        )
+      `
+    )
+    .eq("studio_id", studioId)
+    .eq("type", "block")
+    .is("start_time", null)
+    .gte("date", isoDate(weekStart))
+    .lt("date", isoDate(weekEnd));
+
+  if (adminMemberId) q = q.eq("admin_member_id", adminMemberId);
+
+  const { data, error } = await q;
+  if (error) return { timeOff: [], error: error.message };
+
+  const rows = (data ?? []) as unknown as TimeOffRow[];
+  const items: TimeOffItem[] = [];
+  for (const row of rows) {
+    const admin = pickOne(row.admin);
+    const adminUser = admin ? pickOne(admin.user) : null;
+    // date string -> local Date -> day index within the visible week
+    const [y, m, d] = row.date.split("-").map(Number);
+    const dayDate = new Date(y, m - 1, d);
+    const dayIndex = Math.round((dayDate.getTime() - weekStart.getTime()) / DAY_MS);
+    if (dayIndex < 0 || dayIndex > 6) continue;
+    items.push({
+      id: row.id,
+      dayIndex,
+      date: row.date,
+      adminMemberId: row.admin_member_id,
+      adminName: adminUser?.name ?? "Admin",
+      adminHue: adminUser?.avatar_hue ?? 195,
+      reason: row.reason ?? "Time off",
+    });
+  }
+  return { timeOff: items, error: null };
+}
+
+type TimeOffRow = {
+  id: string;
+  date: string;
+  reason: string | null;
+  admin_member_id: string;
+  admin:
+    | { user: { name: string; avatar_hue: number } | Array<{ name: string; avatar_hue: number }> | null }
+    | Array<{ user: { name: string; avatar_hue: number } | Array<{ name: string; avatar_hue: number }> | null }>
+    | null;
+};
+
 async function runQuery(
   studioId: string,
   weekStart: Date,

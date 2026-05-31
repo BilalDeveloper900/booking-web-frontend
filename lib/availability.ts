@@ -200,3 +200,41 @@ export async function deleteTimeOff(id: string): Promise<void> {
     .eq("id", id);
   if (error) throw error;
 }
+
+/* ────────── Whole-day time off for one admin (client booking UI) ────────── */
+
+/**
+ * Map of ISO date (`YYYY-MM-DD`) → reason for an admin's whole-day blocks.
+ * Used by the client booking screen to mark/disable time-off dates with a
+ * clear message instead of a generic "no slots". Whole-day blocks have both
+ * `start_time` and `end_time` null.
+ */
+const EMPTY_TIMEOFF: ReadonlyMap<string, string> = new Map();
+
+export function useAdminTimeOffDates(adminMemberId: string | undefined): ReadonlyMap<string, string> {
+  const [byDate, setByDate] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    if (!adminMemberId) return;
+    let cancelled = false;
+    const supabase = createClient();
+    supabase
+      .from("availability_exceptions")
+      .select("date, reason")
+      .eq("admin_member_id", adminMemberId)
+      .eq("type", "block")
+      .is("start_time", null)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const map = new Map<string, string>();
+        for (const r of data ?? []) map.set(r.date, r.reason ?? "Time off");
+        setByDate(map);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [adminMemberId]);
+
+  // No admin selected → stable empty map (avoids a synchronous setState reset).
+  return adminMemberId ? byDate : EMPTY_TIMEOFF;
+}

@@ -31,11 +31,13 @@ import { useStudioMembers, type MemberWithUser } from "@/lib/members";
 import { createGroupSession } from "@/lib/sessions";
 import {
   useCalendarSessions,
+  useStudioTimeOff,
   weekDays,
   weekRangeLabel,
   HOURS_START,
   type LiveCalendarEvent,
   type CalendarDay,
+  type TimeOffItem,
 } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 import { HueAvatar, Pill } from "@/components/shared";
@@ -178,6 +180,28 @@ export function CalendarScreen() {
     }
     return map;
   }, [filteredEvents]);
+
+  // Whole-day admin time off for the visible week. Owner sees every admin's
+  // blocks (subject to the same legend filter); admin sees only their own.
+  const { timeOff } = useStudioTimeOff({
+    studioId,
+    weekOffset,
+    adminMemberId: scopedAdminId,
+  });
+  const perAdminTimeOff = myRole === "owner";
+  const timeOffByDay = useMemo(() => {
+    const map = new Map<number, TimeOffItem[]>();
+    const visible =
+      myRole === "owner"
+        ? timeOff.filter((t) => effectiveAdminFilter.has(t.adminMemberId))
+        : timeOff;
+    for (const t of visible) {
+      const list = map.get(t.dayIndex) ?? [];
+      list.push(t);
+      map.set(t.dayIndex, list);
+    }
+    return map;
+  }, [timeOff, effectiveAdminFilter, myRole]);
 
   const nowFraction = now.getHours() + now.getMinutes() / 60 - HOURS_START;
   const nowVisible = nowFraction >= 0 && nowFraction <= HOURS.length;
@@ -322,6 +346,8 @@ export function CalendarScreen() {
           dayIdx={selectedDayIdx}
           onDayChange={setSelectedDayIdx}
           events={eventsByDay.get(selectedDayIdx) ?? []}
+          timeOff={timeOffByDay.get(selectedDayIdx) ?? []}
+          perAdmin={perAdminTimeOff}
           onEventClick={setSelectedEvent}
         />
       </div>
@@ -332,6 +358,8 @@ export function CalendarScreen() {
           <WeekView
             days={days}
             eventsByDay={eventsByDay}
+            timeOffByDay={timeOffByDay}
+            perAdmin={perAdminTimeOff}
             loading={eventsLoading && totalEvents === 0}
             nowTop={nowTop}
             nowVisible={nowVisible}
@@ -346,6 +374,8 @@ export function CalendarScreen() {
             dayIdx={selectedDayIdx}
             onDayChange={setSelectedDayIdx}
             events={eventsByDay.get(selectedDayIdx) ?? []}
+            timeOff={timeOffByDay.get(selectedDayIdx) ?? []}
+            perAdmin={perAdminTimeOff}
             loading={eventsLoading && totalEvents === 0}
             nowTop={nowTop}
             nowVisible={nowVisible && days[selectedDayIdx]?.today === true}
@@ -358,6 +388,7 @@ export function CalendarScreen() {
           <MonthView
             days={days}
             eventsByDay={eventsByDay}
+            timeOffByDay={timeOffByDay}
             onDayClick={(idx) => {
               setSelectedDayIdx(idx);
               setView("Day");
@@ -389,6 +420,58 @@ export function CalendarScreen() {
   );
 }
 
+/* ---------------- time off rendering ---------------- */
+
+function firstNameOf(name: string) {
+  return name.split(" ")[0];
+}
+
+/** Full-width banner used in the agenda + day view (one row per admin block). */
+function TimeOffBanner({ items, perAdmin }: { items: TimeOffItem[]; perAdmin: boolean }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      {items.map((t) => (
+        <div
+          key={t.id}
+          className="flex items-center gap-2 rounded-lg border border-[--neg]/30 bg-[--neg]/8 px-3 py-2 text-[12px]"
+        >
+          <CalendarOff className="w-3.5 h-3.5 text-[--neg] shrink-0" aria-hidden />
+          <span className="font-medium text-foreground">
+            {perAdmin ? `${firstNameOf(t.adminName)} — time off` : "Time off"}
+          </span>
+          {t.reason && t.reason !== "Time off" && (
+            <span className="text-muted-foreground truncate">· {t.reason}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Compact chips for a week-grid column header. */
+function WeekHeaderTimeOff({ items, perAdmin }: { items: TimeOffItem[]; perAdmin: boolean }) {
+  if (items.length === 0) return null;
+  const title = items.map((t) => `${t.adminName}: ${t.reason}`).join("\n");
+  const shown = (perAdmin ? items : items.slice(0, 1)).slice(0, 3);
+  return (
+    <div className="mt-1 flex flex-wrap gap-1" title={title}>
+      {shown.map((t) => (
+        <span
+          key={t.id}
+          className="inline-flex items-center gap-1 rounded-md bg-[--neg]/12 text-[--neg] px-1.5 py-0.5 text-[10px] font-medium leading-none"
+        >
+          <CalendarOff className="w-2.5 h-2.5" aria-hidden />
+          {perAdmin ? firstNameOf(t.adminName) : "Off"}
+        </span>
+      ))}
+      {perAdmin && items.length > 3 && (
+        <span className="text-[10px] text-muted-foreground self-center">+{items.length - 3}</span>
+      )}
+    </div>
+  );
+}
+
 /* ---------------- mobile agenda (per design spec) ---------------- */
 
 function MobileAgenda({
@@ -396,12 +479,16 @@ function MobileAgenda({
   dayIdx,
   onDayChange,
   events,
+  timeOff,
+  perAdmin,
   onEventClick,
 }: {
   days: CalendarDay[];
   dayIdx: number;
   onDayChange: (i: number) => void;
   events: CalendarEvent[];
+  timeOff: TimeOffItem[];
+  perAdmin: boolean;
   onEventClick: (e: CalendarEvent) => void;
 }) {
   const { resolvedTheme } = useTheme();
@@ -442,9 +529,10 @@ function MobileAgenda({
       </div>
 
       <div className="flex-1 overflow-auto px-4 py-3 space-y-2.5">
+        <TimeOffBanner items={timeOff} perAdmin={perAdmin} />
         {sorted.length === 0 && (
           <div className="text-sm text-muted-foreground text-center py-12">
-            No bookings this day. Tap + to add one.
+            {timeOff.length > 0 ? "No bookings this day." : "No bookings this day. Tap + to add one."}
           </div>
         )}
         {sorted.map((e, i) => {
@@ -558,6 +646,8 @@ function AdminLegend({
 function WeekView({
   days,
   eventsByDay,
+  timeOffByDay,
+  perAdmin,
   loading,
   nowTop,
   nowVisible,
@@ -567,6 +657,8 @@ function WeekView({
 }: {
   days: CalendarDay[];
   eventsByDay: Map<number, CalendarEvent[]>;
+  timeOffByDay: Map<number, TimeOffItem[]>;
+  perAdmin: boolean;
   loading?: boolean;
   nowTop: number;
   nowVisible: boolean;
@@ -581,26 +673,30 @@ function WeekView({
         style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}
       >
         <div className="border-b border-border" />
-        {days.map((d, i) => (
-          <div
-            key={i}
-            className="py-3.5 px-3 border-l border-b border-[--line-soft]"
-            style={{ background: d.today ? "var(--teal-100)" : undefined }}
-          >
+        {days.map((d, i) => {
+          const off = (timeOffByDay.get(i) ?? []).length > 0;
+          return (
             <div
-              className="text-[11px] tracking-[0.08em] uppercase font-medium"
-              style={{ color: d.today ? "var(--teal-900)" : "var(--ink-500)" }}
+              key={i}
+              className="py-3.5 px-3 border-l border-b border-[--line-soft]"
+              style={{ background: off ? "var(--muted)" : d.today ? "var(--teal-100)" : undefined }}
             >
-              {d.d}
+              <div
+                className="text-[11px] tracking-[0.08em] uppercase font-medium"
+                style={{ color: d.today && !off ? "var(--teal-900)" : "var(--ink-500)" }}
+              >
+                {d.d}
+              </div>
+              <div
+                className={cn("text-2xl tracking-tight mt-0.5 font-semibold tabular-nums", off && "opacity-50")}
+                style={{ color: d.today && !off ? "var(--teal-900)" : "var(--ink-900)" }}
+              >
+                {d.n}
+              </div>
+              <WeekHeaderTimeOff items={timeOffByDay.get(i) ?? []} perAdmin={perAdmin} />
             </div>
-            <div
-              className="text-2xl tracking-tight mt-0.5 font-semibold tabular-nums"
-              style={{ color: d.today ? "var(--teal-900)" : "var(--ink-900)" }}
-            >
-              {d.n}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -619,41 +715,62 @@ function WeekView({
               </div>
             ))}
           </div>
-          {days.map((d, di) => (
-            <div
-              key={di}
-              className="border-l border-[--line-soft] relative"
-              style={{ background: d.today ? "rgba(255,255,255,0.4)" : undefined }}
-            >
-              {HOURS.map((_, hi) => (
-                <button
-                  key={hi}
-                  type="button"
-                  aria-label={`Add booking on ${d.d} at ${HOURS[hi]}`}
-                  onClick={() => onSlotClick(di, hi)}
-                  className="block w-full border-b border-[--line-soft] motion-safe:transition-colors motion-safe:duration-150 hover:bg-[--role-accent-light]/40 focus-visible:outline-none focus-visible:bg-[--role-accent-light]/60 group"
-                  style={{ height: ROW_H }}
-                >
-                  <span className="block w-full h-full opacity-0 group-hover:opacity-100 motion-safe:transition-opacity motion-safe:duration-150 grid place-items-center">
-                    <Plus className="w-3.5 h-3.5 text-[--role-accent]" />
-                  </span>
-                </button>
-              ))}
-              {(eventsByDay.get(di) ?? []).map((e, ei) => (
-                <CalendarEventBlock key={ei} event={e} onClick={onEventClick} />
-              ))}
-              {loading &&
-                SKELETON_EVENT_LAYOUT[di]?.map((blk, ei) => (
-                  <CalendarEventSkeleton
-                    key={`s${ei}`}
-                    top={blk.start * ROW_H + 1}
-                    height={blk.len * ROW_H - 4}
-                    hue={blk.hue}
-                  />
+          {days.map((d, di) => {
+            const off = (timeOffByDay.get(di) ?? []).length > 0;
+            return (
+              <div
+                key={di}
+                className="border-l border-[--line-soft] relative"
+                style={{
+                  background: off
+                    ? "repeating-linear-gradient(45deg, var(--muted) 0 8px, transparent 8px 16px)"
+                    : d.today
+                      ? "rgba(255,255,255,0.4)"
+                      : undefined,
+                }}
+              >
+                {HOURS.map((_, hi) => (
+                  <button
+                    key={hi}
+                    type="button"
+                    disabled={off}
+                    aria-label={
+                      off
+                        ? `${d.d} is time off — no bookings`
+                        : `Add booking on ${d.d} at ${HOURS[hi]}`
+                    }
+                    onClick={off ? undefined : () => onSlotClick(di, hi)}
+                    className={cn(
+                      "block w-full border-b border-[--line-soft] motion-safe:transition-colors motion-safe:duration-150 group",
+                      off
+                        ? "cursor-not-allowed"
+                        : "hover:bg-[--role-accent-light]/40 focus-visible:outline-none focus-visible:bg-[--role-accent-light]/60"
+                    )}
+                    style={{ height: ROW_H }}
+                  >
+                    {!off && (
+                      <span className="block w-full h-full opacity-0 group-hover:opacity-100 motion-safe:transition-opacity motion-safe:duration-150 grid place-items-center">
+                        <Plus className="w-3.5 h-3.5 text-[--role-accent]" />
+                      </span>
+                    )}
+                  </button>
                 ))}
-              {d.today && nowVisible && <NowLine top={nowTop} label={nowLabel} />}
-            </div>
-          ))}
+                {(eventsByDay.get(di) ?? []).map((e, ei) => (
+                  <CalendarEventBlock key={ei} event={e} onClick={onEventClick} />
+                ))}
+                {loading &&
+                  SKELETON_EVENT_LAYOUT[di]?.map((blk, ei) => (
+                    <CalendarEventSkeleton
+                      key={`s${ei}`}
+                      top={blk.start * ROW_H + 1}
+                      height={blk.len * ROW_H - 4}
+                      hue={blk.hue}
+                    />
+                  ))}
+                {d.today && nowVisible && <NowLine top={nowTop} label={nowLabel} />}
+              </div>
+            );
+          })}
         </div>
       </div>
     </>
@@ -667,6 +784,8 @@ function DayView({
   dayIdx,
   onDayChange,
   events,
+  timeOff,
+  perAdmin,
   loading,
   nowTop,
   nowVisible,
@@ -678,6 +797,8 @@ function DayView({
   dayIdx: number;
   onDayChange: (i: number) => void;
   events: CalendarEvent[];
+  timeOff: TimeOffItem[];
+  perAdmin: boolean;
   loading?: boolean;
   nowTop: number;
   nowVisible: boolean;
@@ -686,6 +807,7 @@ function DayView({
   onSlotClick: (hour: number) => void;
 }) {
   const day = days[dayIdx];
+  const off = timeOff.length > 0;
   return (
     <>
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border overflow-x-auto">
@@ -719,6 +841,12 @@ function DayView({
         </span>
       </div>
 
+      {timeOff.length > 0 && (
+        <div className="px-4 pt-3">
+          <TimeOffBanner items={timeOff} perAdmin={perAdmin} />
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto">
         <div
           className="grid relative"
@@ -735,19 +863,34 @@ function DayView({
               </div>
             ))}
           </div>
-          <div className="border-l border-[--line-soft] relative">
+          <div
+            className="border-l border-[--line-soft] relative"
+            style={{
+              background: off
+                ? "repeating-linear-gradient(45deg, var(--muted) 0 8px, transparent 8px 16px)"
+                : undefined,
+            }}
+          >
             {HOURS.map((_, hi) => (
               <button
                 key={hi}
                 type="button"
-                aria-label={`Add booking at ${HOURS[hi]}`}
-                onClick={() => onSlotClick(hi)}
-                className="block w-full border-b border-[--line-soft] motion-safe:transition-colors motion-safe:duration-150 hover:bg-[--role-accent-light]/40 focus-visible:outline-none focus-visible:bg-[--role-accent-light]/60 group"
+                disabled={off}
+                aria-label={off ? "Time off — no bookings" : `Add booking at ${HOURS[hi]}`}
+                onClick={off ? undefined : () => onSlotClick(hi)}
+                className={cn(
+                  "block w-full border-b border-[--line-soft] motion-safe:transition-colors motion-safe:duration-150 group",
+                  off
+                    ? "cursor-not-allowed"
+                    : "hover:bg-[--role-accent-light]/40 focus-visible:outline-none focus-visible:bg-[--role-accent-light]/60"
+                )}
                 style={{ height: ROW_H }}
               >
-                <span className="block w-full h-full opacity-0 group-hover:opacity-100 motion-safe:transition-opacity motion-safe:duration-150 grid place-items-center text-xs text-[--role-accent] font-medium">
-                  <Plus className="w-3.5 h-3.5 inline mr-1" /> New booking
-                </span>
+                {!off && (
+                  <span className="block w-full h-full opacity-0 group-hover:opacity-100 motion-safe:transition-opacity motion-safe:duration-150 grid place-items-center text-xs text-[--role-accent] font-medium">
+                    <Plus className="w-3.5 h-3.5 inline mr-1" /> New booking
+                  </span>
+                )}
               </button>
             ))}
             {events.map((e, ei) => (
@@ -775,10 +918,12 @@ function DayView({
 function MonthView({
   days,
   eventsByDay,
+  timeOffByDay,
   onDayClick,
 }: {
   days: CalendarDay[];
   eventsByDay: Map<number, CalendarEvent[]>;
+  timeOffByDay: Map<number, TimeOffItem[]>;
   onDayClick: (i: number) => void;
 }) {
   const { resolvedTheme } = useTheme();
@@ -825,6 +970,8 @@ function MonthView({
           const isCurrent = cell.weekIdx !== null;
           const isToday = cell.isToday;
           const dateNum = cell.dateNum;
+          const dayTimeOff = cell.weekIdx !== null ? timeOffByDay.get(cell.weekIdx) ?? [] : [];
+          const off = dayTimeOff.length > 0;
 
           return (
             <button
@@ -835,19 +982,33 @@ function MonthView({
                 isCurrent
                   ? "hover:bg-muted/40"
                   : "bg-muted/20 cursor-not-allowed",
-                isToday && "bg-[--teal-100]/50"
+                isToday && !off && "bg-[--teal-100]/50"
               )}
+              style={
+                off
+                  ? { background: "repeating-linear-gradient(45deg, var(--muted) 0 8px, transparent 8px 16px)" }
+                  : undefined
+              }
               disabled={!isCurrent}
               aria-label={dateNum != null ? `View ${dateNum} in day view` : undefined}
             >
               <div
                 className={cn(
                   "text-[13px] font-semibold tabular-nums leading-none mb-2",
-                  isToday ? "text-[--teal-900]" : isCurrent ? "text-foreground" : "text-muted-foreground"
+                  off ? "text-muted-foreground" : isToday ? "text-[--teal-900]" : isCurrent ? "text-foreground" : "text-muted-foreground"
                 )}
               >
                 {dateNum ?? ""}
               </div>
+              {off && (
+                <div
+                  className="inline-flex items-center gap-1 rounded-md bg-[--neg]/12 text-[--neg] px-1.5 py-0.5 text-[10px] font-medium mb-1"
+                  title={dayTimeOff.map((t) => `${t.adminName}: ${t.reason}`).join("\n")}
+                >
+                  <CalendarOff className="w-2.5 h-2.5" aria-hidden />
+                  {dayTimeOff.length > 1 ? `${dayTimeOff.length} off` : "Time off"}
+                </div>
+              )}
               <div className="space-y-1">
                 {events.slice(0, 3).map((e, ei) => {
                   const colors = e.closed ? null : eventColors(e.hue, isDark);

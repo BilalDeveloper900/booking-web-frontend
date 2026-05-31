@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Users, Check, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { Users, Check, Sparkles, Loader2, AlertCircle, CalendarOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { HueAvatar } from "@/components/shared";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
+import { useAdminTimeOffDates } from "@/lib/availability";
 import {
   useUpcomingClasses,
   useMyCredits,
@@ -108,6 +109,11 @@ function SoloFlow() {
     error: slotsError,
     refetch: refetchSlots,
   } = useSoloSlotGrid(effectiveServiceId ?? undefined, dateKey, stepMinutes);
+
+  // Whole-day time off for the selected service's admin. When the chosen date
+  // is a time-off day we surface a clear message and block booking entirely.
+  const timeOffByDate = useAdminTimeOffDates(service?.adminMemberId);
+  const selectedTimeOff = dateKey ? timeOffByDate.get(dateKey) : undefined;
 
   // Drop the picked slot if it's no longer available (date changed, slot taken,
   // turned into a 'booked'/'blocked'/'past' cell after a refetch).
@@ -211,6 +217,7 @@ function SoloFlow() {
             <div className="grid grid-cols-7 gap-1.5 mb-4">
               {dates.map((d, i) => {
                 const on = dateIdx === i;
+                const isOff = timeOffByDate.has(d.iso);
                 return (
                   <button
                     key={d.iso}
@@ -220,6 +227,7 @@ function SoloFlow() {
                       setPickedSlot(null);
                     }}
                     aria-pressed={on}
+                    title={isOff ? `${service.adminName.split(" ")[0]} is off this day` : undefined}
                     className={cn(
                       "flex flex-col items-center justify-center py-2 rounded-lg border text-sm motion-safe:transition-colors motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       on
@@ -238,6 +246,13 @@ function SoloFlow() {
                     <span className="text-[15px] font-semibold tabular-nums mt-0.5">
                       {d.dayNum}
                     </span>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "mt-1 h-1 w-1 rounded-full",
+                        isOff ? (on ? "bg-primary-foreground/80" : "bg-[--neg]") : "bg-transparent"
+                      )}
+                    />
                   </button>
                 );
               })}
@@ -257,7 +272,18 @@ function SoloFlow() {
               </div>
             )}
 
-            {slotsLoading && cells.length === 0 ? (
+            {selectedTimeOff ? (
+              <div className="rounded-lg border border-dashed border-[--neg]/40 bg-[--neg]/5 py-6 px-4 text-center space-y-1.5">
+                <div className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground">
+                  <CalendarOff className="w-4 h-4 text-[--neg]" aria-hidden />
+                  {service.adminName.split(" ")[0]} is on time off
+                </div>
+                <p className="text-[12px] text-muted-foreground">
+                  {selectedTimeOff !== "Time off" ? `"${selectedTimeOff}" — ` : ""}
+                  no bookings on {selectedDate.fullLabel}. Pick another day.
+                </p>
+              </div>
+            ) : slotsLoading && cells.length === 0 ? (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="h-10 rounded-lg bg-muted/40 animate-pulse" />
