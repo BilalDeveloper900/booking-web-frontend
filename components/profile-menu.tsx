@@ -106,10 +106,10 @@ export function ProfileMenu({
   const items: Item[] = [
     { label: "View profile", icon: CircleUserRound, shortcut: "⌘P", href: settingsHref },
     role === "client"
-      ? { label: "Payment methods", icon: CreditCard }
+      ? { label: "Payment methods", icon: CreditCard, href: "/client/credits" }
       : role === "admin"
-        ? { label: "Payouts", icon: CreditCard }
-        : { label: "Billing", icon: CreditCard },
+        ? { label: "Payouts", icon: CreditCard, href: "/admin/earnings" }
+        : { label: "Billing", icon: CreditCard, href: "/owner/subscription" },
     { label: "Account settings", icon: Settings, shortcut: "⌘,", href: settingsHref },
   ];
 
@@ -159,7 +159,7 @@ export function ProfileMenu({
         <Separator />
 
         <MenuGroup>
-          <MenuItem icon={LifeBuoy} label="Help &amp; support" />
+          <MenuItem icon={LifeBuoy} label="Help &amp; support" href="/contact" />
           <MenuItem
             icon={signingOut ? Loader2 : LogOut}
             label={signingOut ? "Signing out…" : "Sign out"}
