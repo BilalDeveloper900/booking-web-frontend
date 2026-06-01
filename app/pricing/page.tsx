@@ -10,7 +10,7 @@ import { PricingPlans } from "@/components/marketing/pricing-plans";
 export const metadata: Metadata = {
   title: "Pricing — Book It Daily",
   description:
-    "Simple, flat monthly pricing for Book It Daily booking software. Free forever tier plus paid plans billed monthly or yearly in USD. No transaction fees.",
+    "Simple, flat pricing for Book It Daily — booking & membership software for yoga & pilates studios, gyms, and personal trainers. Free forever tier plus paid plans in USD. No transaction fees.",
 };
 
 const TIERS = [
@@ -109,9 +109,9 @@ export default function PricingPage() {
               One flat fee. No transaction cuts.
             </h1>
             <p className="text-[15px] md:text-[16px] text-muted-foreground mt-4 leading-relaxed max-w-2xl mx-auto">
-              Book It Daily is booking software for salons, gyms, and studios. Pick a plan below —
-              start free, upgrade when you outgrow it. All prices in USD. Save two months when you
-              pay yearly.
+              Book It Daily is booking &amp; membership software for yoga &amp; pilates studios, gyms,
+              and personal trainers. Pick a plan below — start free, upgrade when you outgrow it. All
+              prices in USD. Save two months when you pay yearly.
             </p>
           </div>
         </section>

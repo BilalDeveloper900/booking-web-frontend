@@ -29,22 +29,22 @@ import { Reveal } from "@/components/marketing/reveal";
 const SITE_URL = "https://www.bookitdaily.com";
 
 const SITE_DESCRIPTION =
-  "Book It Daily is booking and client-management software for salons, gyms, and studios. Manage bookings, staff, clients, credit packs, messages, and payouts in one installable app — with a free forever plan and no transaction fees.";
+  "Book It Daily is booking and membership software for yoga & pilates studios, gyms, and personal trainers. Manage class bookings, class packs, memberships, clients, and payments in one installable app — with a free forever plan and no transaction fees.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Book It Daily — Booking & client software for salons, gyms & studios",
+  title: "Book It Daily — Booking & membership software for yoga studios, gyms & personal trainers",
   description: SITE_DESCRIPTION,
   keywords: [
-    "booking software",
-    "salon booking software",
-    "gym booking app",
-    "studio scheduling software",
-    "appointment scheduling software",
-    "client management software",
-    "booking app for salons",
-    "PWA booking app",
-    "credit packs",
+    "fitness studio software",
+    "yoga studio booking software",
+    "pilates booking software",
+    "gym management software",
+    "personal trainer booking app",
+    "class booking software",
+    "class packs",
+    "membership management software",
+    "book fitness classes online",
     "no transaction fees booking",
   ],
   alternates: { canonical: "/" },
@@ -52,15 +52,15 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE_URL,
     siteName: "Book It Daily",
-    title: "Booking & client software for salons, gyms & studios",
+    title: "Booking & memberships for yoga studios, gyms & personal trainers",
     description: SITE_DESCRIPTION,
     images: [{ url: "/icons/bookitdaily-512.svg", width: 512, height: 512, alt: "Book It Daily" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Book It Daily — Booking software for salons, gyms & studios",
+    title: "Book It Daily — Booking software for fitness studios & trainers",
     description:
-      "Manage bookings, staff, clients, credits, and payouts in one installable app. Free forever plan, no transaction fees.",
+      "Manage class bookings, packs, memberships, and clients in one installable app. Free forever plan, no transaction fees.",
     images: ["/icons/bookitdaily-512.svg"],
   },
   robots: { index: true, follow: true },
@@ -143,7 +143,7 @@ const FEATURES = [
   {
     icon: MessageSquare,
     title: "1-to-1 messaging",
-    body: "Clients message their admin, admins reply from the same app. Quick replies for the busy chair.",
+    body: "Clients message their trainer, staff reply from the same app. Quick replies between back-to-back sessions.",
   },
   {
     icon: Smartphone,
@@ -183,11 +183,11 @@ const ADDONS = [
 const FAQ = [
   {
     q: "What is Book It Daily?",
-    a: "Book It Daily is booking and client-management software for salons, gyms, and studios. It handles bookings, staff schedules, client records, credit packs and subscriptions, 1-to-1 messaging, and finance — in one installable web app (PWA) that works on both phones and desktops.",
+    a: "Book It Daily is booking and membership software for yoga & pilates studios, gyms, and personal trainers. It handles class and 1-on-1 bookings, class packs and memberships, client records, messaging, and finance — in one installable web app (PWA) that works on both phones and desktops.",
   },
   {
-    q: "How is this different from Calendly or Acuity?",
-    a: "Those are scheduling tools. Book It Daily is a full booking + clients + admins + finance product built for studios that sell credits and packages. Calendly can't do credit packs, commission splits, or client subscriptions natively — Book It Daily treats them as first-class.",
+    q: "How is this different from Mindbody, Acuity, or Calendly?",
+    a: "Acuity and Calendly are just schedulers — they can't sell class packs or memberships. Mindbody and Glofox can, but they're expensive and complex for small studios. Book It Daily gives you class bookings, packs, and memberships at a flat $9–$24/mo, with no cut of your revenue.",
   },
   {
     q: "Do you take a percentage of each booking?",
@@ -313,7 +313,7 @@ function Hero() {
       <div className="max-w-5xl mx-auto px-4 md:px-6 pt-16 md:pt-24 pb-16 md:pb-24 text-center">
         <Reveal delay={0}>
           <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-[0.08em] uppercase text-[--role-accent-dark] bg-[--role-accent-light]/60 px-2.5 py-1 rounded-full mb-6">
-            <Sparkles className="w-3 h-3 motion-safe:animate-pulse" /> Built for salons, gyms &amp; studios
+            <Sparkles className="w-3 h-3 motion-safe:animate-pulse" /> Built for yoga, pilates, gyms &amp; trainers
           </span>
         </Reveal>
         <Reveal delay={80}>
@@ -324,9 +324,9 @@ function Hero() {
         </Reveal>
         <Reveal delay={160}>
           <p className="text-[16px] md:text-[18px] text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
-            Book It Daily is booking and client-management software for salons, gyms, and studios.
-            Manage bookings, staff, clients, and credit packs in one installable app — bring your
-            own payments and keep 100% of your revenue.
+            Book It Daily is booking and membership software for yoga &amp; pilates studios, gyms, and
+            personal trainers. Manage class bookings, class packs, and memberships in one installable
+            app — bring your own payments and keep 100% of your revenue.
           </p>
         </Reveal>
         <Reveal delay={240}>

@@ -1,10 +1,10 @@
 # Book It Daily
 
-> Book It Daily is booking and client-management software for salons, gyms, and studios. It runs as an installable web app (PWA) and covers bookings, staff scheduling, client records, credit packs and subscriptions, 1-to-1 messaging, and finance/payouts — in one place.
+> Book It Daily is booking and membership software for yoga & pilates studios, gyms, and personal trainers. It runs as an installable web app (PWA) and covers class & 1-on-1 bookings, class packs and memberships, client records, 1-to-1 messaging, and finance/payouts — in one place.
 
 ## What it is
-- Category: booking and client-management software (SaaS) for service studios (salons, gyms, fitness/yoga studios, coaches).
-- Roles: Owner (runs the business and pays the subscription), Admin (staff member who delivers services), Client (the end customer who books).
+- Category: booking and membership software (SaaS) for fitness & wellness businesses — yoga studios, pilates studios, gyms, boutique fitness studios, and personal trainers / coaches.
+- Roles: Owner (runs the business and pays the subscription), Admin/Instructor (the trainer who delivers classes and sessions), Client (the member who books).
 - Delivery: progressive web app (PWA) installable on iOS and Android home screens; also works on desktop.
 
 ## Key facts
@@ -12,7 +12,8 @@
 - Plans: Free ($0/mo), Solo ($9/mo or $90/yr), Studio ($24/mo or $240/yr). Paid plans include a 14-day free trial.
 - The subscription is billed through Paddle (Merchant of Record), which handles VAT/sales tax globally.
 - Book It Daily does NOT process the payments a studio's own clients make — studios plug in their own gateway (Stripe, Paddle, Square, cash, bank transfer).
-- Differentiators vs. Calendly/Acuity: native credit packs, client subscriptions, per-admin commission splits, and a built-in finance dashboard.
+- Differentiators: native class packs and memberships, group classes + 1-on-1 sessions, per-instructor commission splits, and a built-in finance dashboard — at a flat low price with no revenue cut.
+- Compared to alternatives: Acuity and Calendly are schedulers only (no class packs or memberships); Mindbody and Glofox do more but are expensive and complex for small studios. Book It Daily is the simple, affordable option.
 - Data: encrypted at rest, daily backups, GDPR-compliant, full CSV export at any time.
 
 ## Links

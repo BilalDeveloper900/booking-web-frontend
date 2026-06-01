@@ -1,7 +1,7 @@
 {
-  "name": "Book It Daily — Salon Booking",
+  "name": "Book It Daily — Fitness Studio Booking",
   "short_name": "Book It Daily",
-  "description": "Manage your salon bookings, admins, and clients.",
+  "description": "Booking, class packs, and memberships for yoga & pilates studios, gyms, and personal trainers.",
   "id": "/?source=pwa",
   "start_url": "/?source=pwa",
   "scope": "/",
@@ -52,7 +52,7 @@
     {
       "name": "Messages",
       "short_name": "Messages",
-      "description": "Chat with your stylist or clients",
+      "description": "Chat with your trainer or clients",
       "url": "/client/messages?source=shortcut",
       "icons": [{ "src": "/icons/bookitdaily-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
     }

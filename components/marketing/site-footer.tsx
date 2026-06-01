@@ -6,6 +6,7 @@ const PRODUCT_LINKS = [
   { href: "/#features", label: "Features" },
   { href: "/#how-it-works", label: "How it works" },
   { href: "/#faq", label: "FAQ" },
+  { href: "/contact", label: "Contact" },
 ];
 
 const LEGAL_LINKS = [
@@ -39,7 +40,7 @@ export function SiteFooter() {
               <span className="text-[15px] font-semibold tracking-tight">Book It Daily</span>
             </Link>
             <p className="text-[12px] text-muted-foreground leading-relaxed mt-3 max-w-[28ch]">
-              Booking & client management for salons, gyms, and studios.
+              Booking & memberships for yoga, pilates, gyms, and personal trainers.
             </p>
           </div>
 

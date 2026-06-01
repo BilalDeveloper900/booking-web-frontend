@@ -53,15 +53,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div>
             <Quote className="w-8 h-8 text-[--teal-500] mb-6" aria-hidden />
             <blockquote className="font-serif text-[28px] xl:text-[34px] leading-[1.25] tracking-tight">
-              &ldquo;We dropped Vagaro a week into Book It Daily. The credit packs alone earned us back
+              &ldquo;We dropped Mindbody a week into Book It Daily. The class packs alone earned us back
               the subscription in three days.&rdquo;
             </blockquote>
             <div className="mt-6 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-[--teal-500] grid place-items-center font-semibold text-foreground">
-                AS
+                RP
               </div>
               <div className="leading-tight">
-                <div className="text-[14px] font-semibold">Aurelia Salon</div>
+                <div className="text-[14px] font-semibold">Riverside Pilates</div>
                 <div className="text-[12px] opacity-60">Camille Roux, Owner</div>
               </div>
             </div>

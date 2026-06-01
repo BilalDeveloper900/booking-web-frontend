@@ -21,8 +21,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Book It Daily — Salon Management",
-  description: "Manage your salon bookings, admins, and clients",
+  title: "Book It Daily — Booking & memberships for fitness studios",
+  description:
+    "Booking, class packs, and memberships for yoga & pilates studios, gyms, and personal trainers.",
   manifest: "/manifest.webmanifest",
   applicationName: "Book It Daily",
   appleWebApp: {

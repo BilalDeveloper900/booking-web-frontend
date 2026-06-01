@@ -49,8 +49,9 @@ export default function TermsPage() {
 
       <LegalSection heading="3. The Service">
         <p>
-          Book It Daily provides software that lets businesses such as salons, gyms, and studios
-          manage bookings, clients, staff, schedules, offers, and related records. We sell access to
+          Book It Daily provides software that lets fitness and wellness businesses such as yoga and
+          pilates studios, gyms, and personal trainers manage bookings, clients, staff, schedules,
+          offers, and related records. We sell access to
           this software on a subscription basis. We are <strong>not</strong> a payment processor for
           your customers, and we do not handle the money your clients pay you for your own services.
         </p>

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(echo \"=== tsc exit $? ===\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('public/manifest.webmanifest','utf8'\\)\\); console.log\\('manifest JSON valid'\\)\")"
     ]
   }
 }

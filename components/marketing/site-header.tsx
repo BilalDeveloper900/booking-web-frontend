@@ -21,6 +21,7 @@ export function SiteHeader() {
           <Link href="/pricing" className="hover:text-foreground motion-safe:transition-colors">Pricing</Link>
           <Link href="/#offers" className="hover:text-foreground motion-safe:transition-colors">Offers</Link>
           <Link href="/#faq" className="hover:text-foreground motion-safe:transition-colors">FAQ</Link>
+          <Link href="/contact" className="hover:text-foreground motion-safe:transition-colors">Contact</Link>
         </nav>
         <div className="flex-1" />
         <SiteHeaderActions />
