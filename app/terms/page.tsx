@@ -71,9 +71,9 @@ export default function TermsPage() {
         <ul>
           <li>
             <strong>Payment provider.</strong> Subscriptions are sold through our payment provider,
-            <strong> Paddle</strong>, who acts as the Merchant of Record. Paddle handles payment
+            <strong> Polar</strong>, who acts as the Merchant of Record. Polar handles payment
             processing, invoicing, and the collection and remittance of applicable taxes. Your
-            purchase is also subject to Paddle&rsquo;s buyer terms presented at checkout.
+            purchase is also subject to Polar&rsquo;s buyer terms presented at checkout.
           </li>
           <li>
             <strong>Free trial.</strong> Where offered, a 14-day free trial converts to a paid
@@ -150,7 +150,7 @@ export default function TermsPage() {
 
       <LegalSection heading="8. Third-party services">
         <p>
-          The Service relies on third-party providers (for example, our payment provider Paddle,
+          The Service relies on third-party providers (for example, our payment provider Polar,
           and hosting and infrastructure vendors). Your use of those services may be subject to
           their own terms. We are not responsible for third-party services we do not control.
         </p>

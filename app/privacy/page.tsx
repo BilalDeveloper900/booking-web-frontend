@@ -43,7 +43,7 @@ export default function PrivacyPage() {
             messages, and notes.
           </li>
           <li>
-            <strong>Billing data:</strong> handled by our payment provider, Paddle. We receive
+            <strong>Billing data:</strong> handled by our payment provider, Polar. We receive
             limited details such as your plan, billing country, the last four digits of your card,
             and transaction status — we do <strong>not</strong> store full card numbers.
           </li>
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
         <p>We use personal data to:</p>
         <ul>
           <li>Provide, operate, secure, and maintain the Service;</li>
-          <li>Process subscriptions, payments, and renewals (via Paddle);</li>
+          <li>Process subscriptions, payments, and renewals (via Polar);</li>
           <li>Authenticate users and prevent fraud or abuse;</li>
           <li>Respond to your requests and provide support;</li>
           <li>Send service-related communications such as receipts and important notices;</li>
@@ -90,10 +90,10 @@ export default function PrivacyPage() {
         <p>We do not sell your personal data. We share it only with:</p>
         <ul>
           <li>
-            <strong>Payment provider — Paddle:</strong> our Merchant of Record, who processes
+            <strong>Payment provider — Polar:</strong> our Merchant of Record, who processes
             payments, issues invoices, and handles tax. See{" "}
-            <a href="https://www.paddle.com/legal/privacy" target="_blank" rel="noopener noreferrer">
-              Paddle&rsquo;s privacy notice
+            <a href="https://polar.sh/legal/privacy" target="_blank" rel="noopener noreferrer">
+              Polar&rsquo;s privacy notice
             </a>
             .
           </li>

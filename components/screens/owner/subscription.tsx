@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import { useStudioSubscription } from "@/lib/subscription";
 import { SAAS_PLANS, getPlan, planDirection, type PlanId } from "@/lib/plans";
+import { polarProductId } from "@/lib/polar-products";
 
 type Interval = "monthly" | "yearly";
 
@@ -35,6 +36,7 @@ export function SubscriptionScreen() {
   const { subscription, loading } = useStudioSubscription(studioId);
 
   const [interval, setInterval] = useState<Interval>("monthly");
+  const [changing, setChanging] = useState(false);
 
   // No row → the studio is on the Free plan.
   const currentPlanId: PlanId = (getPlan(subscription?.plan)?.id ?? "free") as PlanId;
@@ -57,20 +59,52 @@ export function SubscriptionScreen() {
   }, [currentPlanId, status, subscription]);
 
   function onChangePlan(targetId: PlanId) {
-    const dir = planDirection(currentPlanId, targetId);
-    if (dir === "current") return;
-    // Checkout is not wired yet — Paddle billing is being set up.
-    toast(
-      "Plan changes open up once Paddle billing is connected. Hang tight!",
-      { icon: "💳", duration: 4500 }
-    );
+    if (planDirection(currentPlanId, targetId) === "current") return;
+    if (!studioId || changing) return;
+
+    // No active subscription yet → start a fresh Polar checkout.
+    if (currentPlanId === "free") {
+      const productId = polarProductId(targetId, interval);
+      if (!productId) {
+        toast.error("Billing isn't configured for this plan yet.");
+        return;
+      }
+      const params = new URLSearchParams({ products: productId, customerExternalId: studioId });
+      if (member?.user.email) params.set("customerEmail", member.user.email);
+      window.location.href = `/api/checkout?${params.toString()}`;
+      return;
+    }
+
+    // Already subscribed → change the existing subscription in place (upgrade,
+    // downgrade, or cancel) via the Polar API. Polar prorates the difference.
+    void changeExistingPlan(targetId);
+  }
+
+  async function changeExistingPlan(targetId: PlanId) {
+    setChanging(true);
+    try {
+      const res = await fetch("/api/subscription/change", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: targetId, interval }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) throw new Error(json.error ?? "Couldn't change the plan.");
+      toast.success(
+        targetId === "free"
+          ? "Your plan will cancel at the end of the period."
+          : `Switched to ${getPlan(targetId)?.name}. Updating…`
+      );
+      // The webhook syncs the DB; reload shortly to show the new state.
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+      setChanging(false);
+    }
   }
 
   function onManageBilling() {
-    toast(
-      "The billing portal will be available once Paddle is connected.",
-      { icon: "💳", duration: 4500 }
-    );
+    window.location.href = "/api/portal";
   }
 
   return (
@@ -200,10 +234,16 @@ export function SubscriptionScreen() {
                 <Button
                   variant={isCurrent ? "outline" : featured ? "default" : "outline"}
                   className="w-full"
-                  disabled={isCurrent}
+                  disabled={isCurrent || changing}
                   onClick={() => onChangePlan(plan.id)}
                 >
-                  {ctaLabel}
+                  {changing && !isCurrent ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Updating
+                    </>
+                  ) : (
+                    ctaLabel
+                  )}
                 </Button>
               </div>
             );
@@ -211,7 +251,7 @@ export function SubscriptionScreen() {
         </div>
 
         <p className="text-[12px] text-muted-foreground text-center mt-6">
-          Prices in USD, billed via Paddle (our Merchant of Record). Taxes calculated at checkout.{" "}
+          Prices in USD, billed via Polar (our Merchant of Record). Taxes calculated at checkout.{" "}
           <a href="/pricing" className="text-primary underline underline-offset-2 hover:opacity-80">
             Compare plans
           </a>

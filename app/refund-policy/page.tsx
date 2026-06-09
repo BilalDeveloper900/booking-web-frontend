@@ -45,7 +45,7 @@ export default function RefundPolicyPage() {
         </ul>
         <p>
           Approved refunds are issued to your original payment method through our payment provider,
-          Paddle. It may take several business days for the funds to appear, depending on your bank
+          Polar. It may take several business days for the funds to appear, depending on your bank
           or card issuer.
         </p>
       </LegalSection>
@@ -91,8 +91,8 @@ export default function RefundPolicyPage() {
           Email <a href="mailto:bookitdaily@gmail.com">bookitdaily@gmail.com</a> from the address on
           your account with the subject &ldquo;Refund request&rdquo;. Please include your account
           email and the approximate date and amount of the charge. We aim to respond within 5
-          business days. Because Paddle is our Merchant of Record, the refund is processed through
-          Paddle once approved.
+          business days. Because Polar is our Merchant of Record, the refund is processed through
+          Polar once approved.
         </p>
       </LegalSection>
 

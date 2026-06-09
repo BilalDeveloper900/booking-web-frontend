@@ -74,7 +74,7 @@ const ADDONS = [
 const BILLING_FAQ = [
   {
     q: "What currency are prices in, and who charges me?",
-    a: "All prices are in US Dollars (USD). Subscriptions are sold by Book It Daily and processed by our payment provider, Paddle, who acts as the Merchant of Record and handles applicable sales tax and VAT. Your card statement will show a charge from Paddle on behalf of Book It Daily.",
+    a: "All prices are in US Dollars (USD). Subscriptions are sold by Book It Daily and processed by our payment provider, Polar, who acts as the Merchant of Record and handles applicable sales tax and VAT. Your card statement will show a charge from Polar on behalf of Book It Daily.",
   },
   {
     q: "Is there a free trial?",
@@ -122,7 +122,7 @@ export default function PricingPage() {
             <PricingPlans tiers={TIERS} />
             <p className="text-[12px] text-muted-foreground text-center mt-6">
               Prices exclude applicable sales tax / VAT, which is calculated at checkout by our
-              payment provider, Paddle.
+              payment provider, Polar.
             </p>
           </div>
         </section>

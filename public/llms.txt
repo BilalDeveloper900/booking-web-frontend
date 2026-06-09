@@ -10,8 +10,8 @@
 ## Key facts
 - Pricing is a flat monthly subscription in USD — there are no transaction fees on the studio's revenue. Owners keep 100% of what their clients pay them.
 - Plans: Free ($0/mo), Solo ($9/mo or $90/yr), Studio ($24/mo or $240/yr). Paid plans include a 14-day free trial.
-- The subscription is billed through Paddle (Merchant of Record), which handles VAT/sales tax globally.
-- Book It Daily does NOT process the payments a studio's own clients make — studios plug in their own gateway (Stripe, Paddle, Square, cash, bank transfer).
+- The subscription is billed through Polar (Merchant of Record), which handles VAT/sales tax globally.
+- Book It Daily does NOT process the payments a studio's own clients make — studios plug in their own gateway (Stripe, Polar, Square, cash, bank transfer).
 - Differentiators: native class packs and memberships, group classes + 1-on-1 sessions, per-instructor commission splits, and a built-in finance dashboard — at a flat low price with no revenue cut.
 - Compared to alternatives: Acuity and Calendly are schedulers only (no class packs or memberships); Mindbody and Glofox do more but are expensive and complex for small studios. Book It Daily is the simple, affordable option.
 - Data: encrypted at rest, daily backups, GDPR-compliant, full CSV export at any time.

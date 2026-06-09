@@ -1,7 +1,7 @@
 /**
  * The studio's own Book It Daily subscription (`studio_subscriptions`) — i.e.
  * the plan the owner pays us for. Read-only here; writes happen via the
- * payment provider webhook (Paddle) server-side.
+ * payment provider webhook (Polar) server-side.
  */
 "use client";
 

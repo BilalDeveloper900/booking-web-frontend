@@ -195,7 +195,7 @@ const FAQ = [
   },
   {
     q: "How are subscriptions billed?",
-    a: "Your Book It Daily subscription is billed through Paddle, our Merchant of Record, which handles VAT and sales tax globally. For the payments your own clients make to you, plug in whatever you already use — Stripe, Paddle, Square, cash, or bank transfer.",
+    a: "Your Book It Daily subscription is billed through Polar, our Merchant of Record, which handles VAT and sales tax globally. For the payments your own clients make to you, plug in whatever you already use — Stripe, Polar, Square, cash, or bank transfer.",
   },
   {
     q: "Can I migrate my existing bookings?",
