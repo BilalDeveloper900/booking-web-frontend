@@ -157,7 +157,6 @@ export function SettingsScreen({ role }: SettingsScreenProps) {
   );
 }
 
-/* ───────────────────────── Profile card ───────────────────────── */
 
 function ProfileCard({
   role,
