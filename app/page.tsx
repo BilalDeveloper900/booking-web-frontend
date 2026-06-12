@@ -3,14 +3,10 @@ import Link from "next/link";
 import {
   ArrowRight,
   Building2,
-  Calendar,
   CalendarClock,
   Check,
   CreditCard,
-  LayoutDashboard,
-  MessageSquare,
-  Moon,
-  Smartphone,
+  MousePointerClick,
   Sparkles,
   Users,
   Zap,
@@ -21,6 +17,12 @@ import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { Reveal } from "@/components/marketing/reveal";
+import { HeroAppPreview } from "@/components/marketing/hero-app-preview";
+import { StatsStrip } from "@/components/marketing/stats-strip";
+import { DemoBooking } from "@/components/marketing/demo-booking";
+import { BentoFeatures } from "@/components/marketing/bento-features";
+import { RoleShowcase } from "@/components/marketing/role-showcase";
+import { PricingPlans } from "@/components/marketing/pricing-plans";
 
 /* ───────────────────────── SEO ───────────────────────── */
 
@@ -76,7 +78,6 @@ const TIERS = [
     monthly: 0,
     yearly: 0,
     cta: "Start free",
-    ctaHref: "/signup",
     features: [
       "1 admin",
       "30 active clients",
@@ -94,7 +95,6 @@ const TIERS = [
     monthly: 9,
     yearly: 90,
     cta: "Start 14-day trial",
-    ctaHref: "/signup",
     features: [
       "1 admin",
       "150 active clients",
@@ -111,7 +111,6 @@ const TIERS = [
     monthly: 24,
     yearly: 240,
     cta: "Start 14-day trial",
-    ctaHref: "/signup",
     popular: true,
     features: [
       "5 admins",
@@ -121,39 +120,6 @@ const TIERS = [
       "Dark mode for your team",
       "Priority email support",
     ],
-  },
-] as const;
-
-const FEATURES = [
-  {
-    icon: Calendar,
-    title: "Booking calendar that works on a phone",
-    body: "Week + agenda view, drag-friendly slots, real-time 'now' line, quick filters per admin. Mobile and desktop share the same data.",
-  },
-  {
-    icon: LayoutDashboard,
-    title: "Finance dashboard built in",
-    body: "Track revenue, outgoing payouts, credit pack sales, and admin commissions in one place — no spreadsheet ladder.",
-  },
-  {
-    icon: Users,
-    title: "Clients, admins, and credits — sane data model",
-    body: "Subscriptions, top-up packs, commission splits, and per-admin earnings are first-class. Not bolted on.",
-  },
-  {
-    icon: MessageSquare,
-    title: "1-to-1 messaging",
-    body: "Clients message their trainer, staff reply from the same app. Quick replies between back-to-back sessions.",
-  },
-  {
-    icon: Smartphone,
-    title: "PWA, not just a website",
-    body: "Install it on a phone home screen. Works offline-friendly with bottom tabs that feel native.",
-  },
-  {
-    icon: Moon,
-    title: "Dark mode that actually works",
-    body: "Tokenized end-to-end — calendar, charts, sheets. Your late-night closing reports won't fry your eyes.",
   },
 ] as const;
 
@@ -271,7 +237,10 @@ export default function LandingPage() {
       <SiteHeader />
       <main className="flex-1">
         <Hero />
+        <StatsSection />
+        <DemoSection />
         <FeaturesSection />
+        <RolesSection />
         <HowItWorks />
         <PricingSection />
         <AddonsSection />
@@ -288,7 +257,7 @@ export default function LandingPage() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-border ">
+    <section className="relative overflow-hidden border-b border-border">
       {/* layered background: soft teal aurora + faint grid */}
       <div
         className="absolute inset-0 -z-10 bg-gradient-to-b from-[--teal-100]/50 via-background to-background pointer-events-none"
@@ -310,77 +279,139 @@ function Hero() {
         aria-hidden
       />
 
-      <div className="max-w-5xl mx-auto px-4 md:px-6 pt-16 md:pt-24 pb-16 md:pb-24 text-center">
-        <Reveal delay={0}>
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-[0.08em] uppercase text-[--role-accent-dark] bg-[--role-accent-light]/60 px-2.5 py-1 rounded-full mb-6">
-            <Sparkles className="w-3 h-3 motion-safe:animate-pulse" /> Built for yoga, pilates, gyms &amp; trainers
-          </span>
-        </Reveal>
-        <Reveal delay={80}>
-          <h1 className="text-[40px] md:text-[64px] font-semibold tracking-tight leading-[1.04] mb-5">
-            The booking app your{" "}
-            <span className="text-primary bid-gradient-text">studio</span> actually wants.
-          </h1>
-        </Reveal>
-        <Reveal delay={160}>
-          <p className="text-[16px] md:text-[18px] text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
-            Book It Daily is booking and membership software for yoga &amp; pilates studios, gyms, and
-            personal trainers. Manage class bookings, class packs, and memberships in one installable
-            app — bring your own payments and keep 100% of your revenue.
-          </p>
-        </Reveal>
-        <Reveal delay={240}>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <Link
-              href="/signup"
-              className={cn(buttonVariants({ size: "lg" }), "group h-11 px-5 gap-2")}
-            >
-              Start free
-              <ArrowRight className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 group-hover:translate-x-0.5" />
-            </Link>
-            <Link
-              href="/pricing"
-              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11 px-5")}
-            >
-              See pricing
-            </Link>
-          </div>
-        </Reveal>
-        <Reveal delay={320}>
-          <div className="text-[12px] text-muted-foreground mt-4">
-            No credit card · Cancel anytime · Free forever tier
-          </div>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-16 md:pt-24 pb-20 md:pb-28">
+        <div className="max-w-5xl mx-auto text-center">
+          <Reveal delay={0}>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-[0.08em] uppercase text-[--role-accent-dark] bg-[--role-accent-light]/60 px-2.5 py-1 rounded-full mb-6">
+              <Sparkles className="w-3 h-3 motion-safe:animate-pulse" aria-hidden /> Built for yoga, pilates, gyms
+              &amp; trainers
+            </span>
+          </Reveal>
+          <Reveal delay={80}>
+            <h1 className="text-[40px] md:text-[64px] font-semibold tracking-tight leading-[1.04] mb-5">
+              The booking app your{" "}
+              <span className="text-primary bid-gradient-text">studio</span> actually wants.
+            </h1>
+          </Reveal>
+          <Reveal delay={160}>
+            <p className="text-[16px] md:text-[18px] text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
+              Class bookings, packs, and memberships in one installable app. Bring your own payments
+              and keep 100% of your revenue — your clients book in seconds, you run the day from your
+              pocket.
+            </p>
+          </Reveal>
+          <Reveal delay={240}>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <Link
+                href="/signup"
+                className={cn(buttonVariants({ size: "lg" }), "group h-11 px-5 gap-2")}
+              >
+                Start free
+                <ArrowRight className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 group-hover:translate-x-0.5" />
+              </Link>
+              <Link
+                href="#demo"
+                className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11 px-5 gap-2")}
+              >
+                <MousePointerClick className="w-4 h-4" aria-hidden />
+                Try the live demo
+              </Link>
+            </div>
+          </Reveal>
+          <Reveal delay={320}>
+            <div className="text-[12px] text-muted-foreground mt-4">
+              No credit card · Cancel anytime · Free forever tier
+            </div>
+          </Reveal>
+        </div>
+
+        {/* animated product preview */}
+        <Reveal delay={380}>
+          <HeroAppPreview />
         </Reveal>
       </div>
     </section>
   );
 }
 
-/* ---------------- features ---------------- */
+/* ---------------- stats ---------------- */
+
+function StatsSection() {
+  return (
+    <section aria-label="Why studios switch" className="py-12 md:py-16 border-b border-border">
+      <div className="max-w-6xl mx-auto px-4 md:px-6">
+        <Reveal>
+          <StatsStrip />
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- live demo ---------------- */
+
+function DemoSection() {
+  return (
+    <section id="demo" aria-labelledby="demo-heading" className="py-16 md:py-24 scroll-mt-20">
+      <div className="max-w-3xl mx-auto px-4 md:px-6">
+        <Heading
+          id="demo-heading"
+          eyebrow="Try it live"
+          title="Book a class. Right here, right now."
+          subtitle="This is the real booking flow your clients get — group classes with live capacity, and a 1-on-1 slot grid that only shows true availability. No signup needed."
+        />
+        <Reveal delay={120} className="mt-12 block">
+          <DemoBooking />
+        </Reveal>
+        <Reveal delay={200}>
+          <p className="text-[12px] text-muted-foreground text-center mt-4">
+            Sandbox data — go ahead and click everything.
+          </p>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- features (bento) ---------------- */
 
 function FeaturesSection() {
   return (
-    <section id="features" aria-labelledby="features-heading" className="py-16 md:py-24 scroll-mt-20">
+    <section
+      id="features"
+      aria-labelledby="features-heading"
+      className="py-16 md:py-24 bg-muted/30 border-y border-border scroll-mt-20"
+    >
       <div className="max-w-6xl mx-auto px-4 md:px-6">
         <Heading
           id="features-heading"
           eyebrow="Features"
-          title="Everything a small studio needs."
-          subtitle="No bloat, no enterprise lock-in. The pieces below are in every paid plan."
+          title="Everything a small studio needs. Already built."
+          subtitle="No bloat, no enterprise lock-in. Every card below is live in the product today."
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
-          {FEATURES.map((f, i) => (
-            <Reveal key={f.title} delay={(i % 3) * 90} className="h-full">
-              <div className="group h-full bg-card border border-border rounded-xl p-6 shadow-card motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-0.5 hover:shadow-hero">
-                <span className="w-10 h-10 rounded-lg bg-[--role-accent-light]/60 text-[--role-accent-dark] grid place-items-center mb-4 motion-safe:transition-transform motion-safe:duration-200 group-hover:scale-110 group-hover:-rotate-3">
-                  <f.icon className="w-5 h-5" aria-hidden />
-                </span>
-                <h3 className="text-[15px] font-semibold mb-1.5">{f.title}</h3>
-                <p className="text-[13px] text-muted-foreground leading-relaxed">{f.body}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
+        <Reveal delay={120} className="mt-12 block">
+          <BentoFeatures />
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- roles ---------------- */
+
+function RolesSection() {
+  return (
+    <section id="roles" aria-labelledby="roles-heading" className="py-16 md:py-24 scroll-mt-20">
+      <div className="max-w-5xl mx-auto px-4 md:px-6">
+        <Heading
+          id="roles-heading"
+          eyebrow="One app, three dashboards"
+          title="Owners, staff, and clients each get their own home."
+          subtitle="Same data, three tailored views — switch below to see what each role sees."
+        />
+        <Reveal delay={120} className="mt-12 block">
+          <RoleShowcase />
+        </Reveal>
       </div>
     </section>
   );
@@ -402,13 +433,18 @@ function HowItWorks() {
           title="Live in an afternoon."
           subtitle="No onboarding calls, no setup fees. Three steps from sign-up to your first booking."
         />
-        <ol className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-12">
+        <ol className="relative grid grid-cols-1 md:grid-cols-3 gap-5 mt-12">
+          {/* connecting line (desktop) */}
+          <div
+            className="hidden md:block absolute top-[42px] left-[16%] right-[16%] h-px bg-gradient-to-r from-[--teal-500]/0 via-[--teal-500]/40 to-[--teal-500]/0 -z-0"
+            aria-hidden
+          />
           {HOW_IT_WORKS.map((s, i) => (
             <Reveal
               as="li"
               key={s.title}
               delay={i * 110}
-              className="group relative bg-card border border-border rounded-xl p-6 shadow-card"
+              className="group relative bg-card border border-border rounded-xl p-6 shadow-card motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-0.5 hover:shadow-hero"
             >
               <div className="flex items-center gap-3 mb-3">
                 <span className="w-9 h-9 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0 motion-safe:transition-transform motion-safe:duration-200 group-hover:scale-110">
@@ -440,55 +476,9 @@ function PricingSection() {
           title="One flat fee. No transaction cuts."
           subtitle="Save 2 months when you pay yearly. All prices in USD."
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-12">
-          {TIERS.map((t, i) => {
-            const featured = "popular" in t && t.popular;
-            return (
-              <Reveal key={t.id} delay={i * 90} className="h-full">
-              <div
-                className={
-                  "h-full bg-card border rounded-xl p-6 flex flex-col motion-safe:transition-all motion-safe:duration-200 hover:-translate-y-0.5 " +
-                  (featured
-                    ? "border-primary ring-1 ring-primary/30 shadow-hero"
-                    : "border-border shadow-card hover:shadow-hero")
-                }
-              >
-                {featured && (
-                  <span className="self-start text-[10px] tracking-[0.08em] uppercase font-semibold text-primary-foreground bg-primary px-2 py-0.5 rounded-full mb-3">
-                    Most popular
-                  </span>
-                )}
-                <div className="text-[15px] font-semibold tracking-tight">{t.name}</div>
-                <div className="text-[12px] text-muted-foreground mb-5">{t.tagline}</div>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-[36px] font-semibold tracking-tight tabular-nums">${t.monthly}</span>
-                  <span className="text-[13px] text-muted-foreground">/mo</span>
-                </div>
-                <div className="text-[11px] text-muted-foreground mb-5 tabular-nums">
-                  {t.yearly === 0 ? "Free forever" : `or $${t.yearly}/yr (save $${t.monthly * 12 - t.yearly})`}
-                </div>
-                <ul className="text-[13px] space-y-2 mb-6 flex-1">
-                  {t.features.map((f) => (
-                    <li key={f} className="flex gap-2 items-start">
-                      <Check className="w-3.5 h-3.5 text-[--pos] mt-0.5 shrink-0" aria-hidden />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                {"limits" in t && t.limits && (
-                  <div className="text-[11px] text-muted-foreground mb-4">{t.limits}</div>
-                )}
-                <Link
-                  href={t.ctaHref}
-                  className={cn(buttonVariants({ variant: featured ? "default" : "outline" }), "w-full")}
-                >
-                  {t.cta}
-                </Link>
-              </div>
-              </Reveal>
-            );
-          })}
-        </div>
+        <Reveal delay={120} className="mt-12 block">
+          <PricingPlans tiers={TIERS} />
+        </Reveal>
         <p className="text-[12px] text-muted-foreground text-center mt-6">
           Looking for the full breakdown?{" "}
           <Link href="/pricing" className="text-primary underline underline-offset-2 hover:opacity-80">
@@ -542,7 +532,7 @@ function BuildOffers() {
           <div className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr]">
             <div className="p-8 md:p-12">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-[0.08em] uppercase text-[--role-accent-dark] bg-[--role-accent-light]/60 px-2.5 py-1 rounded-full mb-4">
-                <CreditCard className="w-3 h-3" /> Credits + subscriptions
+                <CreditCard className="w-3 h-3" aria-hidden /> Credits + subscriptions
               </span>
               <h2 id="offers-heading" className="text-[28px] md:text-[32px] font-semibold tracking-tight leading-tight mb-3">
                 Design your own client offers.
@@ -569,7 +559,7 @@ function BuildOffers() {
               </Link>
             </div>
             <div className="bg-muted/40 border-l border-border p-8 grid place-items-center">
-              <div className="bg-card border border-border rounded-xl shadow-hero w-full max-w-xs p-5">
+              <div className="bg-card border border-border rounded-xl shadow-hero w-full max-w-xs p-5 motion-safe:transition-transform motion-safe:duration-200 hover:scale-[1.02]">
                 <div className="text-[10px] uppercase tracking-[0.08em] font-medium text-muted-foreground mb-3">
                   Preview · Studio plan
                 </div>
@@ -578,7 +568,7 @@ function BuildOffers() {
                 <ul className="text-[12px] space-y-1.5 mb-4">
                   {["Priority booking", "Free reschedule", "€11.13 per credit"].map((p) => (
                     <li key={p} className="flex gap-2 items-start">
-                      <Check className="w-3 h-3 text-[--pos] mt-0.5 shrink-0" />
+                      <Check className="w-3 h-3 text-[--pos] mt-0.5 shrink-0" aria-hidden />
                       {p}
                     </li>
                   ))}
@@ -607,7 +597,10 @@ function FaqSection() {
             <details key={item.q} className="group py-5">
               <summary className="flex justify-between items-start gap-4 cursor-pointer list-none">
                 <h3 className="text-[15px] font-medium">{item.q}</h3>
-                <span className="text-muted-foreground text-xl leading-none transition-transform group-open:rotate-45 mt-1">
+                <span
+                  className="text-muted-foreground text-xl leading-none motion-safe:transition-transform motion-safe:duration-200 group-open:rotate-45 mt-1"
+                  aria-hidden
+                >
                   +
                 </span>
               </summary>
@@ -624,8 +617,13 @@ function FaqSection() {
 
 function FooterCta() {
   return (
-    <section className="py-16 md:py-20 bg-foreground text-background">
-      <Reveal className="max-w-3xl mx-auto px-4 md:px-6 text-center block">
+    <section className="relative py-16 md:py-20 bg-foreground text-background overflow-hidden">
+      {/* subtle teal glow in the dark band */}
+      <div
+        className="bid-hero-glow absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-56 w-[480px] max-w-[80vw] rounded-full bg-[--teal-500]/20 blur-[80px] pointer-events-none"
+        aria-hidden
+      />
+      <Reveal className="relative max-w-3xl mx-auto px-4 md:px-6 text-center block">
         <h2 className="text-[28px] md:text-[36px] font-semibold tracking-tight leading-tight mb-3">
           Run your studio from your pocket.
         </h2>
