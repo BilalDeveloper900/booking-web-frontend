@@ -296,7 +296,7 @@ function Hero() {
           <Reveal delay={160}>
             <p className="text-[16px] md:text-[18px] text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
               Class bookings, packs, and memberships in one installable app. Bring your own payments
-              and keep 100% of your revenue — your clients book in seconds, you run the day from your
+              and keep 100% of your revenue your clients book in seconds, you run the day from your
               pocket.
             </p>
           </Reveal>
@@ -310,7 +310,7 @@ function Hero() {
                 <ArrowRight className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 group-hover:translate-x-0.5" />
               </Link>
               <Link
-                href="#demo"
+                href="/contact"
                 className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11 px-5 gap-2")}
               >
                 <MousePointerClick className="w-4 h-4" aria-hidden />

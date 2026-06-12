@@ -21,14 +21,14 @@ function useCountUp(target: number, play: boolean) {
   const [value, setValue] = useState(0);
   useEffect(() => {
     if (!play) return;
-    if (
+    const reduced =
       typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      setValue(target);
-      return;
-    }
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let raf = 0;
+    if (reduced) {
+      raf = requestAnimationFrame(() => setValue(target));
+      return () => cancelAnimationFrame(raf);
+    }
     const start = performance.now();
     const tick = (now: number) => {
       const p = Math.min(1, (now - start) / DURATION);
