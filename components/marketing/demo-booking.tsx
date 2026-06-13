@@ -128,18 +128,18 @@ export function DemoBooking() {
                   key={c.id}
                   className="flex items-center gap-3 md:gap-4 border border-border rounded-lg p-3 md:p-4 motion-safe:transition-all motion-safe:duration-200 hover:shadow-card"
                 >
-                  <div className="text-center shrink-0 w-12">
+                  <div className="text-center shrink-0 w-10 sm:w-12">
                     <div className="text-[13px] font-semibold tabular-nums">{c.time}</div>
                     <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Thu</div>
                   </div>
-                  <span className="w-px self-stretch bg-[--line-soft]" aria-hidden />
+                  <span className="hidden sm:block w-px self-stretch bg-[--line-soft]" aria-hidden />
                   <div className="flex-1 min-w-0">
                     <div className="text-[14px] font-semibold truncate">{c.title}</div>
                     <div className="text-[12px] text-muted-foreground truncate">
                       with {c.coach} · {c.credits} {c.credits === 1 ? "credit" : "credits"}
                     </div>
                     <div className="mt-1.5 flex items-center gap-2">
-                      <div className="h-1.5 w-24 md:w-32 rounded-full bg-muted overflow-hidden">
+                      <div className="h-1.5 w-16 sm:w-32 rounded-full bg-muted overflow-hidden">
                         <div
                           className={cn(
                             "h-full rounded-full motion-safe:transition-all motion-safe:duration-300",
@@ -251,7 +251,7 @@ export function DemoBooking() {
                 </span>
               </div>
               {selected && (
-                <div className="bid-pop flex items-center gap-3">
+                <div className="bid-pop flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
                   <span className="text-[12px] text-muted-foreground tabular-nums">
                     {DAYS[day]} · {selected.split("-")[1]} · 1 credit
                   </span>

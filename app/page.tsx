@@ -288,7 +288,7 @@ function Hero() {
             </span>
           </Reveal>
           <Reveal delay={80}>
-            <h1 className="text-[40px] md:text-[64px] font-semibold tracking-tight leading-[1.04] mb-5">
+            <h1 className="text-[34px] sm:text-[44px] md:text-[64px] font-semibold tracking-tight leading-[1.06] md:leading-[1.04] mb-5">
               The booking app your{" "}
               <span className="text-primary bid-gradient-text">studio</span> actually wants.
             </h1>
@@ -301,17 +301,23 @@ function Hero() {
             </p>
           </Reveal>
           <Reveal delay={240}>
-            <div className="flex items-center justify-center gap-3 flex-wrap">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/signup"
-                className={cn(buttonVariants({ size: "lg" }), "group h-11 px-5 gap-2")}
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "group h-11 px-5 gap-2 w-full max-w-[300px] sm:w-auto sm:max-w-none"
+                )}
               >
                 Start free
                 <ArrowRight className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-200 group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="/contact"
-                className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11 px-5 gap-2")}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "h-11 px-5 gap-2 w-full max-w-[300px] sm:w-auto sm:max-w-none"
+                )}
               >
                 <MousePointerClick className="w-4 h-4" aria-hidden />
                 Try the live demo
@@ -530,7 +536,7 @@ function BuildOffers() {
       <div className="max-w-5xl mx-auto px-4 md:px-6">
         <Reveal className="bg-card border border-border rounded-2xl shadow-hero overflow-hidden block">
           <div className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr]">
-            <div className="p-8 md:p-12">
+            <div className="p-6 sm:p-8 md:p-12">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tracking-[0.08em] uppercase text-[--role-accent-dark] bg-[--role-accent-light]/60 px-2.5 py-1 rounded-full mb-4">
                 <CreditCard className="w-3 h-3" aria-hidden /> Credits + subscriptions
               </span>
@@ -558,7 +564,7 @@ function BuildOffers() {
                 Try the offers builder <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="bg-muted/40 border-l border-border p-8 grid place-items-center">
+            <div className="bg-muted/40 border-t md:border-t-0 md:border-l border-border p-6 sm:p-8 grid place-items-center">
               <div className="bg-card border border-border rounded-xl shadow-hero w-full max-w-xs p-5 motion-safe:transition-transform motion-safe:duration-200 hover:scale-[1.02]">
                 <div className="text-[10px] uppercase tracking-[0.08em] font-medium text-muted-foreground mb-3">
                   Preview · Studio plan
@@ -630,12 +636,12 @@ function FooterCta() {
         <p className="text-[14px] opacity-70 leading-relaxed mb-6">
           Free forever. Upgrade if you outgrow it. No surprises.
         </p>
-        <div className="flex items-center justify-center gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/signup"
             className={cn(
               buttonVariants({ size: "lg" }),
-              "group h-11 px-5 gap-2 bg-background text-foreground hover:bg-background/90"
+              "group h-11 px-5 gap-2 bg-background text-foreground hover:bg-background/90 w-full max-w-[300px] sm:w-auto sm:max-w-none"
             )}
           >
             Start free

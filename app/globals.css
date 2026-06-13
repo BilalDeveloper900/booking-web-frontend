@@ -412,6 +412,7 @@
   animation: bid-text-gradient 5s linear infinite;
 }
 
+
 /* Floating mini-cards around the hero app preview. Staggered via
  * animation-delay inline style. Decorative only. */
 @keyframes bid-float {
@@ -474,13 +475,16 @@
   animation: bid-typing 1.2s ease-in-out infinite;
 }
 
-/* Hero preview tilt: flat by default, straightens on hover. */
-.bid-tilt {
-  transform: perspective(1200px) rotateX(7deg) scale(0.99);
-  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-.bid-tilt:hover {
-  transform: perspective(1200px) rotateX(0deg) scale(1);
+/* Hero preview tilt: desktop-only — mobile renders the frame flat and
+ * full-width so nothing looks shrunken or cramped. */
+@media (min-width: 768px) {
+  .bid-tilt {
+    transform: perspective(1200px) rotateX(7deg) scale(0.99);
+    transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .bid-tilt:hover {
+    transform: perspective(1200px) rotateX(0deg) scale(1);
+  }
 }
 
 /* Slow conveyor for the integrations / trust marquee. Duplicated track,

@@ -35,7 +35,7 @@ const AGENDA = [
 
 export function HeroAppPreview() {
   return (
-    <div aria-hidden className="relative max-w-4xl mx-auto mt-14 md:mt-20 px-4 md:px-0">
+    <div aria-hidden className="relative max-w-4xl mx-auto mt-12 md:mt-20">
       {/* glow under the frame */}
       <div className="absolute inset-x-8 -bottom-6 top-1/3 -z-10 rounded-full bg-[--teal-500]/25 blur-[70px]" />
 
@@ -51,9 +51,9 @@ export function HeroAppPreview() {
           </span>
         </div>
 
-        <div className="grid grid-cols-[44px_1fr] md:grid-cols-[160px_1fr]">
+        <div className="grid grid-cols-1 md:grid-cols-[160px_1fr]">
           {/* sidebar */}
-          <div className="border-r border-border p-2 md:p-3 space-y-1 bg-muted/20">
+          <div className="hidden md:block border-r border-border p-3 space-y-1 bg-muted/20">
             {[
               { icon: LayoutDashboard, label: "Overview", active: true },
               { icon: CalendarDays, label: "Calendar" },
@@ -81,13 +81,14 @@ export function HeroAppPreview() {
             {/* stat row */}
             <div className="grid grid-cols-3 gap-2 md:gap-3">
               {[
-                { label: "Bookings today", value: "14", delta: "+3" },
-                { label: "Revenue · June", value: "$4,820", delta: "+12%" },
-                { label: "Active clients", value: "212", delta: "+8" },
+                { label: "Bookings today", short: "Bookings", value: "14", delta: "+3" },
+                { label: "Revenue · June", short: "Revenue", value: "$4,820", delta: "+12%" },
+                { label: "Active clients", short: "Clients", value: "212", delta: "+8" },
               ].map((s) => (
                 <div key={s.label} className="bg-card border border-border rounded-lg p-2.5 md:p-3 shadow-card">
                   <div className="text-[9px] md:text-[10px] uppercase tracking-[0.08em] font-medium text-muted-foreground truncate">
-                    {s.label}
+                    <span className="md:hidden">{s.short}</span>
+                    <span className="hidden md:inline">{s.label}</span>
                   </div>
                   <div className="text-[15px] md:text-[20px] font-semibold tracking-tight tabular-nums mt-0.5">
                     {s.value}

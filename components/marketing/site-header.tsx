@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteHeaderActions } from "@/components/marketing/site-header-actions";
+import { MobileNav } from "@/components/marketing/mobile-nav";
 
 /**
  * Shared marketing top-nav used by the landing page and the public
@@ -25,6 +26,7 @@ export function SiteHeader() {
         </nav>
         <div className="flex-1" />
         <SiteHeaderActions />
+        <MobileNav />
       </div>
     </header>
   );
