@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git rm *)",
       "Bash(echo \"=== tsc exit $? ===\")",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('public/manifest.webmanifest','utf8'\\)\\); console.log\\('manifest JSON valid'\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('public/manifest.webmanifest','utf8'\\)\\); console.log\\('manifest JSON valid'\\)\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/stripe/package.json'\\).version\\)\")",
+      "Bash(echo \"stripe installed: $\\(node -e \"console.log\\(require\\('./node_modules/stripe/package.json'\\).version\\)\"\\)\")"
     ]
   }
 }

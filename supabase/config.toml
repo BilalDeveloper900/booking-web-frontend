@@ -409,3 +409,6 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 
 [functions.polar-webhook]
 verify_jwt = false
+
+[functions.stripe-connect-webhook]
+verify_jwt = false

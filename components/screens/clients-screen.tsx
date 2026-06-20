@@ -15,6 +15,7 @@ import {
   Copy,
   Check,
   Gift,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatBlock, PersonCell, Pill, HueAvatar } from "@/components/shared";
@@ -27,6 +28,7 @@ import {
 } from "@/lib/members";
 import { InviteSheet } from "@/components/invite-sheet";
 import { GiftCreditsSheet } from "@/components/gift-credits-sheet";
+import { RecordPaymentSheet } from "@/components/record-payment-sheet";
 import { TableSkeletonRows, AvatarLineSkeleton } from "@/components/skeletons";
 import { cn } from "@/lib/utils";
 
@@ -40,10 +42,15 @@ export function ClientsScreen() {
     | { memberId: string; name: string; hue: number; email?: string }
     | null
   >(null);
+  const [payTarget, setPayTarget] = useState<
+    | { memberId: string; name: string; hue: number; email?: string }
+    | null
+  >(null);
 
   const { member } = useCurrentMember();
   const studioId = member?.studio.id;
   const ownerUserId = member?.user.id;
+  const currency = member?.studio.currency ?? "EUR";
 
   const {
     members: clients,
@@ -252,6 +259,21 @@ export function ClientsScreen() {
                       <Button
                         variant="ghost"
                         size="icon-sm"
+                        aria-label={`Record payment for ${c.user.name}`}
+                        onClick={() =>
+                          setPayTarget({
+                            memberId: c.id,
+                            name: c.user.name,
+                            hue: c.user.avatar_hue,
+                            email: c.user.email,
+                          })
+                        }
+                      >
+                        <Wallet className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
                         aria-label={`Gift credits to ${c.user.name}`}
                         onClick={() =>
                           setGiftTarget({
@@ -314,6 +336,17 @@ export function ClientsScreen() {
         }}
         client={giftTarget}
         onGifted={refetchClients}
+      />
+
+      <RecordPaymentSheet
+        open={payTarget !== null}
+        onOpenChange={(o) => {
+          if (!o) setPayTarget(null);
+        }}
+        client={payTarget}
+        studioId={studioId}
+        currency={currency}
+        onRecorded={refetchClients}
       />
     </div>
   );

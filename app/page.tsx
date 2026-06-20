@@ -301,12 +301,12 @@ function Hero() {
             </p>
           </Reveal>
           <Reveal delay={240}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="mx-auto flex w-full max-w-sm flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:items-center">
               <Link
                 href="/signup"
                 className={cn(
                   buttonVariants({ size: "lg" }),
-                  "group h-11 px-5 gap-2 w-full max-w-[300px] sm:w-auto sm:max-w-none"
+                  "group h-11 gap-2 px-6 w-full sm:w-auto sm:min-w-[160px]"
                 )}
               >
                 Start free
@@ -316,7 +316,7 @@ function Hero() {
                 href="/contact"
                 className={cn(
                   buttonVariants({ variant: "outline", size: "lg" }),
-                  "h-11 px-5 gap-2 w-full max-w-[300px] sm:w-auto sm:max-w-none"
+                  "h-11 gap-2 px-6 w-full sm:w-auto sm:min-w-[160px]"
                 )}
               >
                 <MousePointerClick className="w-4 h-4" aria-hidden />
@@ -636,12 +636,12 @@ function FooterCta() {
         <p className="text-[14px] opacity-70 leading-relaxed mb-6">
           Free forever. Upgrade if you outgrow it. No surprises.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="mx-auto flex w-full max-w-sm flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:items-center">
           <Link
             href="/signup"
             className={cn(
               buttonVariants({ size: "lg" }),
-              "group h-11 px-5 gap-2 bg-background text-foreground hover:bg-background/90 w-full max-w-[300px] sm:w-auto sm:max-w-none"
+              "group h-11 gap-2 px-6 bg-background text-foreground hover:bg-background/90 w-full sm:w-auto sm:min-w-[160px]"
             )}
           >
             Start free
@@ -651,7 +651,7 @@ function FooterCta() {
             href="/pricing"
             className={cn(
               buttonVariants({ variant: "ghost", size: "lg" }),
-              "h-11 px-5 text-background hover:bg-background/10"
+              "h-11 gap-2 px-6 border border-background/25 text-background hover:bg-background/10 hover:text-background hover:border-background/40 dark:hover:bg-background/10 w-full sm:w-auto sm:min-w-[160px]"
             )}
           >
             Compare plans

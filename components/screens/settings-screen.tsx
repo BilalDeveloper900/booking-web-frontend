@@ -18,8 +18,11 @@ import {
   Loader2,
   AlertCircle,
   Check,
+  CreditCard,
+  ExternalLink,
+  Wallet,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { HueAvatar } from "@/components/shared";
 import { useTheme } from "@/components/theme-provider";
@@ -44,6 +47,12 @@ import {
   type AvailabilityRuleRow,
   type AvailabilityExceptionRow,
 } from "@/lib/availability";
+import {
+  useStudioPaymentAccount,
+  useStudioPayoutInfo,
+  setPayoutNote,
+  stripeConfigured,
+} from "@/lib/payments";
 
 /** Visible weekday order in the grid (Mon..Sun). */
 const WEEKDAY_GRID: { weekday: number; label: string }[] = [
@@ -88,6 +97,7 @@ export function SettingsScreen({ role }: SettingsScreenProps) {
         {role === "owner" && (
           <>
             <StudioCard studioId={studioId} />
+            <PaymentsCard studioId={studioId} />
             <StudioHoursCard studioId={studioId} />
           </>
         )}
@@ -522,6 +532,168 @@ function StudioCard({ studioId }: { studioId: string | undefined }) {
         </Button>
       </FormFooter>
     </Card>
+  );
+}
+
+/* ───────────────────────── Payments card (owner) ───────────────────────── */
+
+function PaymentsCard({ studioId }: { studioId: string | undefined }) {
+  const { payoutNote, loading, refetch } = useStudioPayoutInfo(studioId);
+
+  const [note, setNote] = useState("");
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Sync the editable note from the server until the owner starts editing.
+  useEffect(() => {
+    if (dirty) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNote(payoutNote ?? "");
+  }, [payoutNote, dirty]);
+
+  async function save() {
+    if (!studioId || saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await setPayoutNote(studioId, note);
+      await refetch();
+      setDirty(false);
+      setSavedAt(Date.now());
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title="Payments & payouts"
+        subtitle="How clients pay you for credits and memberships."
+      />
+
+      {/* Manual payments — always available, no setup required. */}
+      <div className="flex items-start gap-3 py-1 mb-3">
+        <span className="w-9 h-9 rounded-lg bg-muted text-foreground grid place-items-center shrink-0">
+          <Wallet className="w-4 h-4" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-medium">Manual payments</div>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+            Tell clients how to pay you — bank transfer, your own payment link, or cash.
+            After they pay, open the client in <span className="font-medium">Clients</span> and
+            choose <span className="font-medium">Record payment</span> to add their credits.
+          </p>
+        </div>
+      </div>
+
+      {loading ? (
+        <CardSkeleton rows={2} />
+      ) : (
+        <Field
+          label="Payment instructions for clients"
+          hint="Shown to clients on their Credits page when they tap Buy. Leave blank to hide."
+        >
+          <textarea
+            value={note}
+            onChange={(e) => {
+              setNote(e.target.value);
+              setDirty(true);
+            }}
+            rows={3}
+            maxLength={500}
+            placeholder={"e.g. Pay via bank transfer to IBAN DE00 0000 …, or my link revolut.me/yourstudio. Reference your name."}
+            className={cn(
+              "w-full rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none motion-safe:transition-colors motion-safe:duration-150 resize-y",
+              "hover:border-foreground/30 focus:border-ring focus:ring-2 focus:ring-ring/20"
+            )}
+          />
+        </Field>
+      )}
+
+      {/* Stripe Connect — only when the platform has enabled it (needs a US/UK entity). */}
+      {stripeConfigured && <StripeConnectRow studioId={studioId} />}
+
+      {saveError && <ErrorBanner message={saveError} />}
+
+      <FormFooter>
+        {savedAt && !dirty && (
+          <span className="inline-flex items-center gap-1.5 text-[12px] text-[--pos] mr-auto">
+            <Check className="w-3.5 h-3.5" /> Saved
+          </span>
+        )}
+        <Button onClick={save} disabled={!dirty || saving || !studioId}>
+          {saving ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving
+            </>
+          ) : (
+            "Save instructions"
+          )}
+        </Button>
+      </FormFooter>
+    </Card>
+  );
+}
+
+/** Stripe Connect status row — rendered only when payments are enabled platform-side. */
+function StripeConnectRow({ studioId }: { studioId: string | undefined }) {
+  const { account, loading } = useStudioPaymentAccount(studioId);
+  const connected = account?.charges_enabled === true && account?.status === "connected";
+  const started = Boolean(account?.stripe_account_id) && !connected;
+
+  return (
+    <div className="mt-4 pt-4 border-t border-[--line-soft]">
+      <div className="flex items-start gap-3 py-1">
+        <span className="w-9 h-9 rounded-lg bg-muted text-foreground grid place-items-center shrink-0">
+          <CreditCard className="w-4 h-4" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-medium flex items-center gap-2">
+            Card payments (Stripe)
+            {!loading && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full font-medium",
+                  connected
+                    ? "bg-[--pos]/15 text-[--pos]"
+                    : started
+                      ? "bg-[--warn]/15 text-[oklch(0.45_0.1_60)]"
+                      : "bg-muted text-muted-foreground"
+                )}
+              >
+                {connected ? "Connected" : started ? "Setup incomplete" : "Not connected"}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+            {connected
+              ? "Clients can pay by card; money goes to your Stripe balance and you withdraw to your bank."
+              : "Let clients pay by card automatically — money goes straight to your Stripe account."}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex justify-end mt-3">
+        {connected ? (
+          <a
+            href="/api/connect/dashboard"
+            className={cn(buttonVariants({ variant: "outline" }), "gap-2")}
+          >
+            <ExternalLink className="w-3.5 h-3.5" /> Manage payouts
+          </a>
+        ) : (
+          <a href="/api/connect/onboard" className={cn(buttonVariants(), "gap-2")}>
+            <CreditCard className="w-3.5 h-3.5" />
+            {started ? "Finish setup" : "Connect card payments"}
+          </a>
+        )}
+      </div>
+    </div>
   );
 }
 

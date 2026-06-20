@@ -140,8 +140,10 @@ to the browser, never in a `NEXT_PUBLIC_` var.
 
 ### Phase 0 — Platform + provider abstraction
 - Stripe platform account (test), enable **Connect → Express**.
-- Env: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` (`NEXT_PUBLIC_`),
-  `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_WEBHOOK_SECRET`.
+- Env (platform — set ONCE, studios never give keys):
+  `STRIPE_SECRET_KEY` (server) + `NEXT_PUBLIC_PAYMENTS_ENABLED=true` (UI gate) +
+  `STRIPE_CONNECT_WEBHOOK_SECRET` (webhook signing secret). No publishable key
+  needed — we use Stripe's hosted pages (redirect).
 - `lib/payments/types.ts` (`PaymentProvider` interface) + `lib/stripe.ts` (platform client).
 - Migration: `studio_payment_accounts` + the column additions in §5.
 
@@ -193,6 +195,36 @@ to the browser, never in a `NEXT_PUBLIC_` var.
 
 ### Phase 6 — Fallback providers (only if needed)
 - `manual` adapter (record-only) for studios that can't use Stripe; same interface.
+
+---
+
+## ✅ Phase M — Manual payments (SHIPPED — the active flow today)
+
+Because Pakistan can't be a Stripe **Connect platform** (no US/UK entity yet),
+the live client→studio flow is **manual**: the studio collects money its own way
+(bank / own payment link / cash); the **owner records the sale** and we grant
+credits + log income on the same ledger. Stripe Connect (Phases 0–1, already
+coded) activates later once an LLC exists — no rework.
+
+Built:
+- Migration `20260614000001_manual_payments.sql` — RPCs `record_manual_sale`
+  (owner records paid sale → succeeded `payments` row, provider `manual`, +
+  `topup` credit_transaction, atomic), `set_studio_payout_note` (owner saves
+  client payment instructions), `get_studio_payment_info` (any member reads
+  provider + note).
+- `lib/payments.ts` — `recordManualSale`, `setPayoutNote`, `useStudioPayoutInfo`.
+- **Owner → Settings → Payments**: "Payment instructions for clients" textarea
+  (manual, always on); Stripe card gated behind `NEXT_PUBLIC_PAYMENTS_ENABLED`.
+- **Owner → Clients → Record payment** (`components/record-payment-sheet.tsx`):
+  pick a pack / custom → "Mark paid & add credits".
+- **Client → Credits → Buy/Switch**: opens an instructions sheet (reads the
+  payout note) — no in-app card; studio confirms → balance updates.
+- **Dynamic pages** (`lib/finance.ts`, `lib/earnings.ts`): `/owner/finance`,
+  `/admin/earnings` now read the real ledger (incoming = client `payments`;
+  owed/earned = `services.gross_price_cents × commission_pct` on delivered
+  sessions). `/client/credits` was already live. Charts are prop-driven.
+- Verify: `node --env-file=.env.local scripts/verify-manual-payments.mjs`
+  (RPCs deployed + guards fire; schema present; aggregations run).
 
 ---
 

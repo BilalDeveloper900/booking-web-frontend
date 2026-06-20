@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, AlertCircle, Loader2 } from "lucide-react";
+import { Check, AlertCircle, Wallet } from "lucide-react";
 import { TableSkeletonRows } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/shared";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
 import {
   useSubscriptionPlans,
@@ -16,8 +23,16 @@ import {
   useMyCredits,
   useMyCreditTransactions,
 } from "@/lib/client-bookings";
+import { useStudioPayoutInfo } from "@/lib/payments";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+
+type BuyTarget = {
+  kind: "pack" | "plan";
+  name: string;
+  priceCents: number;
+  credits: number | null;
+};
 
 type MyPlanSnapshot = {
   planName: string;
@@ -37,9 +52,11 @@ export function ClientCredits() {
     useMyCreditTransactions(memberId, 50);
   const { plans, loading: plansLoading } = useSubscriptionPlans(studioId);
   const { packs, loading: packsLoading } = useCreditPacks(studioId);
+  const { payoutNote } = useStudioPayoutInfo(studioId);
 
   const [mySub, setMySub] = useState<MyPlanSnapshot | null>(null);
   const [subLoading, setSubLoading] = useState(true);
+  const [buyTarget, setBuyTarget] = useState<BuyTarget | null>(null);
 
   // Fetch the client's active subscription joined with their plan name + price.
   useEffect(() => {
@@ -226,13 +243,20 @@ export function ClientCredits() {
                       {formatPrice(perCredit, currency)}/credit
                     </div>
                     <div className="text-xs text-muted-foreground mb-3 min-h-[1em]">
-                      Checkout wires up later
+                      Pay your studio to top up
                     </div>
                     <Button
                       variant={featured ? "default" : "outline"}
                       size="sm"
                       className="w-full"
-                      disabled
+                      onClick={() =>
+                        setBuyTarget({
+                          kind: "pack",
+                          name: `${pack.credits} credits`,
+                          priceCents: pack.price_cents,
+                          credits: pack.credits,
+                        })
+                      }
                     >
                       Buy
                     </Button>
@@ -370,8 +394,20 @@ export function ClientCredits() {
                         Current plan
                       </Button>
                     ) : (
-                      <Button variant="outline" size="sm" className="w-full" disabled>
-                        Switch (checkout coming later)
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() =>
+                          setBuyTarget({
+                            kind: "plan",
+                            name: plan.name,
+                            priceCents: plan.price_cents,
+                            credits: plan.credits_granted > 0 ? plan.credits_granted : null,
+                          })
+                        }
+                      >
+                        Switch
                       </Button>
                     )}
                   </div>
@@ -380,11 +416,90 @@ export function ClientCredits() {
           </div>
         )}
       </Section>
+
+      <PayInstructionsSheet
+        target={buyTarget}
+        currency={currency}
+        payoutNote={payoutNote}
+        onClose={() => setBuyTarget(null)}
+      />
     </div>
   );
 }
 
 /* ────────── helpers ────────── */
+
+/**
+ * Shown when a client taps Buy/Switch. There's no in-app card checkout in the
+ * manual model — instead we surface the studio's payment instructions so the
+ * client can pay them directly; the studio then records the payment and the
+ * credits land on this page.
+ */
+function PayInstructionsSheet({
+  target,
+  currency,
+  payoutNote,
+  onClose,
+}: {
+  target: BuyTarget | null;
+  currency: string;
+  payoutNote: string | null;
+  onClose: () => void;
+}) {
+  return (
+    <Sheet open={target !== null} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+        {target && (
+          <>
+            <SheetHeader className="p-6 pb-4">
+              <div className="inline-flex items-center gap-2 self-start px-2 py-1 rounded-md text-[11px] font-medium mb-3 bg-[--role-accent-light] text-[--role-accent-dark]">
+                <Wallet className="w-3 h-3" />
+                {target.kind === "pack" ? "Buy credits" : "Start plan"}
+              </div>
+              <SheetTitle className="text-[20px] font-semibold tracking-tight">
+                {target.name} · {formatPrice(target.priceCents, currency)}
+                {target.kind === "plan" && (
+                  <span className="text-sm font-normal text-muted-foreground">/month</span>
+                )}
+              </SheetTitle>
+              <SheetDescription>
+                {target.credits != null
+                  ? `${target.credits} credit${target.credits === 1 ? "" : "s"} will be added once your studio confirms payment.`
+                  : "Your studio will set you up once they confirm payment."}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="px-6 pb-4 space-y-3">
+              <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground">
+                How to pay your studio
+              </div>
+              {payoutNote ? (
+                <div className="rounded-lg border border-border bg-muted/40 p-3.5 text-[13px] leading-relaxed whitespace-pre-wrap">
+                  {payoutNote}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border p-3.5 text-[13px] text-muted-foreground leading-relaxed">
+                  Your studio hasn&rsquo;t added payment instructions yet. Message them to
+                  arrange payment — they&rsquo;ll add your credits here once received.
+                </div>
+              )}
+              <p className="text-[12px] text-muted-foreground leading-relaxed">
+                Pay the amount above using the details provided, then your studio records the
+                payment and your balance updates automatically.
+              </p>
+            </div>
+
+            <div className="mt-auto p-6 pt-4 border-t border-border">
+              <Button className="w-full" onClick={onClose}>
+                Got it
+              </Button>
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 /**
  * Compute a running balance for each transaction (newest first). Lives
