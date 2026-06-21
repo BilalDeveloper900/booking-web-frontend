@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Poppins, Geist_Mono } from "next/font/google";
-import { Toaster } from "sonner";
+import { Toaster } from "react-hot-toast";
 import { ThemeProvider, themeBootScript } from "@/components/theme-provider";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";

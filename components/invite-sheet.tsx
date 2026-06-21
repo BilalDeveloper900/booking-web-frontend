@@ -10,7 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import { sendInviteEmail } from "@/lib/email";
 import { createInvitation, inviteUrl } from "@/lib/members";
 import { cn } from "@/lib/utils";
