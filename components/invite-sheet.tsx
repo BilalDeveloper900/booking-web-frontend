@@ -13,6 +13,7 @@ import {
 import toast from "react-hot-toast";
 import { sendInviteEmail } from "@/lib/email";
 import { createInvitation, inviteUrl } from "@/lib/members";
+import { planLimitMessage } from "@/lib/limits";
 import { cn } from "@/lib/utils";
 
 /**
@@ -105,7 +106,8 @@ function InviteForm({
       setCreatedLink(inviteUrl(row.token));
       onInvited?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const fallback = err instanceof Error ? err.message : String(err);
+      setError(planLimitMessage(err, fallback));
     } finally {
       setSubmitting(false);
     }

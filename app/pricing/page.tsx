@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Sparkles, Users } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/marketing/site-header";
@@ -66,10 +66,11 @@ const TIERS = [
   },
 ] as const;
 
-const ADDONS = [
-  { icon: Users, label: "Extra admin seat", price: "+$3 / mo each", body: "Beyond your plan limit, add as you grow." },
-  { icon: Sparkles, label: "Branded landing page", price: "+$5 / mo", body: "Public booking page with your logo and colors." },
-] as const;
+// add-ons temporarily hidden — see commented section below
+// const ADDONS = [
+//   { icon: Users, label: "Extra admin seat", price: "+$3 / mo each", body: "Beyond your plan limit, add as you grow." },
+//   { icon: Sparkles, label: "Branded landing page", price: "+$5 / mo", body: "Public booking page with your logo and colors." },
+// ] as const;
 
 const BILLING_FAQ = [
   {
@@ -127,7 +128,8 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* add-ons */}
+        {/* add-ons — temporarily hidden */}
+        {/*
         <section className="py-12 md:py-16 bg-muted/30 border-y border-border">
           <div className="max-w-6xl mx-auto px-4 md:px-6">
             <div className="text-center">
@@ -155,6 +157,7 @@ export default function PricingPage() {
             </div>
           </div>
         </section>
+        */}
 
         {/* billing FAQ */}
         <section className="py-12 md:py-16">
