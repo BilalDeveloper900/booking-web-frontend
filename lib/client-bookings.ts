@@ -17,6 +17,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
+import { sendBookingNotification } from "@/lib/email";
+
+/**
+ * Fire the "new booking" email to the relevant admin without blocking — a
+ * failed notification must never fail (or slow) the booking that triggered it.
+ */
+function notifyAdminOfBooking(bookingId: string): void {
+  void sendBookingNotification(bookingId).catch((err) => {
+    console.error("[client-bookings] booking notification failed:", err);
+  });
+}
 
 export type CreditTransactionRow =
   Database["public"]["Tables"]["credit_transactions"]["Row"];
@@ -370,7 +381,9 @@ export async function enrollInClass(sessionId: string): Promise<string> {
     p_session_id: sessionId,
   });
   if (error) throw new Error(humanizeRpcError(error.message));
-  return String(data);
+  const bookingId = String(data);
+  notifyAdminOfBooking(bookingId);
+  return bookingId;
 }
 
 /* ────────── Solo booking ────────── */
@@ -609,7 +622,9 @@ export async function bookSolo(
     p_starts_at: startsAt.toISOString(),
   });
   if (error) throw new Error(humanizeRpcError(error.message));
-  return String(data);
+  const bookingId = String(data);
+  notifyAdminOfBooking(bookingId);
+  return bookingId;
 }
 
 export async function cancelMyBooking(
