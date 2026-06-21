@@ -10,13 +10,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { toast } from "sonner";
+import { sendInviteEmail } from "@/lib/email";
 import { createInvitation, inviteUrl } from "@/lib/members";
 import { cn } from "@/lib/utils";
 
 /**
- * Reusable owner-side invite sheet. Creates an `invitations` row and shows the
- * shareable link. Owner can copy the link and send it to the invitee any way
- * they like (WhatsApp, email, in person) — no email infrastructure required.
+ * Reusable owner-side invite sheet. Creates an `invitations` row, sends the
+ * invite email, and shows the shareable link.
  *
  * Wire `onInvited()` to refetch your invitations list after a successful create.
  */
@@ -86,6 +87,21 @@ function InviteForm({
     setError(null);
     try {
       const row = await createInvitation(studioId, email, role, invitedBy);
+
+      try {
+        await sendInviteEmail({
+          email: row.email,
+          role,
+          link: inviteUrl(row.token),
+        });
+
+        toast.success(`Invitation email sent to ${row.email}`);
+      } catch (error) {
+        console.error("[invite-sheet] sendInviteEmail:", error);
+
+        toast.error("Invite link created, but email could not be sent.");
+      }
+
       setCreatedLink(inviteUrl(row.token));
       onInvited?.();
     } catch (err) {
@@ -151,14 +167,15 @@ function InviteForm({
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
-              Sent to: <span className="text-foreground">{email}</span> · Expires in 7 days
+              Sent to: <span className="text-foreground">{email}</span> ·
+              Expires in 7 days
             </p>
           </div>
 
           <div className="rounded-lg border border-dashed border-border p-3 text-[12px] text-muted-foreground leading-relaxed">
             <Mail className="w-3.5 h-3.5 inline mr-1.5" />
-            Automatic invite emails will land in a later release. For now,
-            paste the link into WhatsApp, Slack, or your own email client.
+            Automatic invite emails will land in a later release. For now, paste
+            the link into WhatsApp, Slack, or your own email client.
           </div>
         </div>
       ) : (
@@ -171,17 +188,19 @@ function InviteForm({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={role === "admin" ? "stylist@example.com" : "client@example.com"}
+              placeholder={
+                role === "admin" ? "stylist@example.com" : "client@example.com"
+              }
               autoComplete="off"
               required
               className={cn(
                 "w-full h-10 rounded-lg border border-border bg-background px-3 text-[13px] outline-none motion-safe:transition-colors motion-safe:duration-150",
-                "hover:border-foreground/30 focus:border-ring focus:ring-2 focus:ring-ring/20"
+                "hover:border-foreground/30 focus:border-ring focus:ring-2 focus:ring-ring/20",
               )}
             />
             <p className="text-[11px] text-muted-foreground mt-1.5">
-              This shows up in your pending invites. The invite link works regardless
-              of which email they sign up with.
+              This shows up in your pending invites. The invite link works
+              regardless of which email they sign up with.
             </p>
           </div>
 
@@ -220,7 +239,12 @@ function InviteForm({
                 </>
               )}
             </Button>
-            <Button variant="ghost" className="w-full" onClick={onClose} disabled={submitting}>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={onClose}
+              disabled={submitting}
+            >
               Cancel
             </Button>
           </>

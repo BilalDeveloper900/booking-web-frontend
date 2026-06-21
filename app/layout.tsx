@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Poppins, Geist_Mono } from "next/font/google";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import { ThemeProvider, themeBootScript } from "@/components/theme-provider";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
@@ -75,7 +75,7 @@ export default function RootLayout({
           <OfflineIndicator />
           <PWAInstallPrompt />
           <Toaster
-            position="top-right"
+            position="top-center"
             toastOptions={{
               duration: 3500,
               // .toast-themed (defined in globals.css) uses CSS variables +

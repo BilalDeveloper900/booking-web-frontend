@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Send, Check, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { sendContactSubmission } from "@/lib/email";
 
 const SUPPORT_EMAIL = "bookitdaily@gmail.com";
 
@@ -12,9 +13,9 @@ const TOPICS = ["Sales", "Support", "Billing", "Partnership", "Other"] as const;
 type Topic = (typeof TOPICS)[number];
 
 /**
- * Contact form (light surface, matches the rest of the site). No backend: on
- * submit it composes a pre-filled email and opens the visitor's mail app
- * (mailto). Swap for a real API/email service later without changing the page.
+ * Contact form (light surface, matches the rest of the site). On submit it
+ * sends a transactional email through Supabase Edge Functions, with a mailto
+ * fallback if the function call fails.
  */
 export function ContactForm() {
   const [name, setName] = useState("");
@@ -29,14 +30,29 @@ export function ContactForm() {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSend) return;
-    const subject = `[${topic}] Message from ${name.trim()}`;
-    const body = `${message.trim()}\n\n— ${name.trim()} (${email.trim()})`;
-    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    setOpened(true);
+    void (async () => {
+      try {
+        await sendContactSubmission({
+          name: name.trim(),
+          email: email.trim(),
+          topic,
+          message: message.trim(),
+        });
+        setOpened(true);
+      } catch {
+        const subject = `[${topic}] Message from ${name.trim()}`;
+        const body = `${message.trim()}\n\n— ${name.trim()} (${email.trim()})`;
+        window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        setOpened(true);
+      }
+    })();
   }
 
   return (
-    <form onSubmit={onSubmit} className="bg-card border border-border rounded-2xl p-6 md:p-7 space-y-4 shadow-hero">
+    <form
+      onSubmit={onSubmit}
+      className="bg-card border border-border rounded-2xl p-6 md:p-7 space-y-4 shadow-hero"
+    >
       <Field label="Name">
         <input
           type="text"
@@ -58,7 +74,11 @@ export function ContactForm() {
         />
       </Field>
       <Field label="Topic">
-        <select value={topic} onChange={(e) => setTopic(e.target.value as Topic)} className={inputCls}>
+        <select
+          value={topic}
+          onChange={(e) => setTopic(e.target.value as Topic)}
+          className={inputCls}
+        >
           {TOPICS.map((t) => (
             <option key={t} value={t}>
               {t}
@@ -86,13 +106,21 @@ export function ContactForm() {
         />
         <span>
           I agree with the{" "}
-          <Link href="/terms" className="text-primary underline underline-offset-2 hover:opacity-80">
+          <Link
+            href="/terms"
+            className="text-primary underline underline-offset-2 hover:opacity-80"
+          >
             Terms and Conditions
           </Link>
         </span>
       </label>
 
-      <Button type="submit" size="lg" className="w-full gap-2" disabled={!canSend}>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full gap-2"
+        disabled={!canSend}
+      >
         {opened ? (
           <>
             <Check className="w-4 h-4" /> Opened your email app
@@ -105,7 +133,9 @@ export function ContactForm() {
       </Button>
 
       <div className="pt-2 border-t border-border">
-        <div className="text-[12px] font-semibold text-foreground mt-3 mb-2">You can also contact us via</div>
+        <div className="text-[12px] font-semibold text-foreground mt-3 mb-2">
+          You can also contact us via
+        </div>
         <a
           href={`mailto:${SUPPORT_EMAIL}`}
           className="inline-flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground motion-safe:transition-colors"
@@ -123,10 +153,16 @@ export function ContactForm() {
 const inputCls = cn(
   "w-full h-11 rounded-lg border border-border bg-background px-3 text-[13px] text-foreground placeholder:text-muted-foreground/60",
   "outline-none motion-safe:transition-colors motion-safe:duration-150",
-  "hover:border-foreground/30 focus:border-ring focus:ring-2 focus:ring-ring/20"
+  "hover:border-foreground/30 focus:border-ring focus:ring-2 focus:ring-ring/20",
 );
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="block text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground mb-1.5">
