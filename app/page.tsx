@@ -243,7 +243,7 @@ export default function LandingPage() {
         <RolesSection />
         <HowItWorks />
         <PricingSection />
-        <AddonsSection />
+        {/* <AddonsSection /> */}
         <BuildOffers />
         <FaqSection />
         <FooterCta />
