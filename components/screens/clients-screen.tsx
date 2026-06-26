@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { StatBlock, PersonCell, Pill, HueAvatar } from "@/components/shared";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
+import { useEffectivePlan } from "@/lib/limits";
 import {
   useStudioMembers,
   useStudioInvitations,
@@ -51,6 +52,10 @@ export function ClientsScreen() {
   const studioId = member?.studio.id;
   const ownerUserId = member?.user.id;
   const currency = member?.studio.currency ?? "EUR";
+  // Credits + manual payments are a Studio-plan feature; hide their controls
+  // below Studio. (The record_manual_sale / credit RPCs also enforce this.)
+  const { plan } = useEffectivePlan(studioId);
+  const moneyEnabled = plan === "studio";
 
   const {
     members: clients,
@@ -256,36 +261,40 @@ export function ClientsScreen() {
                   </td>
                   <td className="pr-4">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Record payment for ${c.user.name}`}
-                        onClick={() =>
-                          setPayTarget({
-                            memberId: c.id,
-                            name: c.user.name,
-                            hue: c.user.avatar_hue,
-                            email: c.user.email,
-                          })
-                        }
-                      >
-                        <Wallet className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Gift credits to ${c.user.name}`}
-                        onClick={() =>
-                          setGiftTarget({
-                            memberId: c.id,
-                            name: c.user.name,
-                            hue: c.user.avatar_hue,
-                            email: c.user.email,
-                          })
-                        }
-                      >
-                        <Gift className="w-4 h-4" />
-                      </Button>
+                      {moneyEnabled && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Record payment for ${c.user.name}`}
+                            onClick={() =>
+                              setPayTarget({
+                                memberId: c.id,
+                                name: c.user.name,
+                                hue: c.user.avatar_hue,
+                                email: c.user.email,
+                              })
+                            }
+                          >
+                            <Wallet className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Gift credits to ${c.user.name}`}
+                            onClick={() =>
+                              setGiftTarget({
+                                memberId: c.id,
+                                name: c.user.name,
+                                hue: c.user.avatar_hue,
+                                email: c.user.email,
+                              })
+                            }
+                          >
+                            <Gift className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon-sm"

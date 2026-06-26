@@ -107,7 +107,7 @@ async function buildBookingEmail(bookingId: string): Promise<BuiltEmail | null> 
         session:sessions!bookings_session_id_fkey(
           starts_at,
           duration_min,
-          studio:studios!sessions_studio_id_fkey(name, timezone),
+          studio:studios!sessions_studio_id_fkey(id, name, timezone),
           service:services!sessions_service_id_fkey(name, mode),
           admin:studio_members!sessions_admin_member_id_fkey(
             user:users!studio_members_user_id_fkey(name, email)
@@ -136,6 +136,15 @@ async function buildBookingEmail(bookingId: string): Promise<BuiltEmail | null> 
 
   const adminEmail = adminUser?.email;
   if (!adminEmail) return null; // nobody to notify
+
+  // Booking email alerts are a Solo+ feature — Free studios don't send them.
+  const studioId = (studio as { id?: string } | null)?.id;
+  if (studioId) {
+    const { data: plan } = await supabaseAdmin.rpc("effective_plan", {
+      p_studio_id: studioId,
+    });
+    if (plan === "free") return null;
+  }
 
   const adminName = adminUser?.name ?? "there";
   const clientName = clientUser?.name ?? "A client";

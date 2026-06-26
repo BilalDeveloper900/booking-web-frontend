@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { HueAvatar } from "@/components/shared";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
+import { useEffectivePlan } from "@/lib/limits";
 import { useAdminTimeOffDates } from "@/lib/availability";
 import {
   useUpcomingClasses,
@@ -80,6 +81,9 @@ function SoloFlow() {
   const { services, loading: servicesLoading, error: servicesError } =
     useSoloServices(studioId);
   const { balance, refetch: refetchBalance } = useMyCredits(myMemberId);
+  // Credits only apply on Studio; below that, bookings are free reservations.
+  const { plan } = useEffectivePlan(studioId);
+  const creditsEnabled = plan === "studio";
 
   const dates = useMemo(() => buildNextDays(NEXT_DAYS), []);
 
@@ -145,7 +149,7 @@ function SoloFlow() {
     }
   }
 
-  const cost = service?.creditsCost ?? 0;
+  const cost = creditsEnabled ? service?.creditsCost ?? 0 : 0;
   const afterBalance = Math.max(0, balance - cost);
   const canConfirm = Boolean(service && effectivePicked) && balance >= cost && !submitting;
 
@@ -203,7 +207,9 @@ function SoloFlow() {
                   >
                     <div className="text-[13px] font-semibold truncate">{s.name}</div>
                     <div className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
-                      {s.durationMin}m · {s.creditsCost} cr · {s.adminName.split(" ")[0]}
+                      {s.durationMin}m
+                      {creditsEnabled ? ` · ${s.creditsCost} cr` : ""} ·{" "}
+                      {s.adminName.split(" ")[0]}
                     </div>
                   </button>
                 );
@@ -349,15 +355,21 @@ function SoloFlow() {
                 value={effectivePicked ? formatTime(effectivePicked) : "—"}
               />
               <div className="h-px bg-border" />
-              <SummaryRow
-                label="Cost"
-                value={`${service.creditsCost} credit${service.creditsCost === 1 ? "" : "s"}`}
-                bold
-              />
-              <SummaryRow
-                label="After booking"
-                value={`${afterBalance} credits left`}
-              />
+              {creditsEnabled ? (
+                <>
+                  <SummaryRow
+                    label="Cost"
+                    value={`${service.creditsCost} credit${service.creditsCost === 1 ? "" : "s"}`}
+                    bold
+                  />
+                  <SummaryRow
+                    label="After booking"
+                    value={`${afterBalance} credits left`}
+                  />
+                </>
+              ) : (
+                <SummaryRow label="Cost" value="Free" bold />
+              )}
             </div>
           ) : (
             <div className="text-[12px] text-muted-foreground py-6 text-center border border-dashed border-border rounded-lg">
@@ -516,6 +528,9 @@ function ClassFlow() {
     myMemberId
   );
   const { balance, refetch: refetchBalance } = useMyCredits(myMemberId);
+  // Credits only apply on Studio; below that, classes are free to reserve.
+  const { plan } = useEffectivePlan(studioId);
+  const creditsEnabled = plan === "studio";
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = classes.find((c) => c.sessionId === selectedId) ?? null;
@@ -643,17 +658,23 @@ function ClassFlow() {
                   value={`${selected.enrolled} / ${selected.capacity}`}
                 />
                 <div className="h-px bg-border" />
-                <SummaryRow
-                  label="Cost"
-                  value={`${selected.creditsCost} credit${selected.creditsCost === 1 ? "" : "s"}`}
-                  bold
-                />
-                <SummaryRow
-                  label={selected.enrolledByMe ? "Balance" : "After enrolling"}
-                  value={`${
-                    selected.enrolledByMe ? balance : Math.max(0, balance - selected.creditsCost)
-                  } credits`}
-                />
+                {creditsEnabled ? (
+                  <>
+                    <SummaryRow
+                      label="Cost"
+                      value={`${selected.creditsCost} credit${selected.creditsCost === 1 ? "" : "s"}`}
+                      bold
+                    />
+                    <SummaryRow
+                      label={selected.enrolledByMe ? "Balance" : "After enrolling"}
+                      value={`${
+                        selected.enrolledByMe ? balance : Math.max(0, balance - selected.creditsCost)
+                      } credits`}
+                    />
+                  </>
+                ) : (
+                  <SummaryRow label="Cost" value="Free" bold />
+                )}
               </div>
 
               {actionError && (
@@ -686,13 +707,13 @@ function ClassFlow() {
                   className="w-full mt-5"
                   size="lg"
                   onClick={handleEnroll}
-                  disabled={actioning || balance < selected.creditsCost}
+                  disabled={actioning || (creditsEnabled && balance < selected.creditsCost)}
                 >
                   {actioning ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" /> Enrolling
                     </>
-                  ) : balance < selected.creditsCost ? (
+                  ) : creditsEnabled && balance < selected.creditsCost ? (
                     "Not enough credits"
                   ) : (
                     <>

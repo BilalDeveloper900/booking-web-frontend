@@ -13,7 +13,7 @@ export default function RefundPolicyPage() {
     <LegalShell
       title="Refund Policy"
       intro="We want you to be happy with Book It Daily. This policy explains when refunds are available and how to request one."
-      updated="30 May 2026"
+      updated="27 June 2026"
     >
       <LegalSection heading="1. Scope">
         <p>
@@ -76,9 +76,8 @@ export default function RefundPolicyPage() {
           <li>Partial or unused time on a monthly plan after the window;</li>
           <li>
             Accounts terminated by us for violating our{" "}
-            <Link href="/terms">Terms of Service</Link>;
+            <Link href="/terms">Terms of Service</Link>.
           </li>
-          <li>Add-on charges that have already been delivered or consumed (for example, SMS usage).</li>
         </ul>
         <p>
           Nothing in this policy limits any non-waivable refund or cancellation rights you may have

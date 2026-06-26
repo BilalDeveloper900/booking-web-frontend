@@ -12,8 +12,11 @@ import {
 } from "@/components/ui/sheet";
 import { ChatNotificationsProvider } from "@/components/chat-notifications";
 import { NotificationsProvider } from "@/components/notifications-provider";
+import { PoweredByFooter } from "@/components/powered-by-footer";
 import { ROLE_CONFIGS, type Role, type RoleConfig } from "@/lib/roles";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
+import { useEffectivePlan } from "@/lib/limits";
+import { planAllows } from "@/lib/plans";
 
 function deriveTitle(pathname: string, config: { navItems: { href: string; label: string }[] }): string {
   // Static routes that don't appear in the sidebar still need a title.
@@ -54,16 +57,33 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
       }
     : staticConfig;
 
+  // Plan-gated navigation. While the plan resolves we show the full nav
+  // (optimistic) so paid studios never see their tools flicker out; once
+  // resolved we hide what this plan doesn't include.
+  const { plan, loading: planLoading } = useEffectivePlan(member?.studio.id);
+  const navItems = planLoading
+    ? config.navItems
+    : config.navItems.filter((item) => {
+        if (item.id === "messages") return planAllows(plan, "chat"); // Solo+
+        if (role === "owner" && (item.id === "finance" || item.id === "offers")) {
+          return plan === "studio";
+        }
+        if (role === "client" && item.id === "credits") return plan === "studio";
+        return true;
+      });
+  const navConfig: RoleConfig = { ...config, navItems };
+  const showBranding = role === "client" && !planLoading && plan === "free";
+
   return (
     <ChatNotificationsProvider>
       <NotificationsProvider>
       <div data-role={role} className="flex h-dvh overflow-hidden bg-background">
-        <AppSidebar config={config} currentPath={pathname} />
+        <AppSidebar config={navConfig} currentPath={pathname} />
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="w-60 p-0" showCloseButton={false}>
             <SheetTitle className="sr-only">Account &amp; settings</SheetTitle>
-            <AppSidebar config={config} currentPath={pathname} className="flex w-full border-r-0" />
+            <AppSidebar config={navConfig} currentPath={pathname} className="flex w-full border-r-0" />
           </SheetContent>
         </Sheet>
 
@@ -75,10 +95,11 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
           />
           <main className="flex-1 overflow-hidden flex flex-col min-h-0 pb-[calc(env(safe-area-inset-bottom)+64px)] lg:pb-0">
             {children}
+            {showBranding && <PoweredByFooter />}
           </main>
         </div>
 
-        <AppBottomTabs config={config} currentPath={pathname} />
+        <AppBottomTabs config={navConfig} currentPath={pathname} />
       </div>
       </NotificationsProvider>
     </ChatNotificationsProvider>

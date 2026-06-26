@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, AlertCircle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { PersonCell, Pill } from "@/components/shared";
 import {
   Skeleton,
@@ -12,6 +13,7 @@ import {
   TableSkeletonRows,
 } from "@/components/skeletons";
 import { useCurrentMember } from "@/lib/auth/use-current-member";
+import { useEffectivePlan } from "@/lib/limits";
 import { useMyBookings, useMyCredits } from "@/lib/client-bookings";
 import type { MyBookingItem } from "@/lib/client-bookings";
 
@@ -20,6 +22,9 @@ export function ClientHome() {
   const memberId = member?.member.id;
   const { balance, loading: balanceLoading } = useMyCredits(memberId);
   const { bookings, loading: bookingsLoading, error } = useMyBookings(memberId);
+  // Credits are a Studio feature; below that, bookings are free reservations.
+  const { plan } = useEffectivePlan(member?.studio.id);
+  const creditsEnabled = plan === "studio";
 
   const { upcoming, past, bookAgain } = useMemo(
     () => splitBookings(bookings),
@@ -64,9 +69,14 @@ export function ClientHome() {
         </div>
       )}
 
-      {/* Hero credits + small stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_1fr] gap-4 mb-8">
-        <CreditsHero balance={balance} loading={balanceLoading} />
+      {/* Hero credits (Studio only) + small stats */}
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-4 mb-8",
+          creditsEnabled ? "lg:grid-cols-[1.4fr_1fr_1fr]" : "lg:grid-cols-2"
+        )}
+      >
+        {creditsEnabled && <CreditsHero balance={balance} loading={balanceLoading} />}
         <SmallStat
           label="Upcoming"
           value={String(upcoming.length)}
@@ -94,7 +104,7 @@ export function ClientHome() {
         ) : (
           <div className="grid grid-cols-1 gap-3">
             {upcoming.slice(0, 3).map((b) => (
-              <UpcomingCard key={b.bookingId} booking={b} />
+              <UpcomingCard key={b.bookingId} booking={b} showCredits={creditsEnabled} />
             ))}
           </div>
         )}
@@ -112,7 +122,11 @@ export function ClientHome() {
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
             {bookAgain.map((b) => (
-              <BookAgainCard key={b.serviceName + b.adminName} item={b} />
+              <BookAgainCard
+                key={b.serviceName + b.adminName}
+                item={b}
+                showCredits={creditsEnabled}
+              />
             ))}
           </div>
         )}
@@ -127,12 +141,12 @@ export function ClientHome() {
                   <Th>Date</Th>
                   <Th>Service</Th>
                   <Th>Admin</Th>
-                  <Th align="right">Credits</Th>
+                  {creditsEnabled && <Th align="right">Credits</Th>}
                   <Th>Status</Th>
                 </tr>
               </thead>
               <tbody>
-                <TableSkeletonRows rows={4} cols={5} />
+                <TableSkeletonRows rows={4} cols={creditsEnabled ? 5 : 4} />
               </tbody>
             </table>
           </div>
@@ -147,7 +161,7 @@ export function ClientHome() {
                     <Th>Date</Th>
                     <Th>Service</Th>
                     <Th>Admin</Th>
-                    <Th align="right">Credits</Th>
+                    {creditsEnabled && <Th align="right">Credits</Th>}
                     <Th>Status</Th>
                   </tr>
                 </thead>
@@ -160,7 +174,9 @@ export function ClientHome() {
                       <td className="px-4 py-3 tabular-nums">{formatDay(v.startsAt)}</td>
                       <td className="px-4 py-3">{v.serviceName}</td>
                       <td className="px-4 py-3">{v.adminName}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{v.creditsCharged}</td>
+                      {creditsEnabled && (
+                        <td className="px-4 py-3 text-right tabular-nums">{v.creditsCharged}</td>
+                      )}
                       <td className="px-4 py-3">
                         {v.status === "attended" ? (
                           <Pill kind="sage">Attended</Pill>
@@ -219,7 +235,13 @@ function CreditsHero({ balance, loading }: { balance: number; loading: boolean }
   );
 }
 
-function UpcomingCard({ booking }: { booking: MyBookingItem }) {
+function UpcomingCard({
+  booking,
+  showCredits,
+}: {
+  booking: MyBookingItem;
+  showCredits: boolean;
+}) {
   const { day, monthShort } = splitDate(booking.startsAt);
   return (
     <div className="bg-card border border-border rounded-xl shadow-card p-4 flex flex-col sm:flex-row sm:items-center gap-4 motion-safe:transition-all motion-safe:duration-200 hover:shadow-hero hover:-translate-y-px">
@@ -231,8 +253,10 @@ function UpcomingCard({ booking }: { booking: MyBookingItem }) {
         <div className="min-w-0">
           <div className="text-[13px] font-medium">{booking.serviceName}</div>
           <div className="text-xs text-muted-foreground tabular-nums">
-            {formatTime(booking.startsAt)} · {booking.durationMin}m ·{" "}
-            {booking.creditsCharged} credit{booking.creditsCharged === 1 ? "" : "s"}
+            {formatTime(booking.startsAt)} · {booking.durationMin}m
+            {showCredits
+              ? ` · ${booking.creditsCharged} credit${booking.creditsCharged === 1 ? "" : "s"}`
+              : ""}
           </div>
           <div className="mt-1.5">
             <PersonCell name={booking.adminName} hue={booking.adminHue} />
@@ -254,16 +278,20 @@ function UpcomingCard({ booking }: { booking: MyBookingItem }) {
 
 function BookAgainCard({
   item,
+  showCredits,
 }: {
   item: { serviceName: string; adminName: string; durationMin: number; creditsCharged: number };
+  showCredits: boolean;
 }) {
   return (
     <div className="bg-card border border-border rounded-xl shadow-card p-4 min-w-50 shrink-0 flex flex-col motion-safe:transition-all motion-safe:duration-200 hover:shadow-hero hover:-translate-y-px">
       <div className="text-[13px] font-medium mb-1 truncate">{item.serviceName}</div>
       <div className="text-xs text-muted-foreground mb-1 truncate">{item.adminName}</div>
       <div className="text-xs text-muted-foreground mb-3 tabular-nums">
-        {item.durationMin}m · {item.creditsCharged} credit
-        {item.creditsCharged === 1 ? "" : "s"}
+        {item.durationMin}m
+        {showCredits
+          ? ` · ${item.creditsCharged} credit${item.creditsCharged === 1 ? "" : "s"}`
+          : ""}
       </div>
       <div className="flex-1" />
       <Link

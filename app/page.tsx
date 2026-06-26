@@ -23,6 +23,7 @@ import { DemoBooking } from "@/components/marketing/demo-booking";
 import { BentoFeatures } from "@/components/marketing/bento-features";
 import { RoleShowcase } from "@/components/marketing/role-showcase";
 import { PricingPlans } from "@/components/marketing/pricing-plans";
+import { SAAS_PLANS } from "@/lib/plans";
 
 /* ───────────────────────── SEO ───────────────────────── */
 
@@ -70,58 +71,9 @@ export const metadata: Metadata = {
 
 /* ───────────────────────── content ───────────────────────── */
 
-const TIERS = [
-  {
-    id: "free",
-    name: "Free",
-    tagline: "For solo coaches starting out",
-    monthly: 0,
-    yearly: 0,
-    cta: "Start free",
-    features: [
-      "1 admin",
-      "30 active clients",
-      "50 bookings / month",
-      "Booking calendar + agenda",
-      "Client + admin messages",
-      "Mobile PWA — installable",
-    ],
-    limits: 'Includes "Powered by Book It Daily" footer.',
-  },
-  {
-    id: "solo",
-    name: "Solo",
-    tagline: "For 1-person studios going pro",
-    monthly: 9,
-    yearly: 90,
-    cta: "Start 14-day trial",
-    features: [
-      "1 admin",
-      "150 active clients",
-      "Unlimited bookings",
-      "Branding removed",
-      "Finance dashboard",
-      "Email support",
-    ],
-  },
-  {
-    id: "studio",
-    name: "Studio",
-    tagline: "Where most studios land",
-    monthly: 24,
-    yearly: 240,
-    cta: "Start 14-day trial",
-    popular: true,
-    features: [
-      "5 admins",
-      "500 active clients",
-      "Custom domain",
-      "Build your own client offers",
-      "Dark mode for your team",
-      "Priority email support",
-    ],
-  },
-] as const;
+// Plan tiers live in lib/plans.ts — single source shared with /pricing and the
+// in-app /owner/subscription screen so the marketing copy can't drift from the
+// limits the app actually enforces.
 
 const HOW_IT_WORKS = [
   {
@@ -164,10 +116,6 @@ const FAQ = [
     a: "Your Book It Daily subscription is billed through Polar, our Merchant of Record, which handles VAT and sales tax globally. For the payments your own clients make to you, plug in whatever you already use — Stripe, Polar, Square, cash, or bank transfer.",
   },
   {
-    q: "Can I migrate my existing bookings?",
-    a: "Yes — CSV import for clients and bookings is available on the Studio plan, so you can move your existing book of business over without re-keying everything.",
-  },
-  {
     q: "Can I cancel anytime?",
     a: "Yes. Monthly plans stop renewing at the next billing date and annual plans are handled per our refund policy. There are no long-term contracts.",
   },
@@ -207,7 +155,7 @@ function structuredData() {
         operatingSystem: "Web, iOS, Android (PWA)",
         description: SITE_DESCRIPTION,
         publisher: { "@id": `${SITE_URL}/#organization` },
-        offers: TIERS.map((t) => ({
+        offers: SAAS_PLANS.map((t) => ({
           "@type": "Offer",
           name: `${t.name} plan`,
           price: String(t.monthly),
@@ -483,7 +431,7 @@ function PricingSection() {
           subtitle="Save 2 months when you pay yearly. All prices in USD."
         />
         <Reveal delay={120} className="mt-12 block">
-          <PricingPlans tiers={TIERS} />
+          <PricingPlans tiers={SAAS_PLANS} />
         </Reveal>
         <p className="text-[12px] text-muted-foreground text-center mt-6">
           Looking for the full breakdown?{" "}

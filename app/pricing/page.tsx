@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { PricingPlans } from "@/components/marketing/pricing-plans";
+import { SAAS_PLANS } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Pricing — Book It Daily",
@@ -13,58 +14,9 @@ export const metadata: Metadata = {
     "Simple, flat pricing for Book It Daily — booking & membership software for yoga & pilates studios, gyms, and personal trainers. Free forever tier plus paid plans in USD. No transaction fees.",
 };
 
-const TIERS = [
-  {
-    id: "free",
-    name: "Free",
-    tagline: "For solo coaches starting out",
-    monthly: 0,
-    yearly: 0,
-    cta: "Start free",
-    features: [
-      "1 admin seat",
-      "Up to 30 active clients",
-      "50 bookings / month",
-      "Booking calendar + agenda",
-      "Client + admin messaging",
-      "Installable mobile PWA",
-    ],
-    limits: 'Includes a "Powered by Book It Daily" footer.',
-  },
-  {
-    id: "solo",
-    name: "Solo",
-    tagline: "For 1-person studios going pro",
-    monthly: 9,
-    yearly: 90,
-    cta: "Start 14-day trial",
-    features: [
-      "1 admin seat",
-      "Up to 150 active clients",
-      "Unlimited bookings",
-      "Branding removed",
-      "Finance dashboard",
-      "Email support",
-    ],
-  },
-  {
-    id: "studio",
-    name: "Studio",
-    tagline: "Where most studios land",
-    monthly: 24,
-    yearly: 240,
-    cta: "Start 14-day trial",
-    popular: true,
-    features: [
-      "Up to 5 admin seats",
-      "Up to 500 active clients",
-      "Custom domain",
-      "Build your own client offers",
-      "Dark mode for your team",
-      "Priority email support",
-    ],
-  },
-] as const;
+// Plans are defined once in lib/plans.ts (shared with the landing page + the
+// in-app /owner/subscription screen) so marketing copy never drifts from what
+// the app actually enforces.
 
 // add-ons temporarily hidden — see commented section below
 // const ADDONS = [
@@ -120,7 +72,7 @@ export default function PricingPage() {
         {/* tiers */}
         <section className="py-12 md:py-16">
           <div className="max-w-6xl mx-auto px-4 md:px-6">
-            <PricingPlans tiers={TIERS} />
+            <PricingPlans tiers={SAAS_PLANS} />
             <p className="text-[12px] text-muted-foreground text-center mt-6">
               Prices exclude applicable sales tax / VAT, which is calculated at checkout by our
               payment provider, Polar.

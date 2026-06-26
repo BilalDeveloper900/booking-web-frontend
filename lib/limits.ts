@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { PlanId } from "@/lib/plans";
+import { effectivePlan, type PlanId } from "@/lib/plans";
 
 export type PlanLimits = {
   admins: number | null;
@@ -165,6 +165,48 @@ export function useStudioUsage(studioId: string | undefined): StudioUsage {
       });
     })();
 
+    return () => {
+      cancelled = true;
+    };
+  }, [studioId]);
+
+  return state;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// useEffectivePlan — the studio's churn-adjusted plan, readable by ANY active
+// member (owner/admin/client) via the `studio_effective_plan` RPC. Used to gate
+// nav items, pages, and in-screen controls. Lighter than useStudioUsage (no
+// count queries) — use this when you only need the plan, not usage numbers.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type EffectivePlanState = { plan: PlanId; loading: boolean };
+
+export function useEffectivePlan(studioId: string | undefined): EffectivePlanState {
+  const [state, setState] = useState<EffectivePlanState>(() => ({
+    plan: "free",
+    loading: Boolean(studioId),
+  }));
+
+  useEffect(() => {
+    if (!studioId) {
+      setState({ plan: "free", loading: false });
+      return;
+    }
+    let cancelled = false;
+    const supabase = createClient();
+    // Generated supabase types won't include the new RPC until `npm run db:gen`;
+    // use the untyped overload — runtime is unchanged.
+    (
+      supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => PromiseLike<{ data: unknown; error: { message: string } | null }>
+    )("studio_effective_plan", { p_studio_id: studioId }).then(({ data, error }) => {
+      if (cancelled) return;
+      const plan = !error && typeof data === "string" ? effectivePlan(data) : "free";
+      setState({ plan, loading: false });
+    });
     return () => {
       cancelled = true;
     };
