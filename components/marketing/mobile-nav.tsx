@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 const LINKS = [
   { href: "/#demo", label: "Live demo" },
@@ -82,6 +83,22 @@ export function MobileNav() {
                 </Link>
               </li>
             ))}
+            <li className="pt-3 pb-2 flex flex-col gap-2">
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="block text-center h-10 leading-10 text-[15px] font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg w-full motion-safe:transition-colors motion-safe:duration-150"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/signup"
+                onClick={() => setOpen(false)}
+                className={cn(buttonVariants({ size: "default" }), "w-full h-10 justify-center")}
+              >
+                Start free
+              </Link>
+            </li>
           </ul>
         </nav>
       )}

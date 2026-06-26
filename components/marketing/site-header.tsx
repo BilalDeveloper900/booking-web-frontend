@@ -25,7 +25,9 @@ export function SiteHeader() {
           <Link href="/contact" className="hover:text-foreground motion-safe:transition-colors">Contact</Link>
         </nav>
         <div className="flex-1" />
-        <SiteHeaderActions />
+        <div className="hidden md:flex items-center gap-3">
+          <SiteHeaderActions />
+        </div>
         <MobileNav />
       </div>
     </header>
